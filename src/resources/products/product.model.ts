@@ -26,12 +26,6 @@ const UserSchema = new Schema({
     trim: true
   },
 
-  Password: {
-    type: String,
-    required: true,
-
-  },
-
   UserName: {
     type: String
   },

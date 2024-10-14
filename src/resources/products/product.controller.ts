@@ -3,7 +3,7 @@ import Controller from "@/utils/interfaces/controller.interface";
 import HttpException from "@/utils/exceptions/http.exception";
 import validationMiddleware from "@/middleware/validation.middleware";
 import UserService from "@/resources/user/user.service";
-import validate from "./user.validation";
+import validate from "./product.validation";
 import { responseObject } from "@/utils/http.response";
 import { HttpCodes } from "@/utils/httpcode";
 import authenticatedMiddleware from "@/middleware/authenticated.middleware";
