@@ -5,7 +5,7 @@ import validationMiddleware from "@/middleware/validation.middleware";
 import UserService from "@/resources/user/user.service";
 import validate from "./user.validation";
 import { responseObject } from "@/utils/helpers/http.response";
-import { HttpCodes } from "@/utils/constants.ts/httpcode";
+import { HttpCodes } from "@/utils/constants/httpcode";
 import authenticatedMiddleware from "@/middleware/authenticated.middleware";
 import { CreateUserDto } from "./user.dto";
 
