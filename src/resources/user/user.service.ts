@@ -1,31 +1,93 @@
-import User from "@/resources/user/user.interface";
+import { User, ShippingAddress } from "@/resources/user/user.interface";
 import UserModel from "@/resources/user/user.model";
 import { uniqueCode } from "@/utils/helpers";
-import { createToken } from "@/utils/token";
+import { createToken } from "@/utils/helpers/token";
 
-import logger from "@/utils/logger";
-import { CreateUser } from "./user.dto";
+// import logger from "@/utils/logger";
+import { AddShippingAddressDto, CreateUserDto } from "./user.dto";
+import { hashPassword } from "@/utils/helpers/token";
+import { StatusMessages } from "@/utils/enums/base.enum";
+import ResponseData from "@/utils/interfaces/responseData.interface";
+import { HttpCodes } from "@/utils/constants/httpcode";
 
 class UserService {
   private user = UserModel;
 
   public async createUser(
-    createUser: CreateUser
-  ): Promise<boolean | Error> {
-
+    createUser: CreateUserDto
+  ): Promise<ResponseData> {
+    let responseData: ResponseData
     try {
-      //do some checkings
-      console.log("dsdoiuueuuew", createUser);
 
-      const userExist = await this.user.findOne({ userId: createUser.userId });
-      console.log("doduhd", userExist)
+      const userExist = await this.user.findOne({
+        $or: [
+          { Email: createUser.Email.toLowerCase() },
+          { PhoneNumber: createUser.PhoneNumber },
+        ]
+      });
+
       if (userExist) {
-        return true;
+        responseData = {
+          status: StatusMessages.error,
+          code: HttpCodes.HTTP_BAD_REQUEST,
+          message: "User With These Details Already Exists",
+        }
+      } else {
+        const full_name_split = createUser.FullName.split(" ")
+        const hashedPassword = await hashPassword(createUser.Password)
+        const createdUser: User = await this.user.create({
+          FirstName: full_name_split.length > 0 ? full_name_split[0].toLowerCase() : "",
+          LastName: full_name_split.length > 1 ? full_name_split[1].toLowerCase() : "",
+          Email: createUser.Email.toLowerCase(),
+          PhoneNumber: createUser.PhoneNumber,
+          Password: hashedPassword,
+          SignupChannel: createUser?.SignupChannel,
+          UserType: createUser?.UserType,
+
+        });
+        responseData = {
+          status: StatusMessages.success,
+          code: HttpCodes.HTTP_CREATED,
+          message: "User Created Successfully",
+          data: createdUser
+        }
       }
-      const createdUser: User = await this.user.create(createUser as any);
-      return true;
+
+      return responseData;
     } catch (error: any) {
-      return false;
+      console.log("🚀 ~ UserService ~ error:", error)
+      responseData = {
+        status: StatusMessages.error,
+        code: HttpCodes.HTTP_SERVER_ERROR,
+        message: error.toString()
+      }
+      return responseData;
+    }
+
+  }
+
+  public async addShippingAddress(
+    addShippingAddress: AddShippingAddressDto,
+    user: User
+  ): Promise<User | Error> {
+    try {
+      user.ShippingAddress = {
+        full_address: addShippingAddress.address
+      }
+      await user.save()
+      return user;
+    } catch (error: any) {
+      return error;
+    }
+
+  }
+
+
+  public async getProfile(user: User): Promise<User | Error> {
+    try {
+      return user;
+    } catch (error: any) {
+      return error;
     }
 
   }
