@@ -4,7 +4,7 @@ import { uniqueCode } from "@/utils/helpers";
 import { createToken } from "@/utils/token";
 
 import logger from "@/utils/logger";
-import { CreateUser } from "./user.dto";
+import { CreateUser } from "./product.dto";
 
 class UserService {
   private user = UserModel;
