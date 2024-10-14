@@ -1,10 +1,10 @@
 import { User, ShippingAddress } from "@/resources/user/user.interface";
 import UserModel from "@/resources/user/user.model";
 import { uniqueCode } from "@/utils/helpers";
-import { createToken } from "@/utils/helpers/token";
+import { comparePassword, createToken } from "@/utils/helpers/token";
 
 // import logger from "@/utils/logger";
-import { AddShippingAddressDto, CreateUserDto } from "./user.dto";
+import { AddShippingAddressDto, CreateUserDto, LoginDto } from "./user.dto";
 import { hashPassword } from "@/utils/helpers/token";
 import { StatusMessages } from "@/utils/enums/base.enum";
 import ResponseData from "@/utils/interfaces/responseData.interface";
@@ -123,8 +123,59 @@ class UserService {
   }
 
 
+  public async userLogin(login: LoginDto): Promise<ResponseData> {
+    let responseData: ResponseData
+    try {
+      const user = await this.user.findOne({
+        $or: [
+          {
+            Email: login.email_or_phone_number.toLowerCase(),
+            UserType: login.userType
+          },
+          {
+            PhoneNumber: login.email_or_phone_number.toLowerCase(),
+            UserType: login.userType
+          }
+        ]
+      })
+      if (!user) {
+        responseData = {
+          status: StatusMessages.error,
+          code: HttpCodes.HTTP_BAD_REQUEST,
+          message: "Incorrect Username Or Password"
+        }
+        return responseData
+      }
+      const isPasswordCorrect = await comparePassword(login.password, user?.Password)
+      if (isPasswordCorrect === false) {
+        responseData = {
+          status: StatusMessages.error,
+          code: HttpCodes.HTTP_BAD_REQUEST,
+          message: "Incorrect Username Or Password"
+        }
+        return responseData
+      }
+      const token = createToken(user)
+      user.Token = token
+      await user.save()
+      responseData = {
+        status: StatusMessages.success,
+        code: HttpCodes.HTTP_OK,
+        message: "User Login Successful",
+        data: user
+      }
+      return responseData;
+    } catch (error: any) {
+      console.log("🚀 ~ UserService ~ login ~ error:", error)
+      responseData = {
+        status: StatusMessages.error,
+        code: HttpCodes.HTTP_SERVER_ERROR,
+        message: error.toString()
+      }
+      return responseData;
+    }
 
-
+  }
 
   public async getUserById(id: number): Promise<User | Error | null> {
     try {

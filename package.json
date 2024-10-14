@@ -8,7 +8,7 @@
     "start": "NODE_ENV=dev node dist/index.js",
     "local": "NODE_ENV=local tsc-watch --onSuccess  \"node ./dist/index.js\"",
     "dev": "export NODE_ENV=dev && npm run build && pm2 start dist/index.js --name teddevactivity",
-    "watch:dev": "npm run build && NODE_ENV=dev nodemon dist/index.js",
+    "dev:watch": "npm run build && NODE_ENV=dev nodemon dist/index.js",
     "prod": "export NODE_ENV=prod && npm run build && pm2 start dist/index.js --name tedProd",
     "build": "tsc",
     "postinstall": "npm run build"

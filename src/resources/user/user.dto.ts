@@ -21,4 +21,11 @@ export interface AddShippingAddressDto {
   address: string;
 }
 
+export interface LoginDto {
+  email_or_phone_number: string;
+  password: string;
+  userType: UserTypes
+}
+
+
 
