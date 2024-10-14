@@ -1,9 +1,9 @@
 
 
 
-interface Token extends Object{
-    id:number;
-    expires:number
+interface Token extends Object {
+  id: number;
+  expires: number
 
 }
 
