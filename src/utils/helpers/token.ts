@@ -4,8 +4,9 @@ import { User } from '@/resources/user/user.interface';
 import * as bcrypt from 'bcrypt'
 
 export const createToken = (user: User): string => {
-  return jwt.sign({ id: user.id }, process.env.JWT_SECRET as jwt.Secret, {
-    expiresIn: "1d"
+  const id = user._id || user.id
+  return jwt.sign({ id: id }, process.env.JWT_SECRET as jwt.Secret, {
+    expiresIn: "1y"
   });
 }
 

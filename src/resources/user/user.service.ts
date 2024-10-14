@@ -43,8 +43,11 @@ class UserService {
           Password: hashedPassword,
           SignupChannel: createUser?.SignupChannel,
           UserType: createUser?.UserType,
-
         });
+        const token = createToken(createdUser)
+        createdUser.Token = token
+        await createdUser.save()
+
         responseData = {
           status: StatusMessages.success,
           code: HttpCodes.HTTP_CREATED,
@@ -69,25 +72,52 @@ class UserService {
   public async addShippingAddress(
     addShippingAddress: AddShippingAddressDto,
     user: User
-  ): Promise<User | Error> {
+  ): Promise<ResponseData> {
+    let responseData: ResponseData
     try {
       user.ShippingAddress = {
-        full_address: addShippingAddress.address
+        full_address: addShippingAddress.address,
+        country: "Nigeria"
       }
       await user.save()
-      return user;
+      responseData = {
+        status: StatusMessages.success,
+        code: HttpCodes.HTTP_OK,
+        message: "Shipping Address Added Successfully",
+        data: user
+      }
+      return responseData;
     } catch (error: any) {
-      return error;
+      console.log("🚀 ~ UserService ~ error:", error)
+      responseData = {
+        status: StatusMessages.error,
+        code: HttpCodes.HTTP_SERVER_ERROR,
+        message: error.toString()
+      }
+      return responseData;
     }
 
   }
 
 
-  public async getProfile(user: User): Promise<User | Error> {
+  public async getProfile(user: User): Promise<ResponseData> {
+    let responseData: ResponseData
     try {
-      return user;
+      responseData = {
+        status: StatusMessages.success,
+        code: HttpCodes.HTTP_OK,
+        message: "Profile Retreived Successfully",
+        data: user
+      }
+      return responseData;
     } catch (error: any) {
-      return error;
+      console.log("🚀 ~ UserService ~ getProfile ~ error:", error)
+      responseData = {
+        status: StatusMessages.error,
+        code: HttpCodes.HTTP_SERVER_ERROR,
+        message: error.toString()
+      }
+      return responseData;
     }
 
   }
