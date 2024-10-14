@@ -7,8 +7,8 @@ import validate from "./user.validation";
 import { responseObject } from "@/utils/helpers/http.response";
 import { HttpCodes } from "@/utils/constants/httpcode";
 import authenticatedMiddleware from "@/middleware/authenticated.middleware";
-import { CreateUserDto } from "./user.dto";
-
+import { AddShippingAddressDto, CreateUserDto } from "./user.dto";
+import { User } from './user.interface'
 
 
 class UserController implements Controller {
@@ -22,7 +22,6 @@ class UserController implements Controller {
 
   initializeRoute(): void {
 
-
     this.router.post(
       `${this.path}/fcm`,
       authenticatedMiddleware,
@@ -35,6 +34,19 @@ class UserController implements Controller {
         validationMiddleware(validate.signupSchema),
         this.createUser
       )
+
+    this.router.put(
+      `${this.path}/add-shipping-address`,
+      authenticatedMiddleware,
+      validationMiddleware(validate.addShippingAddressSchema),
+      this.addShippingAddress
+    )
+
+    this.router.get(
+      `${this.path}/profile`,
+      authenticatedMiddleware,
+      this.getProfile
+    )
 
   }
 
@@ -53,6 +65,61 @@ class UserController implements Controller {
         message,
         data
       } = await this.userService.createUser(body);
+      return responseObject(
+        res,
+        code,
+        status,
+        message,
+        data
+      );
+
+    } catch (error: any) {
+      next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()))
+    }
+  }
+
+  private addShippingAddress = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<Response | void> => {
+
+    try {
+      const address: AddShippingAddressDto = req.body
+      const user: User = req.user
+      const {
+        status,
+        code,
+        message,
+        data
+      } = await this.userService.addShippingAddress(address, user);
+      return responseObject(
+        res,
+        code,
+        status,
+        message,
+        data
+      );
+
+    } catch (error: any) {
+      next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()))
+    }
+  }
+
+  private getProfile = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<Response | void> => {
+
+    try {
+      const user: User = req.user
+      const {
+        status,
+        code,
+        message,
+        data
+      } = await this.userService.getProfile(user);
       return responseObject(
         res,
         code,

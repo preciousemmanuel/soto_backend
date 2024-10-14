@@ -23,8 +23,15 @@ const signupSchema = Joi.object({
   ).default(UserTypes.USER).required(),
 });
 
+const addShippingAddressSchema = Joi.object({
+  address: Joi.string().required(),
+
+});
+
+
 
 export default {
   updateFcm,
-  signupSchema
+  signupSchema,
+  addShippingAddressSchema
 }
