@@ -7,7 +7,7 @@ import validate from "./user.validation";
 import { responseObject } from "@/utils/helpers/http.response";
 import { HttpCodes } from "@/utils/constants/httpcode";
 import authenticatedMiddleware from "@/middleware/authenticated.middleware";
-import { AddShippingAddressDto, CreateUserDto } from "./user.dto";
+import { AddShippingAddressDto, CreateUserDto, LoginDto } from "./user.dto";
 import { User } from './user.interface'
 
 
@@ -46,6 +46,12 @@ class UserController implements Controller {
       `${this.path}/profile`,
       authenticatedMiddleware,
       this.getProfile
+    )
+
+    this.router.post(
+      `${this.path}/login`,
+      validationMiddleware(validate.userLoginSchema),
+      this.userLogin
     )
 
   }
@@ -120,6 +126,34 @@ class UserController implements Controller {
         message,
         data
       } = await this.userService.getProfile(user);
+      return responseObject(
+        res,
+        code,
+        status,
+        message,
+        data
+      );
+
+    } catch (error: any) {
+      next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()))
+    }
+  }
+
+
+  private userLogin = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<Response | void> => {
+
+    try {
+      const payload: LoginDto = req.body
+      const {
+        status,
+        code,
+        message,
+        data
+      } = await this.userService.userLogin(payload);
       return responseObject(
         res,
         code,

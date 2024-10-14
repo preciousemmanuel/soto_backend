@@ -28,10 +28,18 @@ const addShippingAddressSchema = Joi.object({
 
 });
 
+const userLoginSchema = Joi.object({
+  email_or_phone_number: Joi.string().required(),
+  password: Joi.string().required(),
+  userType: Joi.string().valid(UserTypes.USER, UserTypes.VENDOR).required(),
+
+});
+
 
 
 export default {
   updateFcm,
   signupSchema,
-  addShippingAddressSchema
+  addShippingAddressSchema,
+  userLoginSchema
 }

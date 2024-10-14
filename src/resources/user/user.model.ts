@@ -64,6 +64,7 @@ const UserSchema = new Schema(
       address: String,
       city: String,
       state: String,
+      postal_code: String,
       country: {
         type: String,
         default: "Nigeria"
