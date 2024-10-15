@@ -7,7 +7,7 @@ import validate from "./user.validation";
 import { responseObject } from "@/utils/helpers/http.response";
 import { HttpCodes } from "@/utils/constants/httpcode";
 import authenticatedMiddleware from "@/middleware/authenticated.middleware";
-import { AddShippingAddressDto, CreateUserDto, LoginDto } from "./user.dto";
+import { AddShippingAddressDto, ChangePasswordDto, CreateUserDto, LoginDto } from "./user.dto";
 import { User } from './user.interface'
 
 
@@ -52,6 +52,25 @@ class UserController implements Controller {
       `${this.path}/login`,
       validationMiddleware(validate.userLoginSchema),
       this.userLogin
+    )
+
+    this.router.post(
+      `${this.path}/change-password-request`,
+      validationMiddleware(validate.changePasswordRequest),
+      this.changePasswordRequest
+    )
+
+    this.router.post(
+      `${this.path}/validate-otp`,
+      validationMiddleware(validate.validateOtpSchema),
+      this.validateOtp
+    )
+
+    this.router.put(
+      `${this.path}/new-password`,
+      authenticatedMiddleware,
+      validationMiddleware(validate.newPasswordSchema),
+      this.newPasswordChange
     )
 
   }
@@ -154,6 +173,89 @@ class UserController implements Controller {
         message,
         data
       } = await this.userService.userLogin(payload);
+      return responseObject(
+        res,
+        code,
+        status,
+        message,
+        data
+      );
+
+    } catch (error: any) {
+      next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()))
+    }
+  }
+
+  private changePasswordRequest = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<Response | void> => {
+
+    try {
+      const payload: ChangePasswordDto = req.body
+      const {
+        status,
+        code,
+        message,
+        data
+      } = await this.userService.changePasswordRequest(payload);
+      return responseObject(
+        res,
+        code,
+        status,
+        message,
+        data
+      );
+
+    } catch (error: any) {
+      next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()))
+    }
+  }
+
+  private validateOtp = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<Response | void> => {
+
+    try {
+      const otp: string = req.body.otp
+      const {
+        status,
+        code,
+        message,
+        data
+      } = await this.userService.validateOtp(otp);
+      return responseObject(
+        res,
+        code,
+        status,
+        message,
+        data
+      );
+
+    } catch (error: any) {
+      next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()))
+    }
+  }
+
+
+  private newPasswordChange = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<Response | void> => {
+
+    try {
+      const new_password: string = req.body.new_password
+      const user = req.user
+      const {
+        status,
+        code,
+        message,
+        data
+      } = await this.userService.newPasswordChange(new_password, user);
       return responseObject(
         res,
         code,

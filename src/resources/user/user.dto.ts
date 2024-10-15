@@ -27,5 +27,11 @@ export interface LoginDto {
   userType: UserTypes
 }
 
+export interface ChangePasswordDto {
+  email_or_phone_number: string;
+}
+
+
+
 
 

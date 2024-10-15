@@ -1,4 +1,5 @@
 import { SignupChannels, UserTypes } from '@/utils/enums/base.enum';
+import { email } from 'envalid';
 import Joi from 'joi';
 
 
@@ -35,11 +36,24 @@ const userLoginSchema = Joi.object({
 
 });
 
+const changePasswordRequest = Joi.object({
+  email_or_phone_number: Joi.string().required(),
+});
 
+const validateOtpSchema = Joi.object({
+  otp: Joi.string().required(),
+});
+
+const newPasswordSchema = Joi.object({
+  new_password: Joi.string().required(),
+});
 
 export default {
   updateFcm,
   signupSchema,
   addShippingAddressSchema,
-  userLoginSchema
+  userLoginSchema,
+  changePasswordRequest,
+  validateOtpSchema,
+  newPasswordSchema
 }
