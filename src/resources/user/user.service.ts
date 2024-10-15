@@ -1,12 +1,22 @@
 import { User, ShippingAddress } from "@/resources/user/user.interface";
 import UserModel from "@/resources/user/user.model";
 import { uniqueCode } from "@/utils/helpers";
-import { comparePassword, createToken } from "@/utils/helpers/token";
+import {
+  comparePassword,
+  createToken,
+  generateOtpModel,
+  isOtpCorrect
+} from "@/utils/helpers/token";
 
 // import logger from "@/utils/logger";
-import { AddShippingAddressDto, CreateUserDto, LoginDto } from "./user.dto";
+import {
+  AddShippingAddressDto,
+  ChangePasswordDto,
+  CreateUserDto,
+  LoginDto,
+} from "./user.dto";
 import { hashPassword } from "@/utils/helpers/token";
-import { StatusMessages } from "@/utils/enums/base.enum";
+import { OtpPurposeOptions, StatusMessages } from "@/utils/enums/base.enum";
 import ResponseData from "@/utils/interfaces/responseData.interface";
 import { HttpCodes } from "@/utils/constants/httpcode";
 
@@ -176,6 +186,101 @@ class UserService {
     }
 
   }
+
+  public async changePasswordRequest(changePasswordDto: ChangePasswordDto): Promise<ResponseData> {
+    let responseData: ResponseData
+    try {
+      const user = await this.user.findOne({
+        $or: [
+          {
+            Email: changePasswordDto.email_or_phone_number.toLowerCase(),
+          },
+          {
+            PhoneNumber: changePasswordDto.email_or_phone_number.toLowerCase(),
+          }
+        ]
+      })
+      if (!user) {
+        responseData = {
+          status: StatusMessages.error,
+          code: HttpCodes.HTTP_BAD_REQUEST,
+          message: "User Not Found"
+        }
+        return responseData
+      }
+      const oneTimePassword = await generateOtpModel(
+        OtpPurposeOptions.CHANGE_PASSWORD,
+        user,
+        user?.Email
+      )
+      responseData = {
+        status: StatusMessages.success,
+        code: HttpCodes.HTTP_OK,
+        message: "Otp Generated Successfully",
+        data: oneTimePassword
+      }
+      return responseData;
+    } catch (error: any) {
+      console.log("🚀 ~ UserService ~ login ~ error:", error)
+      responseData = {
+        status: StatusMessages.error,
+        code: HttpCodes.HTTP_SERVER_ERROR,
+        message: error.toString()
+      }
+      return responseData;
+    }
+
+  }
+
+  public async validateOtp(otp: string): Promise<ResponseData> {
+    let responseData: ResponseData
+    try {
+      const otpValiationResponse = await isOtpCorrect(
+        otp,
+        OtpPurposeOptions.CHANGE_PASSWORD
+      )
+      return otpValiationResponse
+    } catch (error: any) {
+      console.log("🚀 ~ UserService ~ login ~ error:", error)
+      responseData = {
+        status: StatusMessages.error,
+        code: HttpCodes.HTTP_SERVER_ERROR,
+        message: error.toString()
+      }
+      return responseData;
+    }
+
+  }
+
+  public async newPasswordChange(new_password: string, user: User): Promise<ResponseData> {
+    let responseData: ResponseData
+    try {
+      const hashed_password = await hashPassword(new_password)
+      user.Password = hashed_password
+      await user.save()
+      responseData = {
+        status: StatusMessages.success,
+        code: HttpCodes.HTTP_OK,
+        message: "Password Changed Successflly",
+        data: user
+      }
+      return responseData
+    } catch (error: any) {
+      console.log("🚀 ~ UserService ~ login ~ error:", error)
+      responseData = {
+        status: StatusMessages.error,
+        code: HttpCodes.HTTP_SERVER_ERROR,
+        message: error.toString()
+      }
+      return responseData;
+    }
+
+  }
+
+
+
+
+
 
   public async getUserById(id: number): Promise<User | Error | null> {
     try {
