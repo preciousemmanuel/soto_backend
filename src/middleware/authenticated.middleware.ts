@@ -8,37 +8,39 @@ import axios from "axios";
 
 
 async function authenticatedMiddleware(
-    req: Request,
-    res: Response,
-    next: NextFunction
+  req: Request,
+  res: Response,
+  next: NextFunction
 ): Promise<Response | void> {
-    const bearer = req.headers.authorization;
-    if (!bearer || !bearer.startsWith("Bearer ")) {
-        // return res.status(401).json({error:"Unauthorized"});
-        return next(new HttpException(401, "Unauthorized"));
+  const bearer = req.headers.authorization;
+  if (!bearer || !bearer.startsWith("Bearer ")) {
+    // return res.status(401).json({error:"Unauthorized"});
+    return next(new HttpException(401, "Unauthorized"));
+
+  }
+
+  const accessToken = bearer.split("Bearer ")[1].trim();
+  try {
+    const payload: Token | jwt.JsonWebTokenError = await verifyToken(accessToken);
+    if (payload instanceof jwt.JsonWebTokenError) {
+      // return res.status(401).json({error:"Unauthorized"});
+      return next(new HttpException(401, "Unauthorized"));
 
     }
 
-    const accessToken = bearer.split("Bearer ")[1].trim();
-    try {
-        const payload: Token | jwt.JsonWebTokenError = await verifyToken(accessToken);
-        if (payload instanceof jwt.JsonWebTokenError) {
-            // return res.status(401).json({error:"Unauthorized"});
-            return next(new HttpException(401, "Unauthorized"));
-
-        }
-
-        const user = await userModel.findById(payload.id);
-        if (!user) {
-            return next(new HttpException(401, "Unauthorized"));
-        }
-
-        req.user = user;
-        next();
-    } catch (error) {
-        return next(new HttpException(401, "Unauthorized"));
-
+    const user = await userModel.findById(payload.id)
+      .populate('business')
+      .populate('wallet');
+    if (!user) {
+      return next(new HttpException(401, "Unauthorized"));
     }
+
+    req.user = user;
+    next();
+  } catch (error) {
+    return next(new HttpException(401, "Unauthorized"));
+
+  }
 
 }
 

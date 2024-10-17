@@ -1,4 +1,4 @@
-import mongoose, { Schema, model } from "mongoose";
+import { Schema, model } from "mongoose";
 
 import { User } from "@/resources/user/user.interface";
 import { SignupChannels, UserTypes } from "@/utils/enums/base.enum";
@@ -79,15 +79,6 @@ const UserSchema = new Schema(
       type: Boolean,
       default: false
     },
-    wallet: {
-      type: mongoose.Types.ObjectId,
-      ref: "Wallets"
-    },
-
-    business: {
-      type: mongoose.Types.ObjectId,
-      ref: "Businesses"
-    }
 
   },
   {

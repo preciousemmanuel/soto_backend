@@ -6,7 +6,9 @@ import otpModel from '@/resources/user/otp.model';
 import { verificationCode } from '.';
 import ResponseData from '../interfaces/responseData.interface';
 import { HttpCodes } from '../constants/httpcode';
-import { StatusMessages } from '../enums/base.enum';
+import { OtpPurposeOptions, StatusMessages } from '../enums/base.enum';
+import BusinessService from '@/resources/business/business.service';
+import userModel from '@/resources/user/user.model';
 
 export const createToken = (user: User): string => {
   const id = user._id || user.id
@@ -144,6 +146,7 @@ export const isOtpCorrect = async (otp: string, purpose: string): Promise<Respon
       }
       return responseData
     } else {
+      const user = await userModel.findById(existingOtp.user)
       const data = {
         user_id: existingOtp?.user,
         email: existingOtp?.email
@@ -157,6 +160,15 @@ export const isOtpCorrect = async (otp: string, purpose: string): Promise<Respon
       await otpModel.deleteOne({
         _id: existingOtp._id
       })
+      switch (purpose) {
+        case OtpPurposeOptions.ACCOUNT_VALIDATION:
+          const businessService = new BusinessService()
+          businessService.verifyBusinessComplete(user?._id)
+          break;
+
+        default:
+          break;
+      }
 
       return responseData
     }
