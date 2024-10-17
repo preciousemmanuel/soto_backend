@@ -1,5 +1,5 @@
 import { User, ShippingAddress } from "@/resources/user/user.interface";
-import UserModel from "./user.model";
+import UserModel from "@/resources/user/user.model";
 import { uniqueCode } from "@/utils/helpers";
 import {
   comparePassword,
@@ -14,16 +14,14 @@ import {
   ChangePasswordDto,
   CreateUserDto,
   LoginDto,
-} from "./user.dto";
+} from "./product.dto";
 import { hashPassword } from "@/utils/helpers/token";
-import { OtpPurposeOptions, StatusMessages, UserTypes } from "@/utils/enums/base.enum";
+import { OtpPurposeOptions, StatusMessages } from "@/utils/enums/base.enum";
 import ResponseData from "@/utils/interfaces/responseData.interface";
 import { HttpCodes } from "@/utils/constants/httpcode";
-import WalletModel from "../business/wallet.model";
 
 class UserService {
   private user = UserModel;
-  private wallet = WalletModel
 
   public async createUser(
     createUser: CreateUserDto
@@ -47,7 +45,7 @@ class UserService {
       } else {
         const full_name_split = createUser.FullName.split(" ")
         const hashedPassword = await hashPassword(createUser.Password)
-        const createdUser: any = await this.user.create({
+        const createdUser: User = await this.user.create({
           FirstName: full_name_split.length > 0 ? full_name_split[0].toLowerCase() : "",
           LastName: full_name_split.length > 1 ? full_name_split[1].toLowerCase() : "",
           Email: createUser.Email.toLowerCase(),
@@ -57,13 +55,9 @@ class UserService {
           UserType: createUser?.UserType,
         });
         const token = createToken(createdUser)
-        const wallet = await this.wallet.create({
-          user: createdUser._id
-        })
         createdUser.Token = token
-        createdUser.wallet = wallet._id
-
         await createdUser.save()
+
         responseData = {
           status: StatusMessages.success,
           code: HttpCodes.HTTP_CREATED,
@@ -154,8 +148,6 @@ class UserService {
           }
         ]
       })
-        .populate('business')
-        .populate('wallet')
       if (!user) {
         responseData = {
           status: StatusMessages.error,
@@ -240,12 +232,12 @@ class UserService {
 
   }
 
-  public async validateOtp(otp: string, otp_purpose: string): Promise<ResponseData> {
+  public async validateOtp(otp: string): Promise<ResponseData> {
     let responseData: ResponseData
     try {
       const otpValiationResponse = await isOtpCorrect(
         otp,
-        otp_purpose
+        OtpPurposeOptions.CHANGE_PASSWORD
       )
       return otpValiationResponse
     } catch (error: any) {

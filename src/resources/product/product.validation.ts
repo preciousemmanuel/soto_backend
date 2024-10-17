@@ -1,4 +1,4 @@
-import { OtpPurposeOptions, SignupChannels, UserTypes } from '@/utils/enums/base.enum';
+import { SignupChannels, UserTypes } from '@/utils/enums/base.enum';
 import { email } from 'envalid';
 import Joi from 'joi';
 
@@ -32,10 +32,7 @@ const addShippingAddressSchema = Joi.object({
 const userLoginSchema = Joi.object({
   email_or_phone_number: Joi.string().required(),
   password: Joi.string().required(),
-  userType: Joi.string().valid(
-    UserTypes.USER,
-    UserTypes.VENDOR
-  ).required(),
+  userType: Joi.string().valid(UserTypes.USER, UserTypes.VENDOR).required(),
 
 });
 
@@ -45,13 +42,6 @@ const changePasswordRequest = Joi.object({
 
 const validateOtpSchema = Joi.object({
   otp: Joi.string().required(),
-  otp_purpose: Joi.string().valid(
-    OtpPurposeOptions.ACCOUNT_VALIDATION,
-    OtpPurposeOptions.CHANGE_PASSWORD,
-    OtpPurposeOptions.FORGOT_PASSWORD,
-    OtpPurposeOptions.PASSWORD_RESET,
-    OtpPurposeOptions.SIGNUP_COMPLETE,
-  ).required(),
 });
 
 const newPasswordSchema = Joi.object({

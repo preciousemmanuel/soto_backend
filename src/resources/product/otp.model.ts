@@ -1,5 +1,10 @@
 import mongoose, { Schema, model } from "mongoose";
+
+import { User } from "@/resources/user/user.interface";
 import { OtpPurposeOptions, SignupChannels, UserTypes } from "@/utils/enums/base.enum";
+
+
+
 
 const OtpSchema = new Schema(
   {

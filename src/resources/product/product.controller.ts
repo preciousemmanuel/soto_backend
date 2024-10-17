@@ -3,16 +3,16 @@ import Controller from "@/utils/interfaces/controller.interface";
 import HttpException from "@/utils/exceptions/http.exception";
 import validationMiddleware from "@/middleware/validation.middleware";
 import UserService from "@/resources/user/user.service";
-import validate from "./user.validation";
+import validate from "./product.validation";
 import { responseObject } from "@/utils/helpers/http.response";
 import { HttpCodes } from "@/utils/constants/httpcode";
 import authenticatedMiddleware from "@/middleware/authenticated.middleware";
-import { AddShippingAddressDto, ChangePasswordDto, CreateUserDto, LoginDto } from "./user.dto";
-import { User } from './user.interface'
+import { AddShippingAddressDto, ChangePasswordDto, CreateUserDto, LoginDto } from "./product.dto";
+import { User } from './product.interface'
 
 
-class UserController implements Controller {
-  public path = "/user";
+class ProductController implements Controller {
+  public path = "/product";
   public router = Router();
   private userService = new UserService();
 
@@ -221,12 +221,13 @@ class UserController implements Controller {
 
     try {
       const otp: string = req.body.otp
+      const purpose: string = req.body.otp
       const {
         status,
         code,
         message,
         data
-      } = await this.userService.validateOtp(otp, req.body.otp_purpose);
+      } = await this.userService.validateOtp(otp, purpose);
       return responseObject(
         res,
         code,
@@ -293,4 +294,4 @@ class UserController implements Controller {
 
 }
 
-export default UserController;
+export default ProductController;
