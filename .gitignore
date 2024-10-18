@@ -3,6 +3,8 @@ node_modules
 logs
 dev.env
 local.env
+.env
+*.env
 # Logs
 logs
 *.log
