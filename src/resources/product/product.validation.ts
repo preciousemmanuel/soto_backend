@@ -1,59 +1,40 @@
-import { SignupChannels, UserTypes } from '@/utils/enums/base.enum';
+import { YesOrNo, UserTypes } from '@/utils/enums/base.enum';
 import { email } from 'envalid';
 import Joi from 'joi';
 
 
-const updateFcm = Joi.object({
-  token: Joi.string().required(),
-});
 
-const signupSchema = Joi.object({
-  FullName: Joi.string().required(),
-  Password: Joi.string().optional(),
-  Email: Joi.string().required(),
-  PhoneNumber: Joi.string().required(),
-  SignupChannel: Joi.string().valid(
-    SignupChannels.DEFAULT,
-    SignupChannels.FACEBOOK,
-    SignupChannels.GOOGLE,
-    SignupChannels.TWITTER,
+
+const addProductSchema = Joi.object({
+  product_name: Joi.string().required(),
+  description: Joi.string().required(),
+  category: Joi.string().required(),
+  images: Joi.array().items(
+    Joi.object({}).optional()
+  ).min(2).optional(),
+  unit_price: Joi.number().min(0).required(),
+  product_quantity: Joi.number().min(0).required(),
+  discount_price: Joi.number().min(0).optional(),
+  in_stock: Joi.string().valid(
+    YesOrNo.NO,
+    YesOrNo.YES,
   ).required(),
-  UserType: Joi.string().valid(
-    UserTypes.USER,
-    UserTypes.VENDOR
-  ).default(UserTypes.USER).required(),
-});
-
-const addShippingAddressSchema = Joi.object({
-  address: Joi.string().required(),
 
 });
 
-const userLoginSchema = Joi.object({
-  email_or_phone_number: Joi.string().required(),
-  password: Joi.string().required(),
-  userType: Joi.string().valid(UserTypes.USER, UserTypes.VENDOR).required(),
+const fetchProductSchema = Joi.object({
+  limit: Joi.number().positive().default(10).optional(),
+  page: Joi.number().positive().default(1).optional(),
+  product_name: Joi.string().optional(),
+  category: Joi.string().optional(),
+  price_upper: Joi.number().min(0).optional(),
+  price_lower: Joi.number().min(0).optional(),
 
 });
 
-const changePasswordRequest = Joi.object({
-  email_or_phone_number: Joi.string().required(),
-});
 
-const validateOtpSchema = Joi.object({
-  otp: Joi.string().required(),
-});
-
-const newPasswordSchema = Joi.object({
-  new_password: Joi.string().required(),
-});
 
 export default {
-  updateFcm,
-  signupSchema,
-  addShippingAddressSchema,
-  userLoginSchema,
-  changePasswordRequest,
-  validateOtpSchema,
-  newPasswordSchema
+  addProductSchema,
+  fetchProductSchema
 }

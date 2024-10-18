@@ -5,6 +5,11 @@ export enum SignupChannels {
   TWITTER = "TWITTER",
 }
 
+export enum YesOrNo {
+  YES = "YES",
+  NO = "NO",
+}
+
 export enum UserTypes {
   USER = "USER",
   VENDOR = "VENDOR"
@@ -29,4 +34,9 @@ export enum IdentificationTypes {
   DRIVERS_LICENSE = "DRIVERS_LICENSE",
   VOTERS_CARD = "VOTERS_CARD",
   INTERNATIONAL_PASSPORT = "INTERNATIONAL_PASSPORT",
+}
+
+export enum CloudUploadOption {
+  CLOUDINARY = "CLOUDINARY",
+  AWS = 'AWS'
 }

@@ -1,35 +1,33 @@
 import {
-  SignupChannels,
-  UserTypes
+  UserTypes,
+  YesOrNo
 } from "@/utils/enums/base.enum";
 
-export interface CreateUserDto {
-  FullName: string;
-  Email: string;
-  UserName?: string;
-  IsActive?: boolean;
-  Role?: string;
-  PhoneNumber: string;
-  fcmToken?: string;
-  playerId?: string;
-  Password: string;
-  SignupChannel?: SignupChannels,
-  UserType: UserTypes,
+export interface AddProductDto {
+  product_name: string;
+  description: string;
+  category: string;
+  unit_price: number;
+  product_quantity: number;
+  discount_price?: number;
+  in_stock: YesOrNo;
+  images?: Express.Multer.File[]
 }
 
-export interface AddShippingAddressDto {
-  address: string;
+export interface FetchProductsDto {
+  limit?: number
+  page?: number;
+  filter?: FilterProductsDto
+
 }
 
-export interface LoginDto {
-  email_or_phone_number: string;
-  password: string;
-  userType: UserTypes
+export interface FilterProductsDto {
+  product_name?: string;
+  category?: string;
+  price_upper?: number;
+  price_lower?: number;
 }
 
-export interface ChangePasswordDto {
-  email_or_phone_number: string;
-}
 
 
 
