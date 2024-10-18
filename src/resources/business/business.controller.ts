@@ -9,6 +9,7 @@ import { HttpCodes } from "@/utils/constants/httpcode";
 import authenticatedMiddleware from "@/middleware/authenticated.middleware";
 import { CreateBusinessDto, VerificationDto } from "./business.dto";
 import { Business } from './business.interface'
+import upload from "@/utils/config/multer";
 
 
 class BusinessController implements Controller {
@@ -25,6 +26,7 @@ class BusinessController implements Controller {
     this.router.post(
       `${this.path}/create`,
       authenticatedMiddleware,
+      upload.single("business_logo"),
       validationMiddleware(validate.createBusinessSchema),
       this.createCreateBusiness
     )
@@ -32,6 +34,7 @@ class BusinessController implements Controller {
     this.router.put(
       `${this.path}/verify`,
       authenticatedMiddleware,
+      upload.single("business_logo"),
       validationMiddleware(validate.verifyBusinessSchema),
       this.verifyBusiness
     )
@@ -45,7 +48,11 @@ class BusinessController implements Controller {
   ): Promise<Response | void> => {
 
     try {
+
       const body: CreateBusinessDto = req.body
+      if (req.file) {
+        body.business_logo = req.file
+      }
       const user = req.user
       const {
         status,

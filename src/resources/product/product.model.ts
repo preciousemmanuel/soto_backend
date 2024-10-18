@@ -1,104 +1,69 @@
-import { Schema, model } from "mongoose";
+import mongoose, { Schema, model } from "mongoose";
 
-import { User } from "@/resources/user/user.interface";
-import { SignupChannels, UserTypes } from "@/utils/enums/base.enum";
-
-
-
-
-const UserSchema = new Schema(
+const ProductSchema = new Schema(
   {
-    // userId: {
-    //     type: Number,
-    //     required: true,
-    //     unique: true,
-    //   },
-    FirstName: {
+    product_name: {
       type: String,
       required: true
     },
-    LastName: {
+    description: {
       type: String,
       required: true
     },
-    Email: {
-      type: String,
-      required: true,
-      unique: true,
-      trim: true
+    category: {
+      type: mongoose.Types.ObjectId,
+      ref: "Categories",
     },
-
-    Password: {
-      type: String,
-      required: true,
+    images: {
+      type: [String]
     },
-
-    UserName: {
-      type: String
+    vendor: {
+      type: mongoose.Types.ObjectId,
+      ref: "Users",
     },
-    IsActive: {
-      type: Boolean
+    business: {
+      type: mongoose.Types.ObjectId,
+      ref: "Businesses",
     },
-    Role: {
-      type: String
+    rating: {
+      type: Number,
     },
-    Token: {
-      type: String
+    unit_price: {
+      type: Number,
+      default: 0,
+      required: true
     },
-    PhoneNumber: {
-      type: String
+    product_quantity: {
+      type: Number,
+      default: 1,
+      required: true
     },
-    UserType: {
-      type: String,
-      enum: UserTypes,
-      default: UserTypes.USER
+    discount_price: {
+      type: Number,
     },
-    // fcmToken:{
-    //     type:String
-    // },
-    // playerId:{
-    //     type:String
-    // },
-    ShippingAddress: {
-      full_address: String,
-      address: String,
-      city: String,
-      state: String,
-      postal_code: String,
-      country: {
-        type: String,
-        default: "Nigeria"
-      }
+    is_discounted: {
+      type: Boolean,
+      default: false
     },
-    SignupChannel: {
-      type: String,
-      enum: SignupChannels,
-      default: SignupChannels.DEFAULT
+    in_stock: {
+      type: Boolean,
+      default: false
     },
-    IsVerified: {
+    is_verified: {
+      type: Boolean,
+      default: false
+    },
+    is_deleted: {
       type: Boolean,
       default: false
     },
 
   },
   {
-    collection: "Users",
+    collection: "Products",
     timestamps: true
   }
 );
 
-// UserSchema.pre<User>("save",async function (next) {
-//     if(!this.isModified) return next();
 
-//     const hash=await bycrpt.hash(this.password,10);
-//     this.password=hash;
-//     next();
-// })
-
-// UserSchema.methods.isVaildPassword=async function(
-//     password:string
-// ):Promise<Error|boolean>{
-// return await bycrpt.compare(password,this.password)
-// }
-
-export default model<User>("Users", UserSchema);
+export default model("Products", ProductSchema);

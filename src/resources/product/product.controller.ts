@@ -2,261 +2,60 @@ import { Request, Response, NextFunction, Router } from "express";
 import Controller from "@/utils/interfaces/controller.interface";
 import HttpException from "@/utils/exceptions/http.exception";
 import validationMiddleware from "@/middleware/validation.middleware";
-import UserService from "@/resources/user/user.service";
 import validate from "./product.validation";
 import { responseObject } from "@/utils/helpers/http.response";
 import { HttpCodes } from "@/utils/constants/httpcode";
 import authenticatedMiddleware from "@/middleware/authenticated.middleware";
-import { AddShippingAddressDto, ChangePasswordDto, CreateUserDto, LoginDto } from "./product.dto";
-import { User } from './product.interface'
+import { AddProductDto, FetchProductsDto, } from "./product.dto";
+import ProductService from "./product.service";
+import upload from "@/utils/config/multer";
 
 
 class ProductController implements Controller {
   public path = "/product";
   public router = Router();
-  private userService = new UserService();
+  private productService = new ProductService();
 
   constructor() {
     this.initializeRoute();
   }
 
   initializeRoute(): void {
-
     this.router.post(
-      `${this.path}/fcm`,
+      `${this.path}/add-new`,
       authenticatedMiddleware,
-      validationMiddleware(validate.updateFcm),
-      this.updateFcmToken
-    ),
-
-      this.router.post(
-        `${this.path}/signup`,
-        validationMiddleware(validate.signupSchema),
-        this.createUser
-      )
-
-    this.router.put(
-      `${this.path}/add-shipping-address`,
-      authenticatedMiddleware,
-      validationMiddleware(validate.addShippingAddressSchema),
-      this.addShippingAddress
+      upload.array('images'),
+      validationMiddleware(validate.addProductSchema),
+      this.addProduct
     )
 
     this.router.get(
-      `${this.path}/profile`,
-      authenticatedMiddleware,
-      this.getProfile
+      `${this.path}/fetch`,
+      validationMiddleware(validate.fetchProductSchema),
+      this.fetchProducts
     )
-
-    this.router.post(
-      `${this.path}/login`,
-      validationMiddleware(validate.userLoginSchema),
-      this.userLogin
-    )
-
-    this.router.post(
-      `${this.path}/change-password-request`,
-      validationMiddleware(validate.changePasswordRequest),
-      this.changePasswordRequest
-    )
-
-    this.router.post(
-      `${this.path}/validate-otp`,
-      validationMiddleware(validate.validateOtpSchema),
-      this.validateOtp
-    )
-
-    this.router.put(
-      `${this.path}/new-password`,
-      authenticatedMiddleware,
-      validationMiddleware(validate.newPasswordSchema),
-      this.newPasswordChange
-    )
-
   }
 
-  private createUser = async (
+  private addProduct = async (
     req: Request,
     res: Response,
     next: NextFunction
   ): Promise<Response | void> => {
 
     try {
-      const body: CreateUserDto = req.body
-
-      const {
-        status,
-        code,
-        message,
-        data
-      } = await this.userService.createUser(body);
-      return responseObject(
-        res,
-        code,
-        status,
-        message,
-        data
-      );
-
-    } catch (error: any) {
-      next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()))
-    }
-  }
-
-  private addShippingAddress = async (
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ): Promise<Response | void> => {
-
-    try {
-      const address: AddShippingAddressDto = req.body
-      const user: User = req.user
-      const {
-        status,
-        code,
-        message,
-        data
-      } = await this.userService.addShippingAddress(address, user);
-      return responseObject(
-        res,
-        code,
-        status,
-        message,
-        data
-      );
-
-    } catch (error: any) {
-      next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()))
-    }
-  }
-
-  private getProfile = async (
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ): Promise<Response | void> => {
-
-    try {
-      const user: User = req.user
-      const {
-        status,
-        code,
-        message,
-        data
-      } = await this.userService.getProfile(user);
-      return responseObject(
-        res,
-        code,
-        status,
-        message,
-        data
-      );
-
-    } catch (error: any) {
-      next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()))
-    }
-  }
-
-
-  private userLogin = async (
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ): Promise<Response | void> => {
-
-    try {
-      const payload: LoginDto = req.body
-      const {
-        status,
-        code,
-        message,
-        data
-      } = await this.userService.userLogin(payload);
-      return responseObject(
-        res,
-        code,
-        status,
-        message,
-        data
-      );
-
-    } catch (error: any) {
-      next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()))
-    }
-  }
-
-  private changePasswordRequest = async (
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ): Promise<Response | void> => {
-
-    try {
-      const payload: ChangePasswordDto = req.body
-      const {
-        status,
-        code,
-        message,
-        data
-      } = await this.userService.changePasswordRequest(payload);
-      return responseObject(
-        res,
-        code,
-        status,
-        message,
-        data
-      );
-
-    } catch (error: any) {
-      next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()))
-    }
-  }
-
-  private validateOtp = async (
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ): Promise<Response | void> => {
-
-    try {
-      const otp: string = req.body.otp
-      const purpose: string = req.body.otp
-      const {
-        status,
-        code,
-        message,
-        data
-      } = await this.userService.validateOtp(otp, purpose);
-      return responseObject(
-        res,
-        code,
-        status,
-        message,
-        data
-      );
-
-    } catch (error: any) {
-      next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()))
-    }
-  }
-
-
-  private newPasswordChange = async (
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ): Promise<Response | void> => {
-
-    try {
-      const new_password: string = req.body.new_password
+      const body: AddProductDto = req.body
       const user = req.user
+      if (req.files) {
+        body.images = req.files as Express.Multer.File[]
+      }
+      console.log("🚀 ~ ProductController ~ body:", body)
+
       const {
         status,
         code,
         message,
         data
-      } = await this.userService.newPasswordChange(new_password, user);
+      } = await this.productService.addProduct(body, user);
       return responseObject(
         res,
         code,
@@ -271,25 +70,43 @@ class ProductController implements Controller {
   }
 
 
-  private updateFcmToken = async (
+  private fetchProducts = async (
     req: Request,
     res: Response,
     next: NextFunction
   ): Promise<Response | void> => {
 
     try {
-      const userId = 1;
-      const { token } = req.body;
+      const payload: FetchProductsDto = {
+        limit: Number(req?.query?.limit),
+        page: Number(req?.query?.page),
+        filter: {
+          ...(req?.query?.product_name && { product_name: String(req?.query?.product_name) }),
+          ...(req?.query?.category && { category: String(req?.query?.category) }),
+          ...(req?.query?.price_upper && { price_upper: Number(req?.query?.price_upper) }),
+          ...(req?.query?.price_lower && { price_lower: Number(req?.query?.price_lower) }),
+        }
+      }
 
-      const data = await this.userService.updateFcmToken(userId, token);
-      return responseObject(res, HttpCodes.HTTP_OK, "success", "Update fcm token Successfull", data);
+
+      const {
+        status,
+        code,
+        message,
+        data
+      } = await this.productService.fetchProducts(payload);
+      return responseObject(
+        res,
+        code,
+        status,
+        message,
+        data
+      );
 
     } catch (error: any) {
-      next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.message))
+      next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()))
     }
   }
-
-
 
 
 }

@@ -10,62 +10,83 @@ import {
 
 // import logger from "@/utils/logger";
 import {
-  AddShippingAddressDto,
-  ChangePasswordDto,
-  CreateUserDto,
-  LoginDto,
+  AddProductDto,
+  FetchProductsDto
 } from "./product.dto";
 import { hashPassword } from "@/utils/helpers/token";
-import { OtpPurposeOptions, StatusMessages } from "@/utils/enums/base.enum";
+import { OtpPurposeOptions, StatusMessages, YesOrNo } from "@/utils/enums/base.enum";
 import ResponseData from "@/utils/interfaces/responseData.interface";
 import { HttpCodes } from "@/utils/constants/httpcode";
+import productModel from "./product.model";
+import categoryModel from "../category/category.model";
+import cloudUploader from "@/utils/config/cloudUploader";
+import { getPaginatedRecords } from "@/utils/helpers/paginate";
 
-class UserService {
+class ProductService {
   private user = UserModel;
+  private product = productModel;
+  private category = categoryModel
 
-  public async createUser(
-    createUser: CreateUserDto
+  public async addProduct(
+    addProductDto: AddProductDto,
+    user: InstanceType<typeof UserModel>
   ): Promise<ResponseData> {
     let responseData: ResponseData
     try {
-
-      const userExist = await this.user.findOne({
-        $or: [
-          { Email: createUser.Email.toLowerCase() },
-          { PhoneNumber: createUser.PhoneNumber },
-        ]
+      const productExists = await this.product.findOne({
+        vendor: user?._id,
+        product_name: String(addProductDto.product_name).toLowerCase()
       });
 
-      if (userExist) {
+      if (productExists) {
         responseData = {
           status: StatusMessages.error,
           code: HttpCodes.HTTP_BAD_REQUEST,
-          message: "User With These Details Already Exists",
+          message: "Product With This Name Already Exists",
         }
-      } else {
-        const full_name_split = createUser.FullName.split(" ")
-        const hashedPassword = await hashPassword(createUser.Password)
-        const createdUser: User = await this.user.create({
-          FirstName: full_name_split.length > 0 ? full_name_split[0].toLowerCase() : "",
-          LastName: full_name_split.length > 1 ? full_name_split[1].toLowerCase() : "",
-          Email: createUser.Email.toLowerCase(),
-          PhoneNumber: createUser.PhoneNumber,
-          Password: hashedPassword,
-          SignupChannel: createUser?.SignupChannel,
-          UserType: createUser?.UserType,
-        });
-        const token = createToken(createdUser)
-        createdUser.Token = token
-        await createdUser.save()
-
+        return responseData
+      }
+      const category = await this.category.findById(addProductDto.category)
+      if (!category) {
         responseData = {
-          status: StatusMessages.success,
-          code: HttpCodes.HTTP_CREATED,
-          message: "User Created Successfully",
-          data: createdUser
+          status: StatusMessages.error,
+          code: HttpCodes.HTTP_BAD_REQUEST,
+          message: "Category Not Found",
+        }
+        return responseData
+      }
+      let image_urls = []
+      if (addProductDto?.images && addProductDto?.images.length > 0) {
+        for (const file of addProductDto?.images) {
+          const url = await cloudUploader.imageUploader(file)
+          image_urls.push(url)
         }
       }
+      const newProduct = await this.product.create({
+        product_name: String(addProductDto.product_name),
+        description: addProductDto?.description,
+        category: category?._id,
+        vendor: user?._id,
+        unit_price: Number(addProductDto?.unit_price),
+        product_quantity: Number(addProductDto.product_quantity),
+        ...(addProductDto?.discount_price && (addProductDto?.discount_price > 0) && {
+          is_discounted: true
+        }),
+        ...(addProductDto?.discount_price && (addProductDto?.discount_price > 0) && {
+          discount_price: Number(addProductDto?.discount_price)
+        }),
+        in_stock: addProductDto.in_stock === YesOrNo.YES ? true : false,
+        ...((image_urls.length > 0) && {
+          images: image_urls
+        })
+      })
 
+      responseData = {
+        status: StatusMessages.success,
+        code: HttpCodes.HTTP_CREATED,
+        message: "Product Added Successfully",
+        data: newProduct
+      }
       return responseData;
     } catch (error: any) {
       console.log("🚀 ~ UserService ~ error:", error)
@@ -79,22 +100,41 @@ class UserService {
 
   }
 
-  public async addShippingAddress(
-    addShippingAddress: AddShippingAddressDto,
-    user: User
+
+  public async fetchProducts(
+    payload: FetchProductsDto,
   ): Promise<ResponseData> {
     let responseData: ResponseData
     try {
-      user.ShippingAddress = {
-        full_address: addShippingAddress.address,
-        country: "Nigeria"
+      const search = {
+        ...(payload?.filter?.product_name && {
+          product_name: { $regex: payload?.filter?.product_name, $options: "i" }
+        }),
+        ...((payload?.filter?.price_lower && payload?.filter?.price_upper) && {
+          unit_price: {
+            $gte: payload?.filter?.price_lower,
+            $lte: payload?.filter?.price_upper
+          }
+        }),
       }
-      await user.save()
+
+      var paginatedRecords = await getPaginatedRecords(
+        this.product, {
+        limit: payload?.limit,
+        page: payload?.page,
+        data: search,
+        populateObj: {
+          path: "category",
+          select: "name"
+        }
+      }
+      )
+
       responseData = {
         status: StatusMessages.success,
         code: HttpCodes.HTTP_OK,
-        message: "Shipping Address Added Successfully",
-        data: user
+        message: "Products Fetched Successfully",
+        data: paginatedRecords
       }
       return responseData;
     } catch (error: any) {
@@ -109,217 +149,6 @@ class UserService {
 
   }
 
-
-  public async getProfile(user: User): Promise<ResponseData> {
-    let responseData: ResponseData
-    try {
-      responseData = {
-        status: StatusMessages.success,
-        code: HttpCodes.HTTP_OK,
-        message: "Profile Retreived Successfully",
-        data: user
-      }
-      return responseData;
-    } catch (error: any) {
-      console.log("🚀 ~ UserService ~ getProfile ~ error:", error)
-      responseData = {
-        status: StatusMessages.error,
-        code: HttpCodes.HTTP_SERVER_ERROR,
-        message: error.toString()
-      }
-      return responseData;
-    }
-
-  }
-
-
-  public async userLogin(login: LoginDto): Promise<ResponseData> {
-    let responseData: ResponseData
-    try {
-      const user = await this.user.findOne({
-        $or: [
-          {
-            Email: login.email_or_phone_number.toLowerCase(),
-            UserType: login.userType
-          },
-          {
-            PhoneNumber: login.email_or_phone_number.toLowerCase(),
-            UserType: login.userType
-          }
-        ]
-      })
-      if (!user) {
-        responseData = {
-          status: StatusMessages.error,
-          code: HttpCodes.HTTP_BAD_REQUEST,
-          message: "Incorrect Username Or Password"
-        }
-        return responseData
-      }
-      const isPasswordCorrect = await comparePassword(login.password, user?.Password)
-      if (isPasswordCorrect === false) {
-        responseData = {
-          status: StatusMessages.error,
-          code: HttpCodes.HTTP_BAD_REQUEST,
-          message: "Incorrect Username Or Password"
-        }
-        return responseData
-      }
-      const token = createToken(user)
-      user.Token = token
-      await user.save()
-      responseData = {
-        status: StatusMessages.success,
-        code: HttpCodes.HTTP_OK,
-        message: "User Login Successful",
-        data: user
-      }
-      return responseData;
-    } catch (error: any) {
-      console.log("🚀 ~ UserService ~ login ~ error:", error)
-      responseData = {
-        status: StatusMessages.error,
-        code: HttpCodes.HTTP_SERVER_ERROR,
-        message: error.toString()
-      }
-      return responseData;
-    }
-
-  }
-
-  public async changePasswordRequest(changePasswordDto: ChangePasswordDto): Promise<ResponseData> {
-    let responseData: ResponseData
-    try {
-      const user = await this.user.findOne({
-        $or: [
-          {
-            Email: changePasswordDto.email_or_phone_number.toLowerCase(),
-          },
-          {
-            PhoneNumber: changePasswordDto.email_or_phone_number.toLowerCase(),
-          }
-        ]
-      })
-      if (!user) {
-        responseData = {
-          status: StatusMessages.error,
-          code: HttpCodes.HTTP_BAD_REQUEST,
-          message: "User Not Found"
-        }
-        return responseData
-      }
-      const oneTimePassword = await generateOtpModel(
-        OtpPurposeOptions.CHANGE_PASSWORD,
-        user,
-        user?.Email
-      )
-      responseData = {
-        status: StatusMessages.success,
-        code: HttpCodes.HTTP_OK,
-        message: "Otp Generated Successfully",
-        data: oneTimePassword
-      }
-      return responseData;
-    } catch (error: any) {
-      console.log("🚀 ~ UserService ~ login ~ error:", error)
-      responseData = {
-        status: StatusMessages.error,
-        code: HttpCodes.HTTP_SERVER_ERROR,
-        message: error.toString()
-      }
-      return responseData;
-    }
-
-  }
-
-  public async validateOtp(otp: string): Promise<ResponseData> {
-    let responseData: ResponseData
-    try {
-      const otpValiationResponse = await isOtpCorrect(
-        otp,
-        OtpPurposeOptions.CHANGE_PASSWORD
-      )
-      return otpValiationResponse
-    } catch (error: any) {
-      console.log("🚀 ~ UserService ~ login ~ error:", error)
-      responseData = {
-        status: StatusMessages.error,
-        code: HttpCodes.HTTP_SERVER_ERROR,
-        message: error.toString()
-      }
-      return responseData;
-    }
-
-  }
-
-  public async newPasswordChange(new_password: string, user: User): Promise<ResponseData> {
-    let responseData: ResponseData
-    try {
-      const hashed_password = await hashPassword(new_password)
-      user.Password = hashed_password
-      await user.save()
-      responseData = {
-        status: StatusMessages.success,
-        code: HttpCodes.HTTP_OK,
-        message: "Password Changed Successflly",
-        data: user
-      }
-      return responseData
-    } catch (error: any) {
-      console.log("🚀 ~ UserService ~ login ~ error:", error)
-      responseData = {
-        status: StatusMessages.error,
-        code: HttpCodes.HTTP_SERVER_ERROR,
-        message: error.toString()
-      }
-      return responseData;
-    }
-
-  }
-
-
-
-
-
-
-  public async getUserById(id: number): Promise<User | Error | null> {
-    try {
-
-      const user = await this.user.findOne({ userId: id }).select("-passwword");
-      if (user) {
-        return user!;
-      }
-      return null;
-      // throw new Error("user does not exist");
-    } catch (error: any) {
-      console.log("notforur", error);
-      throw new Error(error.toString());
-    }
-  }
-
-
-
-
-  public async updateFcmToken(
-
-    userId: number,
-    token: string,
-
-
-  ): Promise<User | Error> {
-    try {
-      const data = await this.user.findOneAndUpdate({ userId }, {
-        fcmToken: token
-      }, { new: true })
-      return data!;
-
-
-    } catch (error) {
-      console.log("dsdsddsad", error)
-      //logger.log("error",`cannotcreateusername ${JSON.stringify(error)}`);
-      throw new Error("unable to update fcmtoken");
-    }
-  }
 }
 
-export default UserService;
+export default ProductService;

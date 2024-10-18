@@ -8,8 +8,10 @@ const createBusinessSchema = Joi.object({
   business_name: Joi.string().required(),
   email: Joi.string().email().required(),
   phone_number: Joi.string().required(),
-  last_name: Joi.string().required(),
-
+  adress: Joi.string().required(),
+  category: Joi.string().required(),
+  description: Joi.string().optional(),
+  business_logo: Joi.object({}).optional()
 });
 
 const verifyBusinessSchema = Joi.object({

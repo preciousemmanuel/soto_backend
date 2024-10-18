@@ -2,9 +2,6 @@ import mongoose, { Schema, model } from "mongoose";
 import { User } from "@/resources/user/user.interface";
 import { IdentificationTypes, } from "@/utils/enums/base.enum";
 
-
-
-
 const BusinessSchema = new Schema(
   {
 
@@ -15,7 +12,6 @@ const BusinessSchema = new Schema(
 
     last_name: {
       type: String,
-      required: true
     },
 
     user: {
@@ -30,7 +26,18 @@ const BusinessSchema = new Schema(
       type: String,
       required: true
     },
-
+    adress: {
+      type: String,
+    },
+    category: {
+      type: String,
+    },
+    description: {
+      type: String,
+    },
+    business_logo: {
+      type: String,
+    },
     verification_type: {
       type: String,
       enum: IdentificationTypes,

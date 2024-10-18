@@ -13,11 +13,14 @@ import {
   VerificationDto,
 } from "./business.dto";
 import { hashPassword } from "@/utils/helpers/token";
-import { OtpPurposeOptions, StatusMessages } from "@/utils/enums/base.enum";
+import { OtpPurposeOptions, StatusMessages, UserTypes } from "@/utils/enums/base.enum";
 import ResponseData from "@/utils/interfaces/responseData.interface";
 import { HttpCodes } from "@/utils/constants/httpcode";
 import BusinessModel from "./business.model";
 import mongoose from "mongoose";
+import UserService from "../user/user.service";
+import { CreateUserDto } from "../user/user.dto";
+import cloudUploader from "@/utils/config/cloudUploader";
 
 class BusinessService {
   private Business = BusinessModel;
@@ -28,33 +31,45 @@ class BusinessService {
     user: InstanceType<typeof UserModel>
   ): Promise<ResponseData> {
     let responseData: ResponseData
-
     try {
-
       const existingBusiness = await this.Business.findOne({
-        user: user._id
+        user: user?._id
       })
       if (existingBusiness) {
-        const business = await this.Business.findByIdAndUpdate(
-          existingBusiness?._id,
-          createBusinessDto,
-          {
-            new: true,
-            runValidators: true
-          }
-        ).exec()
+        const logo = createBusinessDto?.business_logo ?
+          await cloudUploader.imageUploader(createBusinessDto.business_logo) :
+          undefined
+        const updateBusiness = await this.Business.findByIdAndUpdate(existingBusiness._id, {
+          ...(createBusinessDto?.business_name && { business_name: createBusinessDto.business_name }),
+          ...(createBusinessDto?.email && { email: createBusinessDto.email }),
+          ...(createBusinessDto?.phone_number && { phone_number: createBusinessDto.phone_number }),
+          ...(createBusinessDto?.adress && { adress: createBusinessDto.adress }),
+          ...(createBusinessDto?.category && { category: createBusinessDto.category }),
+          ...(createBusinessDto?.description && { description: createBusinessDto.description }),
+          ...(logo && { business_logo: logo }),
+        }, { new: true })
         responseData = {
           status: StatusMessages.success,
-          code: HttpCodes.HTTP_CREATED,
+          code: HttpCodes.HTTP_OK,
           message: "Business Updated Successfully",
-          data: business
+          data: updateBusiness
         }
+
       } else {
+        const logo = createBusinessDto?.business_logo ?
+          await cloudUploader.imageUploader(createBusinessDto.business_logo) :
+          undefined
         const new_business = await this.Business.create({
-          user: user._id,
-          ...createBusinessDto
+          business_name: createBusinessDto.business_name,
+          email: createBusinessDto.email,
+          phone_number: createBusinessDto.phone_number,
+          adress: createBusinessDto.adress,
+          category: createBusinessDto.category,
+          description: createBusinessDto.description,
+          ...(logo && { business_logo: logo }),
+          user: user?._id
         })
-        await this.User.findByIdAndUpdate(user?._id, {
+        await this.User.findByIdAndUpdate(user._id, {
           business: new_business?._id
         })
 
