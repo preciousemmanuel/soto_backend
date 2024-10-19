@@ -1,7 +1,7 @@
 
 import { Request, Response, NextFunction } from "express";
 import HttpException from "@/utils/exceptions/http.exception";
-import { HttpCodes } from "@/utils/httpcode";
+import { HttpCodes } from "@/utils/constants/httpcode";
 
 async function idempotentMiddleware(
     req: Request,
@@ -9,7 +9,7 @@ async function idempotentMiddleware(
     next: NextFunction
 ): Promise<Response | void> {
     const idempotentKey = req.headers.idempotentkey;
-    if (!idempotentKey ) {
+    if (!idempotentKey) {
         // return res.status(401).json({error:"Unauthorized"});
         return next(new HttpException(HttpCodes.HTTP_FORBIDDEN, "Please provide unique idempotentKey key"));
 
