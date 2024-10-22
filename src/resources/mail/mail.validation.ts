@@ -8,7 +8,6 @@ const createBusinessSchema = Joi.object({
   business_name: Joi.string().required(),
   email: Joi.string().email().required(),
   phone_number: Joi.string().required(),
-  password: Joi.string().required(),
   adress: Joi.string().required(),
   category: Joi.string().required(),
   description: Joi.string().optional(),

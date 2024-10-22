@@ -61,3 +61,11 @@ export enum OrderItinerary {
   PICKED_UP_BY_DEVILVERY_AGENT = "PICKED_UP_BY_DEVILVERY_AGENT",
   DELIVERED_SAFELY = "DELIVERED_SAFELY",
 }
+
+export enum MailSendingOptions {
+  SENDGRID = 'SENDGRID',
+  GMAIL = 'GMAIL',
+  MAILGUN = 'MAILGUN',
+  MAILTRAP = 'MAILTRAP',
+  BREVO = 'BREVO',
+}

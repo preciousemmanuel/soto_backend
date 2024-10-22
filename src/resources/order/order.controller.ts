@@ -6,7 +6,7 @@ import validate from "./order.validation";
 import { responseObject } from "@/utils/helpers/http.response";
 import { HttpCodes } from "@/utils/constants/httpcode";
 import authenticatedMiddleware from "@/middleware/authenticated.middleware";
-import { CreateOrderDto, FetchMyOrdersDto } from "./order.dto";
+import { AddToCartDto, CreateOrderDto, FetchMyOrdersDto, RemoveFromCartDto } from "./order.dto";
 import upload from "@/utils/config/multer";
 import OrderService from "./order.service";
 
@@ -23,6 +23,21 @@ class OrderController implements Controller {
   initializeRoute(): void {
 
     this.router.post(
+      `${this.path}/add-to-cart`,
+      authenticatedMiddleware,
+      validationMiddleware(validate.addToCartSchema),
+      this.addToCart
+    )
+
+    this.router.put(
+      `${this.path}/remove-from-cart`,
+      authenticatedMiddleware,
+      validationMiddleware(validate.removeFromCartSchema),
+      this.removeFromCart
+    )
+
+
+    this.router.post(
       `${this.path}/create`,
       authenticatedMiddleware,
       validationMiddleware(validate.createOrderSchema),
@@ -37,6 +52,61 @@ class OrderController implements Controller {
     )
 
   }
+
+  private addToCart = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<Response | void> => {
+    try {
+      const body: AddToCartDto = req.body
+      const user = req.user
+      const {
+        status,
+        code,
+        message,
+        data
+      } = await this.orderService.addToCart(body, user);
+      return responseObject(
+        res,
+        code,
+        status,
+        message,
+        data
+      );
+
+    } catch (error: any) {
+      next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()))
+    }
+  }
+
+  private removeFromCart = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<Response | void> => {
+    try {
+      const body: RemoveFromCartDto = req.body
+      const user = req.user
+      const {
+        status,
+        code,
+        message,
+        data
+      } = await this.orderService.removeFromCart(body, user);
+      return responseObject(
+        res,
+        code,
+        status,
+        message,
+        data
+      );
+
+    } catch (error: any) {
+      next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()))
+    }
+  }
+
 
   private createOrder = async (
     req: Request,

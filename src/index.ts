@@ -9,6 +9,7 @@ import BusinessController from './resources/business/business.controller';
 import CategoryService from './resources/category/category.service';
 import CategoryController from './resources/category/category.controller';
 import OrderController from './resources/order/order.controller';
+import MailController from './resources/mail/mail.controller';
 
 dotenv.config({ path: `${process.env.NODE_ENV}.env` });
 validateEnv();
@@ -18,7 +19,8 @@ const app = new App([
     new ProductController(),
     new BusinessController(),
     new CategoryController(),
-    new OrderController()
+    new OrderController(),
+    new MailController(),
 
 
     // new TransactionController(),

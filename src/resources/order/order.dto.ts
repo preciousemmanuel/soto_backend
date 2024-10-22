@@ -14,6 +14,14 @@ export interface CreateOrderDto {
   payment_type?: OrderPaymentType;
 }
 
+export interface AddToCartDto {
+  items: orderItems[];
+}
+
+export interface RemoveFromCartDto {
+  product_id: string;
+}
+
 export interface FetchMyOrdersDto {
   limit?: number
   page?: number;

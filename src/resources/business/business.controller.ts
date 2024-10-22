@@ -25,7 +25,6 @@ class BusinessController implements Controller {
 
     this.router.post(
       `${this.path}/create`,
-      authenticatedMiddleware,
       upload.single("business_logo"),
       validationMiddleware(validate.createBusinessSchema),
       this.createCreateBusiness
@@ -59,7 +58,7 @@ class BusinessController implements Controller {
         code,
         message,
         data
-      } = await this.businessService.createBusiness(body, user);
+      } = await this.businessService.createBusiness(body);
       return responseObject(
         res,
         code,
