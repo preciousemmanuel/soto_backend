@@ -9,8 +9,10 @@ import {
 
 // import logger from "@/utils/logger";
 import {
+  AddToCartDto,
   CreateOrderDto,
   FetchMyOrdersDto,
+  RemoveFromCartDto,
 } from "./order.dto";
 import { hashPassword } from "@/utils/helpers/token";
 import { OrderStatus, OtpPurposeOptions, StatusMessages, UserTypes } from "@/utils/enums/base.enum";
@@ -19,33 +21,157 @@ import { HttpCodes } from "@/utils/constants/httpcode";
 import cloudUploader from "@/utils/config/cloudUploader";
 import orderModel from "./order.model";
 import productModel from "../product/product.model";
-import { itemsToBeOrdered, orderItems } from "./order.interface";
+import { ItemInCart, itemsToBeOrdered, orderItems } from "./order.interface";
 import orderDetailsModel from "./orderDetails.model";
 import { getPaginatedRecords } from "@/utils/helpers/paginate";
+import cartModel from "./cart.model";
 
 class OrderService {
   private Order = orderModel;
+  private Cart = cartModel;
   private OrderDetail = orderDetailsModel
   private User = UserModel
   private Product = productModel
 
-  public async createOrder(
-    payload: CreateOrderDto,
+  public async addToCart(
+    payload: AddToCartDto,
     user: InstanceType<typeof UserModel>
   ): Promise<ResponseData> {
     let responseData: ResponseData
-    let items: itemsToBeOrdered[]
     let product_ids: string[] = []
     try {
-      for (const item of payload.items) {
-        product_ids.push(item._id)
+      const openCart = await this.Cart.findOne({
+        user: user?._id
+      })
+      const currentItemsInCart: any[] = openCart ? [...openCart.toObject().items] : []
+      currentItemsInCart.push(...payload.items)
+      for (const item of currentItemsInCart) {
+        product_ids.push(item.product_id)
       }
       const products = await this.Product.find({
         _id: { $in: product_ids },
         // is_verified: true
       })
 
-      const processedItems = await this.processMathcingItems(payload.items, products, user)
+      const purpose = "cart"
+      const processedItems = await this.processMathcingItems(currentItemsInCart, products, user, purpose)
+      if (processedItems.status === StatusMessages.error) {
+        return processedItems
+      }
+
+      if (openCart) {
+        const current_items_in_cart = openCart.items
+        current_items_in_cart.push(...processedItems?.data?.itemsInOrder)
+        openCart.items = processedItems?.data?.itemsInOrder
+        openCart.total_amount = processedItems?.data?.total_amount
+        openCart.grand_total = processedItems?.data?.total_amount
+        openCart.save()
+        responseData = {
+          status: StatusMessages.success,
+          code: HttpCodes.HTTP_OK,
+          message: "Product Added To Cart Successfully",
+          data: openCart
+        }
+
+      } else {
+        const newCart = await this.Cart.create({
+          items: processedItems?.data?.itemsInOrder,
+          total_amount: processedItems?.data?.total_amount,
+          user: user._id,
+          status: OrderStatus.PENDING,
+          grand_total: processedItems?.data?.total_amount,
+        })
+
+        responseData = {
+          status: StatusMessages.success,
+          code: HttpCodes.HTTP_OK,
+          message: "Product Added To Cart Successfully",
+          data: newCart
+        }
+      }
+
+      return responseData;
+    } catch (error: any) {
+      console.log("🚀 ~ OrderService ~ error:", error)
+      responseData = {
+        status: StatusMessages.error,
+        code: HttpCodes.HTTP_SERVER_ERROR,
+        message: error.toString()
+      }
+      return responseData;
+    }
+
+  }
+
+  public async removeFromCart(
+    payload: RemoveFromCartDto,
+    user: InstanceType<typeof UserModel>
+  ): Promise<ResponseData> {
+    let responseData: ResponseData
+    try {
+      const openCart = await this.Cart.findOne({
+        user: user?._id
+      })
+      if (openCart) {
+        const current_items_in_cart = openCart.items
+        const current_total = openCart.total_amount
+        const product = current_items_in_cart.find(item => String(item.product_id) === String(payload.product_id))
+        const newItemsCart = current_items_in_cart.filter(item => String(item.product_id) !== String(payload.product_id))
+        const product_quantity = product?.quantity || 0
+        const product_unit_price = product?.unit_price || 0
+        const new_total = current_total - (product_quantity * product_unit_price)
+        const updatedCart = await this.Cart.findByIdAndUpdate(openCart._id, {
+          items: newItemsCart,
+          total_amount: new_total,
+          grand_total: new_total
+        }, { new: true })
+
+        responseData = {
+          status: StatusMessages.success,
+          code: HttpCodes.HTTP_OK,
+          message: "Product Removed To Cart Successfully",
+          data: updatedCart
+        }
+
+      } else {
+        responseData = {
+          status: StatusMessages.success,
+          code: HttpCodes.HTTP_OK,
+          message: "Product Removed To Cart Successfully",
+          data: null
+        }
+      }
+
+      return responseData;
+    } catch (error: any) {
+      console.log("🚀 ~ OrderService ~ error:", error)
+      responseData = {
+        status: StatusMessages.error,
+        code: HttpCodes.HTTP_SERVER_ERROR,
+        message: error.toString()
+      }
+      return responseData;
+    }
+
+  }
+
+  public async createOrder(
+    payload: CreateOrderDto,
+    user: InstanceType<typeof UserModel>
+  ): Promise<ResponseData> {
+    let responseData: ResponseData
+    let product_ids: string[] = []
+    try {
+      for (const item of payload.items) {
+        product_ids.push(item.product_id)
+      }
+      const products = await this.Product.find({
+        _id: { $in: product_ids },
+        // is_verified: true
+      })
+
+      const purpose = "cart"
+      const processedItems = await this.processMathcingItems(payload.items, products, user, purpose)
       if (processedItems.status === StatusMessages.error) {
         return processedItems
       }
@@ -102,7 +228,8 @@ class OrderService {
   public async processMathcingItems(
     items: orderItems[],
     products: InstanceType<typeof this.Product>[],
-    user: InstanceType<typeof this.User>
+    user: InstanceType<typeof this.User>,
+    purpose: string
   ): Promise<ResponseData> {
     let total_amount = 0
     let responseData: ResponseData
@@ -111,7 +238,7 @@ class OrderService {
     try {
       for (const item2 of products) {
         for (const item of items) {
-          const matchingProduct = String(item2._id) === String(item?._id)
+          const matchingProduct = String(item2._id) === String(item?.product_id)
           if (matchingProduct === true) {
             if (item.quantity > item2.product_quantity) {
               messages.push(`Available Quantities For ${item2.product_name} is ${item2.product_quantity}`)
@@ -140,7 +267,13 @@ class OrderService {
           message: messages.toString(),
         }
       } else {
-        this.createOrderDetails(itemsInOrder, user)
+        switch (purpose) {
+          case "order":
+            this.createOrderDetails(itemsInOrder, user)
+            break;
+          default:
+            break;
+        }
         responseData = {
           status: StatusMessages.success,
           code: HttpCodes.HTTP_OK,

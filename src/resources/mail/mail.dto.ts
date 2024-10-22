@@ -8,7 +8,7 @@ import {
 export interface CreateBusinessDto {
   business_name: string;
   email: string;
-  password: string;
+  last_name?: string;
   phone_number: string;
   adress: string;
   category?: string;

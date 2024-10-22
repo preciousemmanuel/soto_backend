@@ -21,6 +21,19 @@ const createOrderSchema = Joi.object({
   ).optional(),
 });
 
+const addToCartSchema = Joi.object({
+  items: Joi.array().items(
+    Joi.object({
+      product_id: Joi.string().required(),
+      quantity: Joi.number().positive().default(1).required()
+    })
+  ).min(1).required(),
+});
+
+const removeFromCartSchema = Joi.object({
+  product_id: Joi.string().required(),
+});
+
 const fetchMyOrdersSchema = Joi.object({
   limit: Joi.number().positive().default(10).optional(),
   page: Joi.number().positive().default(1).optional(),
@@ -39,6 +52,8 @@ const fetchMyOrdersSchema = Joi.object({
 
 
 export default {
+  addToCartSchema,
+  removeFromCartSchema,
   createOrderSchema,
   fetchMyOrdersSchema
 }

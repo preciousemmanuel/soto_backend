@@ -1,7 +1,7 @@
 import {
   IdentificationTypes,
 } from "@/utils/enums/base.enum";
-import { Document } from "mongoose";
+import mongoose, { Document } from "mongoose";
 
 export interface Order extends Document {
   items: orderItems[];
@@ -9,7 +9,7 @@ export interface Order extends Document {
 }
 
 export interface orderItems {
-  _id: string;
+  product_id: string;
   quantity: number,
 }
 
@@ -22,4 +22,15 @@ export interface itemsToBeOrdered {
   quantity: number;
   unit_price: number;
   is_discounted?: boolean;
+}
+
+export interface ItemInCart extends Document {
+  product_id: mongoose.Types.ObjectId;  // References Products model
+  product_name: string;
+  description: string;
+  vendor?: mongoose.Types.ObjectId;     // References Users model (optional)
+  images?: string[];                    // Optional array of strings
+  quantity: number;
+  unit_price: number;
+  is_discounted?: boolean;              // Optional, defaults to false
 }
