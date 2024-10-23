@@ -1,7 +1,7 @@
 import dotenv from 'dotenv'
 import path from 'path'
 import validateEnv from '../helpers/validateEnv';
-import { CloudUploadOption, MailSendingOptions } from '../enums/base.enum';
+import { CloudUploadOption, MailSendingOptions, PaymentProvider } from '../enums/base.enum';
 
 dotenv.config({ path: `${process.env.NODE_ENV}.env` });
 validateEnv();
@@ -32,5 +32,10 @@ export default {
   BREVO_MAIL_HOST: process.env.BREVO_MAIL_HOST || MailSendingOptions.GMAIL,
   BREVO_MAIL_PORT: process.env.BREVO_MAIL_PORT || MailSendingOptions.GMAIL,
   BREVO_MAIL_PASSWORD: process.env.BREVO_MAIL_PASSWORD || MailSendingOptions.GMAIL,
+  PAYMENT_PROVIDER: process.env.PAYMENT_PROVIDER || PaymentProvider.PAYSTACK,
+  PAYSTACK_PUBLIC_KEY: process.env.PAYSTACK_PUBLIC_KEY || PaymentProvider.PAYSTACK,
+  PAYSTACK_CALLBACK_URL: process.env.PAYSTACK_CALLBACK_URL || PaymentProvider.PAYSTACK,
+  PAYSTACK_BASE_URL: process.env.PAYSTACK_BASE_URL || PaymentProvider.PAYSTACK,
+  PAYSTACK_SECRET_KEY: process.env.PAYSTACK_SECRET_KEY || PaymentProvider.PAYSTACK,
 
 }

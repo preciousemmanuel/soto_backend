@@ -25,6 +25,7 @@ import { ItemInCart, itemsToBeOrdered, orderItems } from "./order.interface";
 import orderDetailsModel from "./orderDetails.model";
 import { getPaginatedRecords } from "@/utils/helpers/paginate";
 import cartModel from "./cart.model";
+import MailService from "../mail/mail.service";
 
 class OrderService {
   private Order = orderModel;
@@ -32,6 +33,7 @@ class OrderService {
   private OrderDetail = orderDetailsModel
   private User = UserModel
   private Product = productModel
+  private mailService = new MailService()
 
   public async addToCart(
     payload: AddToCartDto,
@@ -269,7 +271,7 @@ class OrderService {
       } else {
         switch (purpose) {
           case "order":
-            this.createOrderDetails(itemsInOrder, user)
+            // this.createOrderDetails(itemsInOrder, user)
             break;
           default:
             break;
@@ -352,8 +354,9 @@ class OrderService {
   }
 
   private async createOrderDetails(
-    itemsInOrder: itemsToBeOrdered[],
-    user: InstanceType<typeof this.User>
+    itemsInOrder: itemsToBeOrdered[] | ItemInCart[],
+    user: any,
+    Order: any,
   ): Promise<ResponseData> {
     let responseData: ResponseData
     try {
@@ -361,11 +364,23 @@ class OrderService {
       for (const item of itemsInOrder) {
         order_details.push({
           ...item,
-          buyer: user?._id
+          buyer: user?._id,
+          order: Order?._id
         })
       }
       const inserted = await this.OrderDetail.insertMany(order_details)
-      console.log("🚀 ~ OrderService ~ inserted:", inserted)
+
+      const details_ids = []
+      for (const item of inserted) {
+        details_ids.push(item?._id)
+      }
+      if (details_ids.length > 0) {
+        const details_to_vendors = await this.OrderDetail.find({
+          _id: { $in: details_ids }
+        })
+        this.sendOrderToVendors(details_to_vendors)
+      }
+
       responseData = {
         status: StatusMessages.success,
         code: HttpCodes.HTTP_OK,
@@ -385,5 +400,127 @@ class OrderService {
     }
   }
 
+  public async confirmOrderPayment(
+    narration_id: string
+  ): Promise<ResponseData> {
+    let responseData: ResponseData
+    try {
+      const order = await this.Order.findById(narration_id)
+
+      if (!order) {
+        responseData = {
+          status: StatusMessages.error,
+          code: HttpCodes.HTTP_BAD_REQUEST,
+          message: "Order Not Found"
+        }
+        return responseData
+      }
+      const user = await this.User.findById(order.user)
+
+      const completedOrder = await this.Order.findByIdAndUpdate(order._id, {
+        status: OrderStatus.BOOKED,
+      }, { new: true })
+
+      const updateData = order.toObject().items.map((item) => {
+        return {
+          updateOne: {
+            filter: { _id: item.product_id },
+            update: {
+              $inc: {
+                product_quantity: -item.quantity
+              }
+            }
+          }
+        }
+      })
+      const updateProduct = await this.Product.bulkWrite(updateData)
+      const fineTuneItems = order.toObject().items.map((item) => {
+        return {
+          product_id: String(item.product_id),
+          product_name: item.product_name,
+          description: item.description,
+          vendor: String(item.vendor),
+          images: item.images,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          is_discounted: item.is_discounted,
+          status: OrderStatus.BOOKED,
+        }
+      })
+      this.createOrderDetails(
+        fineTuneItems,
+        user,
+        order
+      )
+
+      responseData = {
+        status: StatusMessages.success,
+        code: HttpCodes.HTTP_OK,
+        message: "success",
+        data: {
+          completedOrder,
+          updateProduct
+        }
+      }
+      return responseData
+
+    } catch (error: any) {
+      console.log("🚀 ~ OrderService ~ error:", error)
+      responseData = {
+        status: StatusMessages.error,
+        code: HttpCodes.HTTP_SERVER_ERROR,
+        message: error.toString()
+      }
+      return responseData;
+    }
+  }
+
+  public async sendOrderToVendors(order_details: any[]): Promise<ResponseData> {
+    let responseData: ResponseData = {
+      status: StatusMessages.success,
+      code: HttpCodes.HTTP_OK,
+      message: "success",
+      data: null
+    }
+    try {
+      console.log("TIME TO SEND EMAILS OF ORDERS TO VENDORS");
+      console.log("🚀 ~ OrderService ~ sendOrderToVendors ~ order_details:", order_details.length)
+
+      const groupedItems = order_details.reduce((acc, item) => {
+        const vendorId = String(item?.vendor)
+        if (vendorId) {
+          if (!acc[vendorId]) {
+            acc[vendorId] = [];
+          }
+          acc[vendorId].push(item);
+        }
+        return acc;
+      }, {} as { [vendor: string]: any[] })
+
+      Object.keys(groupedItems).forEach(async vendor => {
+        const vendorItems = groupedItems[vendor]
+        if (vendorItems.length > 0) {
+          const user = await this.User.findById(vendor)
+          const emailPayload = {
+            business_name: user?.FirstName,
+            email: user?.Email,
+            items: vendorItems
+          }
+          this.mailService.sendOrdersToVendor(emailPayload)
+
+        }
+      })
+      return responseData
+    } catch (error: any) {
+      console.log("🚀 ~ OrderService ~ error:", error)
+      responseData = {
+        status: StatusMessages.error,
+        code: HttpCodes.HTTP_SERVER_ERROR,
+        message: error.toString()
+      }
+      return responseData;
+    }
+  }
 }
+
 export default OrderService;

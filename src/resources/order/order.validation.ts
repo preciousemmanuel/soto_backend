@@ -10,7 +10,7 @@ import Joi from 'joi';
 const createOrderSchema = Joi.object({
   items: Joi.array().items(
     Joi.object({
-      _id: Joi.string().required(),
+      product_id: Joi.string().required(),
       quantity: Joi.number().positive().default(1).required()
     })
   ).min(1).required(),
