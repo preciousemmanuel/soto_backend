@@ -6,13 +6,20 @@ Object.defineProperty(exports, "__esModule", { value: true });
 // import "dotenv/config";
 const dotenv_1 = __importDefault(require("dotenv"));
 require("module-alias/register");
-const validateEnv_1 = __importDefault(require("@/utils/validateEnv"));
+const validateEnv_1 = __importDefault(require("@/utils/helpers/validateEnv"));
 const app_1 = __importDefault(require("./app"));
 const user_controller_1 = __importDefault(require("@/resources/user/user.controller"));
+const product_controller_1 = __importDefault(require("./resources/product/product.controller"));
+const business_controller_1 = __importDefault(require("./resources/business/business.controller"));
+const category_service_1 = __importDefault(require("./resources/category/category.service"));
+const category_controller_1 = __importDefault(require("./resources/category/category.controller"));
 dotenv_1.default.config({ path: `${process.env.NODE_ENV}.env` });
 (0, validateEnv_1.default)();
 const app = new app_1.default([
     new user_controller_1.default(),
+    new product_controller_1.default(),
+    new business_controller_1.default(),
+    new category_controller_1.default(),
     // new TransactionController(),
-], Number(process.env.PORT));
+], Number(process.env.PORT), new category_service_1.default());
 app.listen();

@@ -14,7 +14,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const user_model_1 = __importDefault(require("@/resources/user/user.model"));
 const http_exception_1 = __importDefault(require("@/utils/exceptions/http.exception"));
-const token_1 = require("@/utils/token");
+const token_1 = require("@/utils/helpers/token");
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 function authenticatedMiddleware(req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -30,7 +30,9 @@ function authenticatedMiddleware(req, res, next) {
                 // return res.status(401).json({error:"Unauthorized"});
                 return next(new http_exception_1.default(401, "Unauthorized"));
             }
-            const user = yield user_model_1.default.findById(payload.id);
+            const user = yield user_model_1.default.findById(payload.id)
+                .populate('business')
+                .populate('wallet');
             if (!user) {
                 return next(new http_exception_1.default(401, "Unauthorized"));
             }

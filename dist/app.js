@@ -11,9 +11,10 @@ const cors_1 = __importDefault(require("cors"));
 const morgan_1 = __importDefault(require("morgan"));
 const error_middleware_1 = __importDefault(require("./middleware/error.middleware"));
 class App {
-    constructor(controllers, port) {
+    constructor(controllers, port, categoryService) {
         this.express = (0, express_1.default)();
         this.port = port;
+        this.categoryService = categoryService;
         this.initializeDB();
         this.initializeMiddleware();
         this.initializeControllers(controllers);
@@ -21,6 +22,7 @@ class App {
         this.connectSQSConsumers();
         this.connectQueueConsumers();
         this.connectSNSConsumers();
+        this.initializeSeeders();
     }
     initializeMiddleware() {
         this.express.use((0, helmet_1.default)());
@@ -54,6 +56,9 @@ class App {
     }
     connectSNSConsumers() {
         // snsConnection.createSnsConsumer("sns","arn:aws:sns:us-east-1:381491929354:CREATE_ACCOUNT",SQS_CREATE_ACCOUNT_ARN);
+    }
+    initializeSeeders() {
+        this.categoryService.seedCategories();
     }
     listen() {
         this.express.listen(this.port, () => {
