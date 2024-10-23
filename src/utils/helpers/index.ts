@@ -35,6 +35,11 @@ export const verificationCode = () => {
   return code;
 };
 
+export const convertNairaToKobo = (amount: number) => {
+  const koboValue = Number(amount) * 100;
+  return koboValue;
+};
+
 export const axiosRequestFunction = async ({
   url,
   method,
@@ -90,3 +95,17 @@ export const axiosRequestFunction = async ({
   }
   return responseData
 }
+
+export const getRandomRef = () => {
+  const getRef = () => {
+    var nums = "0123456789";
+    var rand = "";
+    for (var i = 0; i < 5; i++) {
+      rand += nums[Math.floor(Math.random() * 10)];
+    }
+    return rand;
+  };
+  let randRef = "SOTO" + getRef() + Date.now();
+
+  return randRef;
+};

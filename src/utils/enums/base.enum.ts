@@ -69,3 +69,56 @@ export enum MailSendingOptions {
   MAILTRAP = 'MAILTRAP',
   BREVO = 'BREVO',
 }
+
+export enum TransactionType {
+  CREDIT = "CREDIT",
+  DEBIT = "DEBIT",
+  REVERSAL = "REVERSAL"
+}
+
+export enum TransactionStatus {
+  PENDING = "PENDING",
+  SUCCESSFUL = "SUCCESSFUL",
+  FAILED = "FAILED",
+  REVERSAL = "REVERSAL",
+}
+
+export enum TransactionCurrency {
+  NGN = "NGN"
+}
+
+export enum TransactionNarration {
+  ORDER = "ORDER",
+  PAYOUT = "PAYOUT",
+  REFUND = "REFUND",
+  WITHDRAWAL = "WITHDRAWAL",
+}
+
+export enum PaystackWebHookEvents {
+  TRANSFER_SUCCESS = "transfer.success",
+  TRANSFER_FAILED = "transfer.failed",
+  TRANSFER_REVERSED = "transfer.reversed",
+  TRANSACTION_SUCCESSFUL = "charge.success"
+}
+
+export enum Timeline {
+  YESTERDAY = "YESTERDAY",
+  TODAY = "TODAY",
+  THIS_WEEK = "THIS_WEEK",
+  LAST_7_DAYS = 'LAST_7_DAYS',
+  LAST_WEEK = "LAST_WEEK",
+  LAST_2_WEEKS = "LAST_2_WEEKS",
+  THIS_MONTH = "THIS_MONTH",
+  LAST_3_MONTHS = "LAST_3_MONTHS",
+  LAST_6_MONTHS = "LAST_6_MONTHS",
+  LAST_12_MONTHS = "LAST_12_MONTHS",
+  THIS_YEAR = "THIS_YEAR",
+  LAST_YEAR = "LAST_YEAR",
+  LAST_2_YEARS = "LAST_2_YEARS",
+  ALL_TIME = "ALL_TIME",
+}
+
+export enum PaymentProvider {
+  PAYSTACK = "PAYSTACK",
+  FLUTTERWAVE = "FLUTTERWAVE",
+}

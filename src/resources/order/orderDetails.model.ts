@@ -2,14 +2,15 @@ import mongoose, { Schema, model } from "mongoose";
 import { User } from "@/resources/user/user.interface";
 import { OrderStatus, } from "@/utils/enums/base.enum";
 
-
-
-
 const OrderDetails = new Schema(
   {
     product_id: {
       type: mongoose.Types.ObjectId,
       ref: "Products",
+    },
+    product_name: {
+      type: String,
+
     },
     quantity: {
       type: Number,
@@ -28,6 +29,10 @@ const OrderDetails = new Schema(
     buyer: {
       type: mongoose.Types.ObjectId,
       ref: "Users",
+    },
+    order: {
+      type: mongoose.Types.ObjectId,
+      ref: "Orders",
     },
     is_discounted: {
       type: Boolean,

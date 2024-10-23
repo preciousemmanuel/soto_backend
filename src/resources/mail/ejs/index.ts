@@ -3,4 +3,6 @@ export const filePaths = {
   verification: "",
   forgotPassword: "",
   sendOTP: "/src/resources/mail/ejs/sendOTP/sendOTP.ejs",
+  sendMailsToVendors: "/src/resources/mail/ejs/sendMailsToVendors/sendMailsToVendors.ejs",
+
 }
