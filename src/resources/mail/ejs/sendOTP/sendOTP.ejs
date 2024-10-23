@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+​
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+  <title>SOTO E-Commerce</title>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap");
+
+    ​ :root {
+      font-synthesis: none;
+      text-rendering: optimizeLegibility;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      -webkit-text-size-adjust: 100%;
+      --primary: #6FA7B4;
+      --primary-dark: #23434A;
+      --light: #D9D9D9;
+      --dark: #0D1112;
+      --secondary: #E38800;
+    }
+
+    ​ ::-webkit-scrollbar {
+      width: 0;
+    }
+
+    ​ * {
+      box-sizing: border-box;
+      -moz-box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: "Poppins", sans-serif;
+    }
+
+    ​ body {
+      width: 100%;
+      margin: 0;
+      overflow-x: hidden;
+    }
+
+    ​ header {
+      background: url("https://res.cloudinary.com/pabloclueless/image/upload/v1692004280/header-image_czuzlo.jpg") center/cover no-repeat;
+      background-blend-mode: multiply;
+      background-color: var(--primary-dark);
+    }
+
+    ​ a {
+      text-decoration: none;
+    }
+
+    ​ .row {
+      display: flex;
+      align-items: center;
+    }
+
+    ​ .justify-center {
+      justify-content: center;
+    }
+
+    ​ .text__name {
+      font-size: 18px;
+      font-weight: 500;
+      margin-bottom: 28px;
+    }
+
+    ​ .media {
+      background: #000;
+      border-radius: 50%;
+      color: #FFF;
+      display: flex;
+      height: 32px;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+    }
+
+    ​ .body {
+      width: 100%;
+      color: #333;
+    }
+
+    ​ .body-text {
+      font-size: 12px;
+      margin: 10px 0
+    }
+
+    ​ .details {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      border-radius: 15px;
+      background-color: #f7f7f7;
+      font-size: 10px;
+      padding: 10px;
+    }
+
+    ​ .footer-details {
+      width: 90%;
+      display: flex;
+      align-items: center;
+      flex-direction: column;
+      gap: 12px;
+      text-align: center;
+    }
+
+    ​ @media screen and (min-width: 1024px) {
+      .text__name {
+        font-size: 24px;
+      }
+
+      ​ .body {
+        width: 66%;
+      }
+
+      ​ .body-text {
+        font-size: 14px;
+      }
+
+      ​ .details {
+        width: 50%;
+        font-size: 14px;
+      }
+
+      ​ .footer-details {
+        width: 66%;
+      }
+    }
+
+    .verify-button {
+      display: inline-block;
+      padding: 10px 20px;
+      font-size: 16px;
+      color: white;
+      background-color: #007bff;
+      /* Bootstrap primary color */
+      border: none;
+      border-radius: 5px;
+      text-decoration: none;
+      /* Remove underline from link */
+      text-align: center;
+    }
+
+    .verify-button:hover {
+      background-color: #0056b3;
+      /* Darker shade on hover */
+    }
+  </style>
+</head>
+​
+
+<body>
+  <header class="row justify-center" style="padding: 30px;">
+    <div style="display: flex;flex-direction: column;align-items: center;">
+      <img src="https://res.cloudinary.com/pabloclueless/image/upload/v1692004278/onboard-logo_z6lkdr.png" alt=""
+        style="width: 150px;">
+      <div class="row" style="gap: 10px;">
+        <p style="font-size: 12px;color: #fff;">Travel</p>
+        <p style="font-size: 12px;color: #fff;">School</p>
+        <p style="font-size: 12px;color: #fff;">Visa</p>
+      </div>
+    </div>
+  </header>
+  <main style="width: 100%;padding: 38px 20px;margin-bottom: 66px;">
+    <p class="text__name">Hi <%= String(first_name).toUpperCase() %>,</p>
+    <div class="body">
+      <p class="body-text">Welcome To SOTO E-commerce!!!
+      </p>
+      <p class="body-text">Here Is Your One Time Password For Email Verification: <br>
+        <a href="" class="verify-button"></a>
+      <p class="body-text">
+        <%=otp %>
+      </p>
+      </p>
+
+      <p class="body-text">If there are any additional documents required or if we need further
+        information
+        from your end, our team will be in touch promptly. You can track the status of your booking at any time by
+        logging into your account on our website.</p>
+      <p class="body-text">We value your business and are committed to providing you with a seamless
+        experience. If you have any questions or concerns, please don't hesitate to reach
+        out to our dedicated customer support team at <a href="mailto: Info@soto.com.ng">Info@soto.com.ng</a>.
+      </p>
+      <p class="body-text">
+        <span>Best regards,</span>
+        <br>
+        <b>Soto NG</b>
+      </p>
+    </div>
+  </main>
+  <footer
+    style="width: 100%;display: flex;flex-direction: column;align-items: center;padding: 16px 20px; font-size: 10px;">
+    <div
+      style="width: 100%;display: flex;align-items: center;justify-content: center;gap: 12px;padding: 20px 0;border-top: 1px solid #aaa;border-bottom: 1px solid #aaa;">
+      <a href="https://instagram.com/onboard_ng?igshid=YmMyMTA2M2Y=" target="_blank" class="media">
+        <i class="ri-instagram-line" style="font-size: 20px;"></i>
+      </a>
+      <a href="https://www.facebook.com/KadirTravels" target="_blank" class="media">
+        <i class="ri-facebook-fill" style="font-size: 20px;"></i>
+      </a>
+    </div>
+    <p style="margin: 16px 0 32px 0;">&copy; <span id="year"></span> Onboard. All rights reserved.</p>
+    <div class="footer-details">
+      <p>You are receiving this mail because you registered to join the Soto E commerce platform as a user or a vendor.
+        This
+        also shows that you agree to our Terms of use and Privacy Policies. If you no longer want to receive mails from
+        use, click the unsubscribe link below to unsubscribe.</p>
+      <div style="display: flex;align-items: center;gap: 8px;" class="flex items-center gap-2">
+        <a href="https://onboard.com.ng/privacy" target="_blank" style="text-decoration: underline;color: #333;">Privacy
+          policy</a>
+        <a href="https://onboard.com.ng/terms" target="_blank" style="text-decoration: underline;color: #333;">Terms of
+          service</a>
+        <a href="https://onboard.com.ng/help" target="_blank" style="text-decoration: underline;color: #333;">Help
+          center</a>
+        <a href="https://onboard.com.ng/unsubscribe?email={{email}}" target="_blank"
+          style="text-decoration: underline;color: #333;">Unsubscribe</a>
+      </div>
+    </div>
+  </footer>
+  <script>
+    document.getElementById("year").innerText = new Date().getFullYear()
+  </script>
+</body>
+​
+
+</html>

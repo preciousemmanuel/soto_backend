@@ -87,6 +87,10 @@ const UserSchema = new Schema(
     business: {
       type: mongoose.Types.ObjectId,
       ref: "Businesses"
+    },
+    cart: {
+      type: mongoose.Types.ObjectId,
+      ref: "Carts"
     }
 
   },

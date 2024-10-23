@@ -3,19 +3,20 @@ import Controller from "@/utils/interfaces/controller.interface";
 import HttpException from "@/utils/exceptions/http.exception";
 import validationMiddleware from "@/middleware/validation.middleware";
 import BusinessService from "@/resources/business/business.service";
-import validate from "./business.validation";
+import validate from "./transaction.validation";
 import { responseObject } from "@/utils/helpers/http.response";
 import { HttpCodes } from "@/utils/constants/httpcode";
 import authenticatedMiddleware from "@/middleware/authenticated.middleware";
-import { CreateBusinessDto, VerificationDto } from "./business.dto";
-import { Business } from './business.interface'
+import { GeneratePaymentLinkDto, VerificationDto } from "./transaction.dto";
+import { Business } from './transaction.interface'
 import upload from "@/utils/config/multer";
+import TransactionService from "./transaction.service";
 
 
-class BusinessController implements Controller {
-  public path = "/business";
+class TransactionController implements Controller {
+  public path = "/transaction";
   public router = Router();
-  private businessService = new BusinessService();
+  private transactionService = new TransactionService();
 
   constructor() {
     this.initializeRoute();
@@ -24,23 +25,20 @@ class BusinessController implements Controller {
   initializeRoute(): void {
 
     this.router.post(
-      `${this.path}/create`,
-      upload.single("business_logo"),
-      validationMiddleware(validate.createBusinessSchema),
-      this.createCreateBusiness
-    )
-
-    this.router.put(
-      `${this.path}/verify`,
+      `${this.path}/generate-payment-link`,
       authenticatedMiddleware,
-      upload.single("business_logo"),
-      validationMiddleware(validate.verifyBusinessSchema),
-      this.verifyBusiness
+      validationMiddleware(validate.generatePaymentLinkSchema),
+      this.generatePaymentLink
+    )
+
+    this.router.post(
+      `${this.path}/paystack/callback`,
+      this.paystackCallbackService
     )
 
   }
 
-  private createCreateBusiness = async (
+  private generatePaymentLink = async (
     req: Request,
     res: Response,
     next: NextFunction
@@ -48,17 +46,16 @@ class BusinessController implements Controller {
 
     try {
 
-      const body: CreateBusinessDto = req.body
-      if (req.file) {
-        body.business_logo = req.file
-      }
+      const body: GeneratePaymentLinkDto = req.body
+
       const user = req.user
+      console.log("🚀 ~ TransactionController ~ user:", user)
       const {
         status,
         code,
         message,
         data
-      } = await this.businessService.createBusiness(body);
+      } = await this.transactionService.initializePayment(body, user);
       return responseObject(
         res,
         code,
@@ -72,21 +69,20 @@ class BusinessController implements Controller {
     }
   }
 
-  private verifyBusiness = async (
+  private paystackCallbackService = async (
     req: Request,
     res: Response,
     next: NextFunction
   ): Promise<Response | void> => {
 
     try {
-      const body: VerificationDto = req.body
-      const user = req.user
+      const body: any = req.body
       const {
         status,
         code,
         message,
         data
-      } = await this.businessService.verifyBusiness(body, user);
+      } = await this.transactionService.paystackCallbackService(body);
       return responseObject(
         res,
         code,
@@ -99,10 +95,7 @@ class BusinessController implements Controller {
       next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()))
     }
   }
-
-
-
 
 }
 
-export default BusinessController;
+export default TransactionController;
