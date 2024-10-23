@@ -110,6 +110,9 @@ class ProductService {
         ...(payload?.filter?.product_name && {
           product_name: { $regex: payload?.filter?.product_name, $options: "i" }
         }),
+        ...(payload?.filter?.category && {
+          category: payload?.filter?.category
+        }),
         ...((payload?.filter?.price_lower && payload?.filter?.price_upper) && {
           unit_price: {
             $gte: payload?.filter?.price_lower,
