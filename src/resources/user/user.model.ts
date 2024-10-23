@@ -1,54 +1,100 @@
-import { Schema,model } from "mongoose";
+import mongoose, { Schema, model } from "mongoose";
 
-import User from "@/resources/user/user.interface";
+import { User } from "@/resources/user/user.interface";
+import { SignupChannels, UserTypes } from "@/utils/enums/base.enum";
 
 
 
 
-const UserSchema=new Schema({
+const UserSchema = new Schema(
+  {
     // userId: {
     //     type: Number,
     //     required: true,
     //     unique: true,
     //   },
-      FirstName:{
-        type:String,
-        required:true
+    FirstName: {
+      type: String,
+      required: true
     },
-    LastName:{
-        type:String,
-        required:true
+    LastName: {
+      type: String,
+      required: true
     },
-    Email:{
-        type:String,
-        required:true,
-        unique:true,
-        trim:true
+    Email: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true
     },
-   
-    UserName:{
-        type:String
+
+    Password: {
+      type: String,
+      required: true,
     },
-    IsActive:{
-        type:Boolean
-    } ,
-    Role:{
-        type:String
+
+    UserName: {
+      type: String
     },
-    Token:{
-        type:String
+    IsActive: {
+      type: Boolean
     },
-    // PhoneNumber:{
-    //     type:String
-    // },
+    Role: {
+      type: String
+    },
+    Token: {
+      type: String
+    },
+    PhoneNumber: {
+      type: String
+    },
+    UserType: {
+      type: String,
+      enum: UserTypes,
+      default: UserTypes.USER
+    },
     // fcmToken:{
     //     type:String
     // },
     // playerId:{
     //     type:String
     // },
- 
-},{collection:"Users"});
+    ShippingAddress: {
+      full_address: String,
+      address: String,
+      city: String,
+      state: String,
+      postal_code: String,
+      country: {
+        type: String,
+        default: "Nigeria"
+      }
+    },
+    SignupChannel: {
+      type: String,
+      enum: SignupChannels,
+      default: SignupChannels.DEFAULT
+    },
+    IsVerified: {
+      type: Boolean,
+      default: false
+    },
+    wallet: {
+      type: mongoose.Types.ObjectId,
+      ref: "Wallets"
+    },
+
+    business: {
+      type: mongoose.Types.ObjectId,
+      ref: "Businesses"
+    }
+
+  },
+  {
+    collection: "Users",
+    timestamps: true
+  }
+);
 
 // UserSchema.pre<User>("save",async function (next) {
 //     if(!this.isModified) return next();
@@ -64,4 +110,4 @@ const UserSchema=new Schema({
 // return await bycrpt.compare(password,this.password)
 // }
 
-export default model<User>("Users",UserSchema);
+export default model<User>("Users", UserSchema);

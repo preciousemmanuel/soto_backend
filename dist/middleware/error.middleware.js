@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const http_response_1 = require("@/utils/http.response");
+const http_response_1 = require("@/utils/helpers/http.response");
 function errorMiddleware(error, req, res, next) {
     const status = error.status || 500;
     const message = error.message || "Something went wrong";

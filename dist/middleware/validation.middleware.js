@@ -9,8 +9,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const http_response_1 = require("@/utils/http.response");
-const httpcode_1 = require("@/utils/httpcode");
+const http_response_1 = require("@/utils/helpers/http.response");
+const httpcode_1 = require("@/utils/constants/httpcode");
 function validationMiddleware(shema) {
     return (req, res, next) => __awaiter(this, void 0, void 0, function* () {
         const validationOptions = {
