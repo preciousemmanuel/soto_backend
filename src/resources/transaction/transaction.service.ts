@@ -9,8 +9,10 @@ import {
 
 // import logger from "@/utils/logger";
 import {
+  CreateTransactionLogDto,
   FullPaymentLinkDto,
   GeneratePaymentLinkDto,
+  GetTransactionsDto,
   VerificationDto,
 } from "./transaction.dto";
 import { hashPassword } from "@/utils/helpers/token";
@@ -24,6 +26,7 @@ import orderModel from "../order/order.model";
 import PaymentProviderService from "./paypment-provider.service";
 import envConfig from "@/utils/config/env.config";
 import OrderService from "../order/order.service";
+import { getPaginatedRecords } from "@/utils/helpers/paginate";
 
 class TransactionService {
   private TransactionLog = TransactionLogModel;
@@ -174,6 +177,70 @@ class TransactionService {
       return responseData;
     } catch (error: any) {
       console.log("🚀 ~ BusinessService ~ error:", error)
+      responseData = {
+        status: StatusMessages.error,
+        code: HttpCodes.HTTP_SERVER_ERROR,
+        message: error.toString()
+      }
+      return responseData;
+    }
+  }
+
+  public async getTransactionLogs(
+    payload: GetTransactionsDto,
+  ): Promise<ResponseData> {
+    let responseData: ResponseData
+    try {
+      const {
+        user,
+        limit,
+        page,
+        narration
+      } = payload
+      var records = await getPaginatedRecords(this.TransactionLog, {
+        limit,
+        page,
+        data: {
+          user: user?._id,
+          ...(narration && { narration })
+        }
+      })
+      responseData = {
+        status: StatusMessages.success,
+        code: HttpCodes.HTTP_OK,
+        message: "transactions logs retreived successfully",
+        data: records
+      }
+
+      return responseData;
+    } catch (error: any) {
+      console.log("🚀 ~ TransactionService ~ error:", error)
+      responseData = {
+        status: StatusMessages.error,
+        code: HttpCodes.HTTP_SERVER_ERROR,
+        message: error.toString()
+      }
+      return responseData;
+    }
+
+  }
+
+  public async createLogsForSuccessfulPurchase(
+    payload: CreateTransactionLogDto[],
+  ): Promise<ResponseData> {
+    let responseData: ResponseData
+    try {
+      const inserted = await this.TransactionLog.insertMany(payload)
+      responseData = {
+        status: StatusMessages.success,
+        code: HttpCodes.HTTP_OK,
+        message: "transactions logs created successfully",
+        data: inserted.length
+      }
+
+      return responseData;
+    } catch (error: any) {
+      console.log("🚀 ~ TransactionService ~ error:", error)
       responseData = {
         status: StatusMessages.error,
         code: HttpCodes.HTTP_SERVER_ERROR,

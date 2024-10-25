@@ -7,7 +7,7 @@ import validate from "./user.validation";
 import { responseObject } from "@/utils/helpers/http.response";
 import { HttpCodes } from "@/utils/constants/httpcode";
 import authenticatedMiddleware from "@/middleware/authenticated.middleware";
-import { AddShippingAddressDto, ChangePasswordDto, CreateUserDto, LoginDto } from "./user.dto";
+import { AddShippingAddressDto, ChangePasswordDto, CreateUserDto, LoginDto, vendorDashboardDto, vendorInventoryDto } from "./user.dto";
 import { User } from './user.interface'
 
 
@@ -46,6 +46,19 @@ class UserController implements Controller {
       `${this.path}/profile`,
       authenticatedMiddleware,
       this.getProfile
+    )
+
+
+    this.router.get(
+      `${this.path}/vendor-overview`,
+      authenticatedMiddleware,
+      this.getVendorDashboard
+    )
+
+    this.router.get(
+      `${this.path}/vendor-inventory`,
+      authenticatedMiddleware,
+      this.getVendorInventory
     )
 
     this.router.post(
@@ -158,6 +171,83 @@ class UserController implements Controller {
     }
   }
 
+  private getVendorDashboard = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<Response | void> => {
+    try {
+      const is_custom =
+        req?.query?.start_date !== null &&
+        req?.query?.end_date !== null &&
+        req?.query?.start_date !== undefined &&
+        req?.query?.end_date !== undefined
+      const timeFrame = (
+        (is_custom === false) &&
+        (req.query?.time_frame) && (req.query?.time_frame !== null) && (req.query?.time_frame !== "")) ?
+        String(req.query?.time_frame) : undefined
+      const custom_date = (
+        is_custom === true
+      ) ? {
+        start_date: new Date(String(req?.query?.start_date)),
+        end_date: new Date(String(req?.query?.end_date)),
+      } : undefined
+      const user: User = req.user
+      const payload: vendorDashboardDto = {
+        user,
+        ...(timeFrame && { timeFrame }),
+        ...((custom_date) && { custom: custom_date })
+      };
+      const {
+        status,
+        code,
+        message,
+        data
+      } = await this.userService.getVendorDashboard(payload);
+      return responseObject(
+        res,
+        code,
+        status,
+        message,
+        data
+      );
+
+    } catch (error: any) {
+      next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()))
+    }
+  }
+
+  private getVendorInventory = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<Response | void> => {
+    try {
+
+      const user: User = req.user
+      const payload: vendorInventoryDto = {
+        user,
+        limit: req?.query?.limit ? Number(req?.query?.limit) : 10,
+        page: req?.query?.page ? Number(req?.query?.page) : 1,
+      };
+      const {
+        status,
+        code,
+        message,
+        data
+      } = await this.userService.getVendorInventory(payload);
+      return responseObject(
+        res,
+        code,
+        status,
+        message,
+        data
+      );
+
+    } catch (error: any) {
+      next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()))
+    }
+  }
 
   private userLogin = async (
     req: Request,

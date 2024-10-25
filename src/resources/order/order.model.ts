@@ -68,6 +68,10 @@ const OrderSchema = new Schema(
       type: String,
       default: ""
     },
+    tracking_id: {
+      type: String,
+      default: ""
+    },
     grand_total: {
       type: Number,
       required: true
