@@ -1,5 +1,5 @@
 import UserModel from "@/resources/user/user.model";
-import { uniqueCode } from "@/utils/helpers";
+import { generateUnusedOrderId, uniqueCode } from "@/utils/helpers";
 import {
   comparePassword,
   createToken,
@@ -196,6 +196,7 @@ class OrderService {
         }
 
       } else {
+        const tracking_id = await generateUnusedOrderId()
         const newOrder = await this.Order.create({
           items: processedItems?.data?.itemsInOrder,
           total_amount: processedItems?.data?.total_amount,
@@ -203,6 +204,7 @@ class OrderService {
           status: OrderStatus.PENDING,
           shipping_address: payload.shipping_address || user.ShippingAddress?.full_address || "",
           grand_total: processedItems?.data?.total_amount,
+          tracking_id,
           ...(payload?.payment_type && { payment_type: payload?.payment_type })
         })
 

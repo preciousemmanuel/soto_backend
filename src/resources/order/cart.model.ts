@@ -48,7 +48,6 @@ const CartSchema = new Schema(
     status: {
       type: String,
       enum: OrderStatus,
-      required: true
     },
     total_amount: {
       type: Number,

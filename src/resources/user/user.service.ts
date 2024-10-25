@@ -1,6 +1,6 @@
 import { User, ShippingAddress } from "@/resources/user/user.interface";
 import UserModel from "./user.model";
-import { uniqueCode } from "@/utils/helpers";
+import { backDaterForChart, uniqueCode } from "@/utils/helpers";
 import {
   comparePassword,
   createToken,
@@ -14,19 +14,30 @@ import {
   ChangePasswordDto,
   CreateUserDto,
   LoginDto,
+  vendorDashboardDto,
+  vendorInventoryDto,
 } from "./user.dto";
 import { hashPassword } from "@/utils/helpers/token";
-import { OtpPurposeOptions, StatusMessages, UserTypes } from "@/utils/enums/base.enum";
+import { OrderStatus, OtpPurposeOptions, StatusMessages, Timeline, UserTypes } from "@/utils/enums/base.enum";
 import ResponseData from "@/utils/interfaces/responseData.interface";
 import { HttpCodes } from "@/utils/constants/httpcode";
 import WalletModel from "../business/wallet.model";
 import cartModel from "../order/cart.model";
 import MailService from "../mail/mail.service";
+import transactionLogModel from "../transaction/transactionLog.model";
+import orderDetailsModel from "../order/orderDetails.model";
+import mongoose, { PipelineStage } from "mongoose";
+import productModel from "../product/product.model";
+import { BackDaterResponse } from "@/utils/interfaces/base.interface";
+import { getPaginatedRecords } from "@/utils/helpers/paginate";
 
 class UserService {
   private user = UserModel;
   private wallet = WalletModel
   private Cart = cartModel
+  private TransactionLog = transactionLogModel
+  private OrderDetail = orderDetailsModel
+  private Product = productModel
   private mailService = new MailService()
 
   public async createUser(
@@ -50,6 +61,7 @@ class UserService {
         }
       } else {
         const full_name_split = createUser.FullName.split(" ")
+        console.log("🚀 ~ UserService ~ full_name_split:", full_name_split)
         const hashedPassword = await hashPassword(createUser.Password)
         const createdUser: any = await this.user.create({
           FirstName: full_name_split.length > 0 ? full_name_split[0].toLowerCase() : "",
@@ -61,11 +73,14 @@ class UserService {
           UserType: createUser?.UserType,
         });
         const token = createToken(createdUser)
-        const wallet = await this.wallet.create({
+        const wallet = await this.wallet.findOne({ user: createdUser._id }) || await this.wallet.create({
           user: createdUser._id
         })
-        const cart = await this.Cart.create({
-          user: createdUser._id
+        const cart = await this.Cart.findOne({ user: createdUser._id }) || await this.Cart.create({
+          user: createdUser._id,
+          grand_total: 0,
+          total_amount: 0,
+
         })
         createdUser.Token = token
         createdUser.wallet = wallet._id
@@ -136,6 +151,237 @@ class UserService {
       return responseData;
     } catch (error: any) {
       console.log("🚀 ~ UserService ~ getProfile ~ error:", error)
+      responseData = {
+        status: StatusMessages.error,
+        code: HttpCodes.HTTP_SERVER_ERROR,
+        message: error.toString()
+      }
+      return responseData;
+    }
+
+  }
+
+  public async getVendorDashboard(payload: vendorDashboardDto): Promise<ResponseData> {
+    let responseData: ResponseData
+    try {
+      const {
+        user,
+        timeFrame,
+        custom
+      } = payload
+      let start: Date | undefined
+      let end: Date | undefined
+      let backDater: BackDaterResponse
+      let input = new Date()
+      const unremitted_aggregate = await this.OrderDetail.aggregate([
+        {
+          $match: {
+            vendor: user._id,
+            is_remitted: false
+          }
+        },
+        {
+          $addFields: {
+            total_price: { $multiply: ["$unit_price", "$quantity"] }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            total_unremitted: { $sum: "$total_price" }
+          }
+        }
+      ])
+      const total_unremitted = unremitted_aggregate.length > 0 ? unremitted_aggregate[0]?.total_unremitted : 0
+
+      const total_in_stock_aggregate = await this.Product.aggregate([
+        {
+          $match: {
+            vendor: user._id,
+            is_verified: true,
+            is_deleted: false,
+          }
+        },
+        {
+          $addFields: {
+            total_price: { $multiply: ["$unit_price", "$product_quantity"] }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            total_in_stock: { $sum: "$total_price" }
+          }
+        }
+      ])
+      const total_in_stock = total_in_stock_aggregate.length > 0 ? total_in_stock_aggregate[0]?.total_in_stock : 0
+      backDater = await backDaterForChart({ input, format: timeFrame })
+      if (timeFrame) {
+        switch (timeFrame) {
+          case Timeline.YESTERDAY:
+            backDater = await backDaterForChart({ input, format: timeFrame })
+            break;
+
+          default:
+            break;
+        }
+      }
+      const arrayFilter = backDater.array
+
+
+      const pipeline: PipelineStage[] = [
+        {
+          $facet: arrayFilter.reduce((acc, filter) => {
+            const {
+              start,
+              end,
+              day,
+              month
+            } = filter
+            const filterStage: Record<string, any> = {
+              is_remitted: true,
+              createdAt: {
+                $gte: start,
+                $lte: end
+              }
+            };
+            acc[`${day || month || 'time_frame'}`] = [
+              { $match: filterStage },
+              {
+                $addFields: { total_price: { $multiply: ["$unit_price", "$quantity"] } }
+              },
+              {
+                $group: { _id: null, total_price_value: { $sum: "$total_price" } }
+              },
+              {
+                $project: {
+                  _id: 0,
+                  start,
+                  end,
+                  day: day || null,
+                  month: month || null,
+                  total_price_value: "$total_price_value"
+                }
+              }
+            ] as PipelineStage[];
+            return acc;
+          }, {} as any)
+        }
+      ]
+
+      let income_stat_agg: any[] = []
+      await this.OrderDetail.aggregate(pipeline)
+        .then((result) => {
+          income_stat_agg = result[0]
+        })
+        .catch((e) => {
+          console.log("🚀 ~ UNABLE TO RUN INCOME STAT AGGREGATE:", e)
+        })
+      const dashboard = {
+        user,
+        total_unremitted,
+        total_in_stock,
+        income_stat_agg
+      }
+
+
+
+      responseData = {
+        status: StatusMessages.success,
+        code: HttpCodes.HTTP_OK,
+        message: "Vendor Overview Retreived Successfully",
+        data: dashboard
+      }
+      return responseData;
+    } catch (error: any) {
+      console.log("🚀 ~ UserService ~ getProfile ~ error:", error)
+      responseData = {
+        status: StatusMessages.error,
+        code: HttpCodes.HTTP_SERVER_ERROR,
+        message: error.toString()
+      }
+      return responseData;
+    }
+
+  }
+
+  public async getVendorInventory(payload: vendorInventoryDto): Promise<ResponseData> {
+    let responseData: ResponseData
+    try {
+      const {
+        user,
+        limit,
+        page,
+      } = payload
+      var records = await getPaginatedRecords(this.OrderDetail, {
+        limit,
+        page,
+        data: {
+          vendor: user._id,
+          status: OrderStatus.DELIVERED
+        },
+        populateObj: {
+          path: "buyer",
+          select: "FirstName LastName ProfileImage ShippingAddress"
+        }
+      })
+
+      const total_sold_aggregate = await this.OrderDetail.aggregate([
+        {
+          $match: {
+            vendor: user._id,
+            status: OrderStatus.DELIVERED
+          }
+        },
+        {
+          $addFields: {
+            total_price: { $multiply: ["$unit_price", "$quantity"] }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            total_sold: { $sum: "$quantity" }
+          }
+        }
+      ])
+      const total_sold = total_sold_aggregate.length > 0 ? total_sold_aggregate[0]?.total_sold : 0
+
+      const total_in_stock_aggregate = await this.Product.aggregate([
+        {
+          $match: {
+            vendor: user._id,
+            is_verified: true,
+            is_deleted: false,
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            total_in_stock: { $sum: "$product_quantity" }
+          }
+        }
+      ])
+      const total_in_stock = total_in_stock_aggregate.length > 0 ? total_in_stock_aggregate[0]?.total_in_stock : 0
+
+      const inventory = {
+        total_products: total_in_stock + total_sold,
+        total_sold,
+        total_in_stock,
+        inventory_records: records
+      }
+
+
+
+      responseData = {
+        status: StatusMessages.success,
+        code: HttpCodes.HTTP_OK,
+        message: "Vendor Inventory Retreived Successfully",
+        data: inventory
+      }
+      return responseData;
+    } catch (error: any) {
+      console.log("🚀 ~ UserService ~ getVendorInventory ~ error:", error)
       responseData = {
         status: StatusMessages.error,
         code: HttpCodes.HTTP_SERVER_ERROR,

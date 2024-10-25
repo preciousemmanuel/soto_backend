@@ -43,6 +43,10 @@ const OrderDetails = new Schema(
       enum: OrderStatus,
       default: OrderStatus.PENDING
     },
+    is_remitted: {
+      type: Boolean,
+      default: false
+    },
   },
   {
     collection: "OrderDetails",

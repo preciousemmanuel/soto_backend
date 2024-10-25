@@ -32,9 +32,16 @@ const fetchProductSchema = Joi.object({
 
 });
 
+const writeAReviewSchema = Joi.object({
+  rating: Joi.number().positive().default(1).optional(),
+  comment: Joi.string().required(),
+});
+
+
 
 
 export default {
   addProductSchema,
-  fetchProductSchema
+  fetchProductSchema,
+  writeAReviewSchema
 }

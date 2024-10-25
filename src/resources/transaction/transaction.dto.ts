@@ -25,7 +25,22 @@ export interface VerificationDto {
   verification_number: string
 }
 
+export interface GetTransactionsDto {
+  user: InstanceType<typeof userModel>;
+  limit: number;
+  page: number;
+  narration?: TransactionNarration | string;
+}
 
+export interface CreateTransactionLogDto {
+  user: string;
+  amount: number;
+  narration: string;
+  narration_id: string;
+  ref: string;
+  type?: string
+
+}
 
 
 
