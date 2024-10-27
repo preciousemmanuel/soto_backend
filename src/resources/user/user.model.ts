@@ -28,6 +28,10 @@ const UserSchema = new Schema(
       trim: true
     },
 
+    ProfileImage: {
+      type: String,
+    },
+
     Password: {
       type: String,
       required: true,
