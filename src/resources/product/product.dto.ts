@@ -28,7 +28,12 @@ export interface FilterProductsDto {
   price_lower?: number;
 }
 
+export interface WriteReviewDto {
+  product_id: string;
+  rating?: number;
+  comment?: string;
 
+}
 
 
 

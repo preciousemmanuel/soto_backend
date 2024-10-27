@@ -7,7 +7,7 @@ import validate from "./transaction.validation";
 import { responseObject } from "@/utils/helpers/http.response";
 import { HttpCodes } from "@/utils/constants/httpcode";
 import authenticatedMiddleware from "@/middleware/authenticated.middleware";
-import { GeneratePaymentLinkDto, VerificationDto } from "./transaction.dto";
+import { GeneratePaymentLinkDto, GetTransactionsDto, VerificationDto } from "./transaction.dto";
 import { Business } from './transaction.interface'
 import upload from "@/utils/config/multer";
 import TransactionService from "./transaction.service";
@@ -34,6 +34,12 @@ class TransactionController implements Controller {
     this.router.post(
       `${this.path}/paystack/callback`,
       this.paystackCallbackService
+    )
+
+    this.router.get(
+      `${this.path}/logs`,
+      authenticatedMiddleware,
+      this.gettransactionLogs
     )
 
   }
@@ -83,6 +89,42 @@ class TransactionController implements Controller {
         message,
         data
       } = await this.transactionService.paystackCallbackService(body);
+      return responseObject(
+        res,
+        code,
+        status,
+        message,
+        data
+      );
+
+    } catch (error: any) {
+      next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()))
+    }
+  }
+
+  private gettransactionLogs = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<Response | void> => {
+
+    try {
+      const payload: GetTransactionsDto = {
+        user: req.user,
+        limit: req?.query?.limit ? Number(req?.query.limit) : 10,
+        page: req?.query?.page ? Number(req?.query.page) : 1,
+        ...(
+          (req?.query?.narration) && {
+            narration: String(req?.query.narration)
+          }
+        )
+      }
+      const {
+        status,
+        code,
+        message,
+        data
+      } = await this.transactionService.getTransactionLogs(payload);
       return responseObject(
         res,
         code,

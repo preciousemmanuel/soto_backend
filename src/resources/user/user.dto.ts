@@ -2,6 +2,7 @@ import {
   SignupChannels,
   UserTypes
 } from "@/utils/enums/base.enum";
+import userModel from "./user.model";
 
 export interface CreateUserDto {
   FullName: string;
@@ -31,7 +32,22 @@ export interface ChangePasswordDto {
   email_or_phone_number: string;
 }
 
+export interface vendorDashboardDto {
+  user: InstanceType<typeof userModel>,
+  timeFrame?: string
+  custom?: customDateDto
+}
 
+export interface customDateDto {
+  start_date: Date
+  end_date: Date
+}
+
+export interface vendorInventoryDto {
+  user: InstanceType<typeof userModel>,
+  limit: number;
+  page: number
+}
 
 
 

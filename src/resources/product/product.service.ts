@@ -11,7 +11,8 @@ import {
 // import logger from "@/utils/logger";
 import {
   AddProductDto,
-  FetchProductsDto
+  FetchProductsDto,
+  WriteReviewDto
 } from "./product.dto";
 import { hashPassword } from "@/utils/helpers/token";
 import { OtpPurposeOptions, StatusMessages, YesOrNo } from "@/utils/enums/base.enum";
@@ -21,11 +22,16 @@ import productModel from "./product.model";
 import categoryModel from "../category/category.model";
 import cloudUploader from "@/utils/config/cloudUploader";
 import { getPaginatedRecords } from "@/utils/helpers/paginate";
+import reviewModel from "./review.model";
+import mongoose from "mongoose";
+import favouriteModel from "./favourite.model";
 
 class ProductService {
   private user = UserModel;
   private product = productModel;
   private category = categoryModel
+  private Review = reviewModel
+  private Favourite = favouriteModel
 
   public async addProduct(
     addProductDto: AddProductDto,
@@ -142,6 +148,273 @@ class ProductService {
       return responseData;
     } catch (error: any) {
       console.log("🚀 ~ UserService ~ error:", error)
+      responseData = {
+        status: StatusMessages.error,
+        code: HttpCodes.HTTP_SERVER_ERROR,
+        message: error.toString()
+      }
+      return responseData;
+    }
+
+  }
+
+  public async fetchVendorProducts(
+    payload: FetchProductsDto,
+    user: InstanceType<typeof this.user>
+  ): Promise<ResponseData> {
+    let responseData: ResponseData
+    try {
+      const search = {
+        ...(payload?.filter?.product_name && {
+          product_name: { $regex: payload?.filter?.product_name, $options: "i" }
+        }),
+        ...(payload?.filter?.category && {
+          category: payload?.filter?.category
+        }),
+        ...((payload?.filter?.price_lower && payload?.filter?.price_upper) && {
+          unit_price: {
+            $gte: payload?.filter?.price_lower,
+            $lte: payload?.filter?.price_upper
+          }
+        }),
+        vendor: user._id
+      }
+
+      var paginatedRecords = await getPaginatedRecords(
+        this.product, {
+        limit: payload?.limit,
+        page: payload?.page,
+        data: search,
+        populateObj: {
+          path: "category",
+          select: "name"
+        }
+      }
+      )
+
+      responseData = {
+        status: StatusMessages.success,
+        code: HttpCodes.HTTP_OK,
+        message: "My Products Fetched Successfully",
+        data: paginatedRecords
+      }
+      return responseData;
+    } catch (error: any) {
+      console.log("🚀 ~ UserService ~ error:", error)
+      responseData = {
+        status: StatusMessages.error,
+        code: HttpCodes.HTTP_SERVER_ERROR,
+        message: error.toString()
+      }
+      return responseData;
+    }
+
+  }
+
+
+  public async addProductToWishlist(
+    product_id: string,
+    user: InstanceType<typeof this.user>
+  ): Promise<ResponseData> {
+    let responseData: ResponseData
+    try {
+      const product = await this.product.findById(product_id)
+      if (!product) {
+        return {
+          status: StatusMessages.error,
+          code: HttpCodes.HTTP_BAD_REQUEST,
+          message: "Product Not Found"
+        }
+      }
+      const alreadyFavourite = await this.Favourite.findOne({
+        product: product_id,
+        user: user._id
+      })
+
+      if (alreadyFavourite) {
+        await this.Favourite.deleteOne({
+          _id: alreadyFavourite?._id
+        })
+        responseData = {
+          status: StatusMessages.success,
+          code: HttpCodes.HTTP_OK,
+          message: "Product removed from favourites successfully",
+          data: null
+        }
+        return responseData;
+      }
+
+      const favourite = await this.Favourite.create({
+        product: product_id,
+        user: user._id
+      })
+
+      responseData = {
+        status: StatusMessages.success,
+        code: HttpCodes.HTTP_OK,
+        message: "Product Added To Favourites Successfully",
+        data: favourite
+      }
+      return responseData;
+    } catch (error: any) {
+      console.log("🚀 ~ ProductService ~ error:", error)
+      responseData = {
+        status: StatusMessages.error,
+        code: HttpCodes.HTTP_SERVER_ERROR,
+        message: error.toString()
+      }
+      return responseData;
+    }
+
+  }
+
+  public async fetchWishlist(
+    payload: FetchProductsDto,
+    user: InstanceType<typeof this.user>
+  ): Promise<ResponseData> {
+    let responseData: ResponseData
+    try {
+
+      var paginatedRecords = await getPaginatedRecords(
+        this.Favourite, {
+        limit: payload?.limit,
+        page: payload?.page,
+        data: {
+          user: user._id
+        },
+        populate: "product",
+      }
+      )
+
+      responseData = {
+        status: StatusMessages.success,
+        code: HttpCodes.HTTP_OK,
+        message: "Wishlist Fetched Successfully",
+        data: paginatedRecords
+      }
+      return responseData;
+    } catch (error: any) {
+      console.log("🚀 ~ UserService ~ error:", error)
+      responseData = {
+        status: StatusMessages.error,
+        code: HttpCodes.HTTP_SERVER_ERROR,
+        message: error.toString()
+      }
+      return responseData;
+    }
+
+  }
+
+  public async writeAReview(
+    payload: WriteReviewDto,
+    user: InstanceType<typeof this.user>
+  ): Promise<ResponseData> {
+    let responseData: ResponseData
+    let review: any
+    try {
+      const product = await this.product.findById(payload.product_id)
+      if (!product) {
+        return {
+          status: StatusMessages.error,
+          code: HttpCodes.HTTP_BAD_REQUEST,
+          message: "Products Not Found",
+          data: null
+        }
+      }
+
+      const existingReview = await this.Review.findOne({
+        user: user?._id,
+        product: payload?.product_id
+      })
+
+      if (existingReview) {
+        review = await this.Review.findByIdAndUpdate(existingReview._id, {
+          ...(payload?.comment && { comment: payload.comment }),
+          ...(payload?.rating && { rating: payload.rating }),
+        }, { new: true })
+      } else {
+        review = await this.Review.create({
+          ...(payload?.comment && { comment: payload.comment }),
+          ...(payload?.rating && { rating: payload.rating }),
+          product: payload.product_id,
+          user: user?._id
+        })
+      }
+      const avgRating = await this.Review.aggregate([
+        {
+          $match: {
+            product: product._id
+          }
+        },
+        {
+          $group: {
+            _id: "$product",
+            averageRating: { $avg: "$rating" }
+          }
+        }
+      ])
+      if (avgRating.length > 0) {
+        product.rating = avgRating[0]?.averageRating
+        await product.save()
+      }
+      responseData = {
+        status: StatusMessages.success,
+        code: HttpCodes.HTTP_OK,
+        message: "Products Reviewed Successfully",
+        data: review
+      }
+      return responseData;
+    } catch (error: any) {
+      console.log("🚀 ~ ProductService ~ error:", error)
+      responseData = {
+        status: StatusMessages.error,
+        code: HttpCodes.HTTP_SERVER_ERROR,
+        message: error.toString()
+      }
+      return responseData;
+    }
+  }
+
+  public async viewAProduct(
+    product_id: string,
+  ): Promise<ResponseData> {
+    let responseData: ResponseData
+    try {
+      const product = await this.product.findById(product_id)
+      if (!product) {
+        return {
+          status: StatusMessages.error,
+          code: HttpCodes.HTTP_BAD_REQUEST,
+          message: "Products Not Found",
+          data: null
+        }
+      }
+
+      const reviews = await this.Review.find({
+        product: product_id
+      })
+        .populate({
+          path: "user",
+          select: "FirstName LastName Email ProfileImage"
+        })
+        .sort({
+          createdAt: -1,
+          rating: -1
+        })
+
+      responseData = {
+        status: StatusMessages.success,
+        code: HttpCodes.HTTP_OK,
+        message: "Products Retrieved Successfully",
+        data: {
+          product,
+          reviews,
+          total_reviews: reviews.length
+        }
+      }
+      return responseData;
+    } catch (error: any) {
+      console.log("🚀 ~ ProductService ~ error:", error)
       responseData = {
         status: StatusMessages.error,
         code: HttpCodes.HTTP_SERVER_ERROR,
