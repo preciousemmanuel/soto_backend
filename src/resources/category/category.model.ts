@@ -7,7 +7,12 @@ const CategorySchema = new Schema(
       type: String,
       required: true
     },
-
+    image: {
+      type: String,
+    },
+    icon: {
+      type: String,
+    },
   },
   {
     collection: "Categories",

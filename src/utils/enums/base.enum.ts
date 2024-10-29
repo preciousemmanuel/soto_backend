@@ -122,3 +122,9 @@ export enum PaymentProvider {
   PAYSTACK = "PAYSTACK",
   FLUTTERWAVE = "FLUTTERWAVE",
 }
+
+export enum RequestData {
+  params = "params",
+  query = "query",
+  body = "query"
+}
