@@ -103,6 +103,7 @@ export const axiosRequestFunction = async ({
         }
       })
       .catch((e) => {
+        console.log("🚀 AXIOS CATCH ERROR", e)
         responseData = {
           status: StatusMessages.error,
           code: HttpCodes.HTTP_BAD_REQUEST,

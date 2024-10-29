@@ -2,19 +2,20 @@ import { Request, Response, NextFunction, Router } from "express";
 import Controller from "@/utils/interfaces/controller.interface";
 import HttpException from "@/utils/exceptions/http.exception";
 import validationMiddleware from "@/middleware/validation.middleware";
-import CategoryService from "./category.service";
-import validate from "./category.validation";
+import validate from "./delivery.validation";
 import { responseObject } from "@/utils/helpers/http.response";
 import { HttpCodes } from "@/utils/constants/httpcode";
 import authenticatedMiddleware from "@/middleware/authenticated.middleware";
-import { FetchCategoriesDto } from "./category.dto";
-import { Business } from './category.interface'
+import { GetDeliveryRateDto } from "./delivery.dto";
+import upload from "@/utils/config/multer";
+import DeliveryService from "./delivery.service";
+import { RequestData } from "@/utils/enums/base.enum";
 
 
-class CategoryController implements Controller {
-  public path = "/category";
+class DeliveryController implements Controller {
+  public path = "/delivery";
   public router = Router();
-  private categoryService = new CategoryService();
+  private deliveryService = new DeliveryService();
 
   constructor() {
     this.initializeRoute();
@@ -23,32 +24,32 @@ class CategoryController implements Controller {
   initializeRoute(): void {
 
     this.router.get(
-      `${this.path}/fetch`,
-      validationMiddleware(validate.fetchCategoriesSchema),
-      this.fetchCategories
+      `${this.path}/get-rate`,
+      authenticatedMiddleware,
+      validationMiddleware(validate.getdeliveryRateSchema, RequestData.query),
+      this.getRates
     )
+
 
 
   }
 
-  private fetchCategories = async (
+  private getRates = async (
     req: Request,
     res: Response,
     next: NextFunction
   ): Promise<Response | void> => {
-
     try {
-      const query: FetchCategoriesDto = {
-        limit: req?.query?.limit ? Number(req?.query?.limit) : 10,
-        page: req?.query?.page ? Number(req?.query?.page) : 1,
-        ...(req?.query?.search && { search: String(req?.query?.search) })
+      const payload: GetDeliveryRateDto = {
+        delivery_address: String(req.query.delivery_address),
+        parcel_id: String(req.query.parcel_id)
       }
       const {
         status,
         code,
         message,
         data
-      } = await this.categoryService.fetchCategories(query);
+      } = await this.deliveryService.getRate(payload);
       return responseObject(
         res,
         code,
@@ -62,7 +63,6 @@ class CategoryController implements Controller {
     }
   }
 
-
 }
 
-export default CategoryController;
+export default DeliveryController;
