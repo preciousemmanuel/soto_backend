@@ -12,6 +12,7 @@ import {
 import {
   AddProductDto,
   FetchProductsDto,
+  UpdateProductDto,
   WriteReviewDto
 } from "./product.dto";
 import { hashPassword } from "@/utils/helpers/token";
@@ -197,6 +198,84 @@ class ProductService {
         code: HttpCodes.HTTP_OK,
         message: "My Products Fetched Successfully",
         data: paginatedRecords
+      }
+      return responseData;
+    } catch (error: any) {
+      console.log("🚀 ~ UserService ~ error:", error)
+      responseData = {
+        status: StatusMessages.error,
+        code: HttpCodes.HTTP_SERVER_ERROR,
+        message: error.toString()
+      }
+      return responseData;
+    }
+
+  }
+
+  public async updateProduct(
+    updateProductDto: UpdateProductDto,
+    user: InstanceType<typeof UserModel>
+  ): Promise<ResponseData> {
+    let responseData: ResponseData
+    try {
+      const productExists = await this.product.findOne({
+        vendor: user?._id,
+        _id: updateProductDto?.product_id
+      });
+
+      if (!productExists) {
+        responseData = {
+          status: StatusMessages.error,
+          code: HttpCodes.HTTP_BAD_REQUEST,
+          message: "Product not found",
+        }
+        return responseData
+      }
+      if (updateProductDto?.category) {
+        const category = await this.category.findById(updateProductDto.category)
+        if (!category) {
+          responseData = {
+            status: StatusMessages.error,
+            code: HttpCodes.HTTP_BAD_REQUEST,
+            message: "Category Not Found",
+          }
+          return responseData
+        }
+      }
+
+      let image_urls = updateProductDto?.existing_images || []
+      console.log("🚀 ~ ProductService ~ image_urls:", image_urls)
+      if (updateProductDto?.images && updateProductDto?.images.length > 0) {
+        for (const file of updateProductDto.images) {
+          const url = await cloudUploader.imageUploader(file)
+          if (url) {
+            image_urls.push(url)
+          }
+        }
+      }
+      const updatedProduct = await this.product.findByIdAndUpdate(productExists?._id, {
+        ...((updateProductDto?.product_name) && { product_name: String(updateProductDto.product_name) }),
+        ...((updateProductDto?.description) && { description: updateProductDto?.description }),
+        ...((updateProductDto?.category) && { category: updateProductDto?.category }),
+        ...((updateProductDto?.unit_price) && { unit_price: Number(updateProductDto?.unit_price) }),
+        ...((updateProductDto?.product_quantity) && { product_quantity: Number(updateProductDto.product_quantity) }),
+        ...(updateProductDto?.discount_price && (updateProductDto?.discount_price > 0) && {
+          is_discounted: true
+        }),
+        ...(updateProductDto?.discount_price && (updateProductDto?.discount_price > 0) && {
+          discount_price: Number(updateProductDto?.discount_price)
+        }),
+        ...((updateProductDto?.in_stock) && { in_stock: updateProductDto.in_stock === YesOrNo.YES ? true : false, }),
+        ...((image_urls.length > 0) && {
+          images: image_urls
+        })
+      }, { new: true })
+
+      responseData = {
+        status: StatusMessages.success,
+        code: HttpCodes.HTTP_OK,
+        message: "Product Updated Successfully",
+        data: updatedProduct
       }
       return responseData;
     } catch (error: any) {

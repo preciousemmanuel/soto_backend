@@ -11,6 +11,7 @@ import CategoryController from './resources/category/category.controller';
 import OrderController from './resources/order/order.controller';
 import MailController from './resources/mail/mail.controller';
 import TransactionController from './resources/transaction/transaction.controller';
+import DeliveryController from './resources/delivery/delivery.controller';
 
 dotenv.config({ path: `${process.env.NODE_ENV}.env` });
 validateEnv();
@@ -22,10 +23,10 @@ const app = new App([
     new CategoryController(),
     new OrderController(),
     new MailController(),
-    new TransactionController()
+    new TransactionController(),
+    new DeliveryController()
 
 
-    // new TransactionController(),
 ],
     Number(process.env.PORT),
     new CategoryService()

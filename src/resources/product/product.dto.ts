@@ -14,6 +14,20 @@ export interface AddProductDto {
   images?: Express.Multer.File[]
 }
 
+export interface UpdateProductDto {
+  product_id?: string;
+  product_name?: string;
+  description?: string;
+  category?: string;
+  unit_price?: number;
+  product_quantity?: number;
+  discount_price?: number;
+  in_stock?: YesOrNo;
+  images?: Express.Multer.File[];
+  existing_images?: string[]
+
+}
+
 export interface FetchProductsDto {
   limit?: number
   page?: number;
