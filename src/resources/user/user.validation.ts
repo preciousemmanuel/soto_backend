@@ -58,6 +58,11 @@ const newPasswordSchema = Joi.object({
   new_password: Joi.string().required(),
 });
 
+const resetPasswordSchema = Joi.object({
+  otp: Joi.string().required(),
+  new_password: Joi.string().required(),
+});
+
 const vendorAnalyticsSchema = Joi.object().keys({
   time_frame: Joi.string().valid(
     Timeline.YESTERDAY,
@@ -81,5 +86,6 @@ export default {
   changePasswordRequest,
   validateOtpSchema,
   newPasswordSchema,
-  vendorAnalyticsSchema
+  vendorAnalyticsSchema,
+  resetPasswordSchema
 }

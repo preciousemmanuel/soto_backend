@@ -6,7 +6,7 @@ import validate from "./delivery.validation";
 import { responseObject } from "@/utils/helpers/http.response";
 import { HttpCodes } from "@/utils/constants/httpcode";
 import authenticatedMiddleware from "@/middleware/authenticated.middleware";
-import { GetDeliveryRateDto } from "./delivery.dto";
+import { GetCitiesDto, GetDeliveryRateDto } from "./delivery.dto";
 import upload from "@/utils/config/multer";
 import DeliveryService from "./delivery.service";
 import { RequestData } from "@/utils/enums/base.enum";
@@ -29,6 +29,18 @@ class DeliveryController implements Controller {
       validationMiddleware(validate.getdeliveryRateSchema, RequestData.query),
       this.getRates
     )
+    this.router.get(
+      `${this.path}/get-states`,
+      authenticatedMiddleware,
+      this.getStates
+    )
+
+    this.router.get(
+      `${this.path}/get-cities`,
+      authenticatedMiddleware,
+      validationMiddleware(validate.getCitiesSchema, RequestData.query),
+      this.getCities
+    )
 
 
 
@@ -50,6 +62,65 @@ class DeliveryController implements Controller {
         message,
         data
       } = await this.deliveryService.getRate(payload);
+      return responseObject(
+        res,
+        code,
+        status,
+        message,
+        data
+      );
+
+    } catch (error: any) {
+      next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()))
+    }
+  }
+
+  private getStates = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<Response | void> => {
+    try {
+
+      const {
+        status,
+        code,
+        message,
+        data
+      } = await this.deliveryService.getStates();
+      return responseObject(
+        res,
+        code,
+        status,
+        message,
+        data
+      );
+
+    } catch (error: any) {
+      next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()))
+    }
+  }
+
+  private getCities = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<Response | void> => {
+    try {
+
+      const payload:GetCitiesDto = {
+        country_code: String(req?.query?.country_code),
+        ...(req?.query?.state_code && {
+          state_code: String(req?.query?.state_code),
+        })
+      }
+
+      const {
+        status,
+        code,
+        message,
+        data
+      } = await this.deliveryService.getCities(payload);
       return responseObject(
         res,
         code,

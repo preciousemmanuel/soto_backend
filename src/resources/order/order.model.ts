@@ -61,6 +61,9 @@ const OrderSchema = new Schema(
     shipping_address: {
       type: String,
     },
+    shipping_address_id: {
+      type: String,
+    },
     expected_delivery_date: {
       type: Date
     },
