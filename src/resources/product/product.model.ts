@@ -38,6 +38,18 @@ const ProductSchema = new Schema(
       default: 1,
       required: true
     },
+    height:{
+      type: Number,
+      required: true
+    },
+    width:{
+      type: Number,
+      required: true
+    },
+    weight:{
+      type: Number,
+      required: true
+    },
     discount_price: {
       type: Number,
     },

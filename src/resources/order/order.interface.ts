@@ -21,6 +21,9 @@ export interface itemsToBeOrdered {
   images: string[];
   quantity: number;
   unit_price: number;
+  height: number;
+  width: number;
+  weight: number;
   is_discounted?: boolean;
 }
 

@@ -14,6 +14,9 @@ const addProductSchema = Joi.object({
   ).min(2).optional(),
   unit_price: Joi.number().min(0).required(),
   product_quantity: Joi.number().min(0).required(),
+  height: Joi.number().min(0).required(),
+  width: Joi.number().min(0).required(),
+  weight: Joi.number().min(0).required(),
   discount_price: Joi.number().min(0).optional(),
   in_stock: Joi.string().valid(
     YesOrNo.NO,

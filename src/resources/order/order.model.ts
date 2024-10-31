@@ -34,6 +34,18 @@ const OrderSchema = new Schema(
           type: Number,
           required: true
         },
+         height:{
+          type: Number,
+          required: true
+        },
+        width:{
+          type: Number,
+          required: true
+        },
+        weight:{
+          type: Number,
+          required: true
+        },
         is_discounted: {
           type: Boolean,
           default: false
