@@ -30,11 +30,13 @@ import mongoose, { PipelineStage } from "mongoose";
 import productModel from "../product/product.model";
 import { BackDaterResponse } from "@/utils/interfaces/base.interface";
 import { getPaginatedRecords } from "@/utils/helpers/paginate";
+import otpModel from "./otp.model";
 
 class UserService {
   private user = UserModel;
   private wallet = WalletModel
   private Cart = cartModel
+  private Otp = otpModel
   private TransactionLog = transactionLogModel
   private OrderDetail = orderDetailsModel
   private Product = productModel
@@ -540,6 +542,47 @@ class UserService {
 
   }
 
+  public async newPasswordReset(new_password: string, otp: string): Promise<ResponseData> {
+    let responseData: ResponseData
+    let user: InstanceType<typeof this.user> | any
+    try {
+      const otpModel = await this.Otp.findOne({
+        otp,
+        purpose: OtpPurposeOptions.CHANGE_PASSWORD
+      })
+      if(!otpModel) {
+        responseData = {
+          status: StatusMessages.error,
+        code: HttpCodes.HTTP_BAD_REQUEST,
+        message: "Incorrect Otp",
+        data: null
+        }
+      }
+      user = await this.user.findById(otpModel?.user)
+      const hashed_password = await hashPassword(new_password)
+      user.Password = hashed_password
+      await user.save()
+      await this.Otp.deleteOne({
+        _id: otpModel?._id
+      })
+      responseData = {
+        status: StatusMessages.success,
+        code: HttpCodes.HTTP_OK,
+        message: "Password Reset Successflly",
+        data: null
+      }
+      return responseData
+    } catch (error: any) {
+      console.log("🚀 ~ UserService ~ login ~ error:", error)
+      responseData = {
+        status: StatusMessages.error,
+        code: HttpCodes.HTTP_SERVER_ERROR,
+        message: error.toString()
+      }
+      return responseData;
+    }
+
+  }
 
 
 

@@ -157,16 +157,19 @@ export const isOtpCorrect = async (otp: string, purpose: string): Promise<Respon
         message: "Otp Valid",
         data
       }
-      await otpModel.deleteOne({
-        _id: existingOtp._id
-      })
+     
       switch (purpose) {
         case OtpPurposeOptions.ACCOUNT_VALIDATION:
           const businessService = new BusinessService()
           businessService.verifyBusinessComplete(user?._id)
+          await otpModel.deleteOne({
+            _id: existingOtp._id
+          })
           break;
-
+        case OtpPurposeOptions.CHANGE_PASSWORD:
+          
         default:
+          
           break;
       }
 

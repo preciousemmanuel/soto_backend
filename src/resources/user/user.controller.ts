@@ -86,6 +86,12 @@ class UserController implements Controller {
       this.newPasswordChange
     )
 
+    this.router.put(
+      `${this.path}/reset-password`,
+      validationMiddleware(validate.resetPasswordSchema),
+      this.newPasswordReset
+    )
+
   }
 
   private createUser = async (
@@ -346,6 +352,34 @@ class UserController implements Controller {
         message,
         data
       } = await this.userService.newPasswordChange(new_password, user);
+      return responseObject(
+        res,
+        code,
+        status,
+        message,
+        data
+      );
+
+    } catch (error: any) {
+      next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()))
+    }
+  }
+
+  private newPasswordReset = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<Response | void> => {
+
+    try {
+      const new_password: string = req.body.new_password
+      const otp: string = req.body.otp
+      const {
+        status,
+        code,
+        message,
+        data
+      } = await this.userService.newPasswordReset(new_password, otp);
       return responseObject(
         res,
         code,
