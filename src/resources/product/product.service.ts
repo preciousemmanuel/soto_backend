@@ -76,6 +76,9 @@ class ProductService {
         vendor: user?._id,
         unit_price: Number(addProductDto?.unit_price),
         product_quantity: Number(addProductDto.product_quantity),
+        height: Number(addProductDto.height),
+        width: Number(addProductDto.width),
+        weight: Number(addProductDto.weight),
         ...(addProductDto?.discount_price && (addProductDto?.discount_price > 0) && {
           is_discounted: true
         }),

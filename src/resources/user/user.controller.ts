@@ -61,6 +61,12 @@ class UserController implements Controller {
       this.getVendorInventory
     )
 
+     this.router.get(
+      `${this.path}/sales-analytics`,
+      authenticatedMiddleware,
+      this.getSalesAnalytics
+    )
+
     this.router.post(
       `${this.path}/login`,
       validationMiddleware(validate.userLoginSchema),
@@ -254,6 +260,34 @@ class UserController implements Controller {
       next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()))
     }
   }
+
+  private getSalesAnalytics = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<Response | void> => {
+    try {
+      const user: User = req.user
+     
+      const {
+        status,
+        code,
+        message,
+        data
+      } = await this.userService.getSalesAnalytics(user);
+      return responseObject(
+        res,
+        code,
+        status,
+        message,
+        data
+      );
+
+    } catch (error: any) {
+      next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()))
+    }
+  }
+
 
   private userLogin = async (
     req: Request,
