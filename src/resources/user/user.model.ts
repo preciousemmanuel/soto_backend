@@ -74,6 +74,9 @@ const UserSchema = new Schema(
         default: "Nigeria"
       }
     },
+     shipping_address_id: {
+      type: String,
+    },
     SignupChannel: {
       type: String,
       enum: SignupChannels,

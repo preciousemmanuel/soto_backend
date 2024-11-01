@@ -14,6 +14,9 @@ const addProductSchema = Joi.object({
   ).min(2).optional(),
   unit_price: Joi.number().min(0).required(),
   product_quantity: Joi.number().min(0).required(),
+  height: Joi.number().min(0).required(),
+  width: Joi.number().min(0).required(),
+  weight: Joi.number().min(0).required(),
   discount_price: Joi.number().min(0).optional(),
   in_stock: Joi.string().valid(
     YesOrNo.NO,
@@ -37,11 +40,31 @@ const writeAReviewSchema = Joi.object({
   comment: Joi.string().required(),
 });
 
+const updateProductSchema = Joi.object({
+  product_name: Joi.string().optional(),
+  description: Joi.string().optional(),
+  category: Joi.string().optional(),
+  images: Joi.array().items(
+    Joi.object({}).optional()
+  ).min(2).optional(),
+  unit_price: Joi.number().min(0).optional(),
+  product_quantity: Joi.number().min(0).optional(),
+  discount_price: Joi.number().min(0).optional(),
+  in_stock: Joi.string().valid(
+    YesOrNo.NO,
+    YesOrNo.YES,
+  ).optional(),
+  existing_images: Joi.array().items(
+    Joi.string().optional()
+  ).min(1).optional(),
+});
+
 
 
 
 export default {
   addProductSchema,
   fetchProductSchema,
-  writeAReviewSchema
+  writeAReviewSchema,
+  updateProductSchema
 }
