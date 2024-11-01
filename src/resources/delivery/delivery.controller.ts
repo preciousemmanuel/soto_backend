@@ -2,21 +2,20 @@ import { Request, Response, NextFunction, Router } from "express";
 import Controller from "@/utils/interfaces/controller.interface";
 import HttpException from "@/utils/exceptions/http.exception";
 import validationMiddleware from "@/middleware/validation.middleware";
-import BusinessService from "@/resources/business/business.service";
-import validate from "./transaction.validation";
+import validate from "./delivery.validation";
 import { responseObject } from "@/utils/helpers/http.response";
 import { HttpCodes } from "@/utils/constants/httpcode";
 import authenticatedMiddleware from "@/middleware/authenticated.middleware";
-import { GeneratePaymentLinkDto, GetTransactionsDto, VerificationDto } from "./transaction.dto";
-import { Business } from './transaction.interface'
+import { GetCitiesDto, GetDeliveryRateDto } from "./delivery.dto";
 import upload from "@/utils/config/multer";
-import TransactionService from "./transaction.service";
+import DeliveryService from "./delivery.service";
+import { RequestData } from "@/utils/enums/base.enum";
 
 
-class TransactionController implements Controller {
-  public path = "/transaction";
+class DeliveryController implements Controller {
+  public path = "/delivery";
   public router = Router();
-  private transactionService = new TransactionService();
+  private deliveryService = new DeliveryService();
 
   constructor() {
     this.initializeRoute();
@@ -24,107 +23,104 @@ class TransactionController implements Controller {
 
   initializeRoute(): void {
 
-    this.router.post(
-      `${this.path}/generate-payment-link`,
+    this.router.get(
+      `${this.path}/get-rate`,
       authenticatedMiddleware,
-      validationMiddleware(validate.generatePaymentLinkSchema),
-      this.generatePaymentLink
+      validationMiddleware(validate.getdeliveryRateSchema, RequestData.query),
+      this.getRates
     )
-
-    this.router.post(
-      `${this.path}/paystack/callback`,
-      this.paystackCallbackService
+    this.router.get(
+      `${this.path}/get-states`,
+      authenticatedMiddleware,
+      this.getStates
     )
 
     this.router.get(
-      `${this.path}/logs`,
+      `${this.path}/get-cities`,
       authenticatedMiddleware,
-      this.gettransactionLogs
+      validationMiddleware(validate.getCitiesSchema, RequestData.query),
+      this.getCities
     )
 
+
+
   }
 
-  private generatePaymentLink = async (
+  private getRates = async (
     req: Request,
     res: Response,
     next: NextFunction
   ): Promise<Response | void> => {
-
     try {
-
-      const body: GeneratePaymentLinkDto = req.body
-
-      const user = req.user
-      console.log("🚀 ~ TransactionController ~ user:", user)
-      const {
-        status,
-        code,
-        message,
-        data
-      } = await this.transactionService.initializePayment(body, user);
-      return responseObject(
-        res,
-        code,
-        status,
-        message,
-        data
-      );
-
-    } catch (error: any) {
-      next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()))
-    }
-  }
-
-  private paystackCallbackService = async (
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ): Promise<Response | void> => {
-
-    try {
-      const body: any = req.body
-      const {
-        status,
-        code,
-        message,
-        data
-      } = await this.transactionService.paystackCallbackService(body);
-      return responseObject(
-        res,
-        code,
-        status,
-        message,
-        data
-      );
-
-    } catch (error: any) {
-      next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()))
-    }
-  }
-
-  private gettransactionLogs = async (
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ): Promise<Response | void> => {
-
-    try {
-      const payload: GetTransactionsDto = {
-        user: req.user,
-        limit: req?.query?.limit ? Number(req?.query.limit) : 10,
-        page: req?.query?.page ? Number(req?.query.page) : 1,
-        ...(
-          (req?.query?.narration) && {
-            narration: String(req?.query.narration)
-          }
-        )
+      const payload: GetDeliveryRateDto = {
+        delivery_address: String(req.query.delivery_address),
+        parcel_id: String(req.query.parcel_id)
       }
       const {
         status,
         code,
         message,
         data
-      } = await this.transactionService.getTransactionLogs(payload);
+      } = await this.deliveryService.getRate(payload);
+      return responseObject(
+        res,
+        code,
+        status,
+        message,
+        data
+      );
+
+    } catch (error: any) {
+      next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()))
+    }
+  }
+
+  private getStates = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<Response | void> => {
+    try {
+
+      const {
+        status,
+        code,
+        message,
+        data
+      } = await this.deliveryService.getStates();
+      return responseObject(
+        res,
+        code,
+        status,
+        message,
+        data
+      );
+
+    } catch (error: any) {
+      next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()))
+    }
+  }
+
+  private getCities = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<Response | void> => {
+    try {
+
+      const payload:GetCitiesDto = {
+        country_code: String(req?.query?.country_code),
+        ...(req?.query?.state_code && {
+          state_code: String(req?.query?.state_code),
+        })
+      }
+
+      const {
+        status,
+        code,
+        message,
+        data
+      } = await this.deliveryService.getCities(payload);
       return responseObject(
         res,
         code,
@@ -140,4 +136,4 @@ class TransactionController implements Controller {
 
 }
 
-export default TransactionController;
+export default DeliveryController;

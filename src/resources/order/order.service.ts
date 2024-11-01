@@ -254,6 +254,9 @@ class OrderService {
                 vendor: String(item2?.vendor),
                 images: item2?.images,
                 quantity: item.quantity,
+                height: item2.height,
+                width: item2.width,
+                weight: item2.weight,
                 unit_price: item2?.unit_price,
                 is_discounted: item2?.is_discounted,
               })
@@ -445,6 +448,9 @@ class OrderService {
           images: item.images,
           quantity: item.quantity,
           unit_price: item.unit_price,
+          height: item.height,
+          width: item.width,
+          weight: item.weight,
           is_discounted: item.is_discounted,
           status: OrderStatus.BOOKED,
         }

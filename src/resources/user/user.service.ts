@@ -30,11 +30,14 @@ import mongoose, { PipelineStage } from "mongoose";
 import productModel from "../product/product.model";
 import { BackDaterResponse } from "@/utils/interfaces/base.interface";
 import { getPaginatedRecords } from "@/utils/helpers/paginate";
+import otpModel from "./otp.model";
+import { endOfMonth, startOfMonth } from "date-fns";
 
 class UserService {
   private user = UserModel;
   private wallet = WalletModel
   private Cart = cartModel
+  private Otp = otpModel
   private TransactionLog = transactionLogModel
   private OrderDetail = orderDetailsModel
   private Product = productModel
@@ -392,6 +395,120 @@ class UserService {
 
   }
 
+  public async getSalesAnalytics(user: InstanceType<typeof this.user>): Promise<ResponseData> {
+    let responseData: ResponseData
+    try {
+
+      const today = new Date()
+      let last_month = new Date()
+      last_month.setMonth(new Date(today).getMonth() - 1)
+     
+      const thisMonthFilter = {
+        vendor: user?._id,
+        createdAt: {
+          $gte: startOfMonth(today),
+          $lte: endOfMonth(today),
+        }
+      }
+
+      const lastMonthFilter = {
+        vendor: user?._id,
+        createdAt: {
+          $gte: startOfMonth(last_month),
+          $lte: endOfMonth(last_month),
+        }
+      }
+
+      const total_sold_aggregate_this_month = await this.OrderDetail.aggregate([
+        {
+          $match: {
+            ...thisMonthFilter,
+            status: OrderStatus.DELIVERED,
+
+          }
+        },
+        {
+          $addFields: {
+            total_price: { $multiply: ["$unit_price", "$quantity"] }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            total_sold: { $sum: "$quantity" },
+            total_price: { $sum: "$total_price" },
+          }
+        }
+      ])
+
+      const total_sold_aggregate_last_month = await this.OrderDetail.aggregate([
+        {
+          $match: {
+            ...lastMonthFilter,
+            status: OrderStatus.DELIVERED,
+
+          }
+        },
+        {
+          $addFields: {
+            total_price: { $multiply: ["$unit_price", "$quantity"] }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            total_sold: { $sum: "$quantity" },
+             total_price: { $sum: "$total_price" },
+          }
+        }
+      ])
+      const total_sales_this_month = total_sold_aggregate_this_month.length > 0 ? total_sold_aggregate_this_month[0]?.total_sold : 0
+      const total_revenue_this_month = total_sold_aggregate_this_month.length > 0 ? total_sold_aggregate_this_month[0]?.total_price : 0
+      const total_sold_last_month = total_sold_aggregate_last_month.length > 0 ? total_sold_aggregate_last_month[0]?.total_sold : 0
+      const total_revenue_last_month = total_sold_aggregate_last_month.length > 0 ? total_sold_aggregate_last_month[0]?.total_price : 0
+      const revenue_increase = Math.round(
+        ((total_revenue_this_month - total_revenue_last_month)
+        /(total_revenue_last_month)) * 100
+      )
+       const salses_increase = Math.round(
+        ((total_sales_this_month - total_sold_last_month)
+        /(total_sold_last_month)) * 100
+      ) 
+
+      const salesAnalytics = {
+        revenue: {
+          total: total_revenue_this_month,
+          percentage: revenue_increase
+        },
+        sales: {
+          total: total_sales_this_month,
+          percentage: salses_increase
+        },
+        best_seller: {
+          total: 0,
+          percentage:0
+        }
+      }
+
+      responseData = {
+        status: StatusMessages.success,
+        code: HttpCodes.HTTP_OK,
+        message: "Sales Analytics Retreived Successfully",
+        data: salesAnalytics
+      }
+      return responseData;
+    } catch (error: any) {
+      console.log("🚀 ~ UserService ~ getSalesAnalytics ~ error:", error)
+      responseData = {
+        status: StatusMessages.error,
+        code: HttpCodes.HTTP_SERVER_ERROR,
+        message: error.toString()
+      }
+      return responseData;
+    }
+
+  }
+
 
   public async userLogin(login: LoginDto): Promise<ResponseData> {
     let responseData: ResponseData
@@ -540,6 +657,47 @@ class UserService {
 
   }
 
+  public async newPasswordReset(new_password: string, otp: string): Promise<ResponseData> {
+    let responseData: ResponseData
+    let user: InstanceType<typeof this.user> | any
+    try {
+      const otpModel = await this.Otp.findOne({
+        otp,
+        purpose: OtpPurposeOptions.CHANGE_PASSWORD
+      })
+      if(!otpModel) {
+        responseData = {
+          status: StatusMessages.error,
+        code: HttpCodes.HTTP_BAD_REQUEST,
+        message: "Incorrect Otp",
+        data: null
+        }
+      }
+      user = await this.user.findById(otpModel?.user)
+      const hashed_password = await hashPassword(new_password)
+      user.Password = hashed_password
+      await user.save()
+      await this.Otp.deleteOne({
+        _id: otpModel?._id
+      })
+      responseData = {
+        status: StatusMessages.success,
+        code: HttpCodes.HTTP_OK,
+        message: "Password Reset Successflly",
+        data: null
+      }
+      return responseData
+    } catch (error: any) {
+      console.log("🚀 ~ UserService ~ login ~ error:", error)
+      responseData = {
+        status: StatusMessages.error,
+        code: HttpCodes.HTTP_SERVER_ERROR,
+        message: error.toString()
+      }
+      return responseData;
+    }
+
+  }
 
 
 

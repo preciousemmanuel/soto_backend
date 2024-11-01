@@ -6,7 +6,7 @@ import validate from "./product.validation";
 import { responseObject } from "@/utils/helpers/http.response";
 import { HttpCodes } from "@/utils/constants/httpcode";
 import authenticatedMiddleware from "@/middleware/authenticated.middleware";
-import { AddProductDto, FetchProductsDto, WriteReviewDto, } from "./product.dto";
+import { AddProductDto, FetchProductsDto, UpdateProductDto, WriteReviewDto, } from "./product.dto";
 import ProductService from "./product.service";
 import upload from "@/utils/config/multer";
 
@@ -40,6 +40,14 @@ class ProductController implements Controller {
       authenticatedMiddleware,
       validationMiddleware(validate.fetchProductSchema),
       this.fetchVendorProducts
+    )
+
+    this.router.put(
+      `${this.path}/update/:id`,
+      authenticatedMiddleware,
+      upload.array('images'),
+      validationMiddleware(validate.updateProductSchema),
+      this.updateProduct
     )
 
     this.router.post(
@@ -176,6 +184,43 @@ class ProductController implements Controller {
       next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()))
     }
   }
+
+  private updateProduct = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<Response | void> => {
+
+    try {
+      const payload: UpdateProductDto = {
+        product_id: req.params.id,
+        ...req.body
+      }
+      const user = req.user
+      if (req.files) {
+        payload.images = req.files as Express.Multer.File[]
+      }
+      console.log("🚀 ~ ProductController ~ payload:", payload)
+
+      const {
+        status,
+        code,
+        message,
+        data
+      } = await this.productService.updateProduct(payload, user);
+      return responseObject(
+        res,
+        code,
+        status,
+        message,
+        data
+      );
+
+    } catch (error: any) {
+      next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()))
+    }
+  }
+
 
 
   private viewAProduct = async (
