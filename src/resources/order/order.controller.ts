@@ -50,6 +50,12 @@ class OrderController implements Controller {
       validationMiddleware(validate.fetchMyOrdersSchema),
       this.fetchMyOrders
     )
+    this.router.get(
+      `${this.path}/fetch/by-buyer`,
+      authenticatedMiddleware,
+      validationMiddleware(validate.fetchMyOrdersSchema),
+      this.fetchMyOrdersBuyer
+    )
 
   }
 
@@ -172,6 +178,42 @@ class OrderController implements Controller {
     }
   }
 
+   private fetchMyOrdersBuyer = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<Response | void> => {
+    try {
+      const user = req.user
+      const payload: FetchMyOrdersDto = {
+        limit: Number(req?.query?.limit),
+        page: Number(req?.query?.page),
+        filter: {
+          ...(req?.query?.status && { status: String(req?.query?.status) }),
+          ...(req?.query?.start_date && { start_date: String(req?.query?.start_date) }),
+          ...(req?.query?.end_date && { end_date: String(req?.query?.end_date) }),
+        }
+      }
+
+
+      const {
+        status,
+        code,
+        message,
+        data
+      } = await this.orderService.getMyOrdersBuyer(payload, user);
+      return responseObject(
+        res,
+        code,
+        status,
+        message,
+        data
+      );
+
+    } catch (error: any) {
+      next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()))
+    }
+  }
 }
 
 export default OrderController;

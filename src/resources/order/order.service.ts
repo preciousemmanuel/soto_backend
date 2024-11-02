@@ -358,6 +358,54 @@ class OrderService {
     }
   }
 
+   public async getMyOrdersBuyer(
+    myOrdersDto: FetchMyOrdersDto,
+    user: InstanceType<typeof this.User>
+  ): Promise<ResponseData> {
+    let responseData: ResponseData
+    try {
+
+      const search = {
+        ...((myOrdersDto?.filter?.start_date && myOrdersDto?.filter?.end_date) && {
+          createdAt: {
+            $gte: new Date(myOrdersDto?.filter?.start_date),
+            $lte: new Date(myOrdersDto?.filter?.end_date)
+          }
+        }),
+        ...(myOrdersDto?.filter?.status && {
+          status: myOrdersDto?.filter?.status
+        }),
+        user: user?._id
+      }
+
+      var paginatedRecords = await getPaginatedRecords(
+        this.Order, {
+        limit: myOrdersDto?.limit,
+        page: myOrdersDto?.page,
+        data: search,
+       
+      }
+      )
+
+      responseData = {
+        status: StatusMessages.success,
+        code: HttpCodes.HTTP_OK,
+        message: "success",
+        data: paginatedRecords
+      }
+      return responseData
+
+    } catch (error: any) {
+      console.log("🚀 ~ OrderService ~ error:", error)
+      responseData = {
+        status: StatusMessages.error,
+        code: HttpCodes.HTTP_SERVER_ERROR,
+        message: error.toString()
+      }
+      return responseData;
+    }
+  }
+
   private async createOrderDetails(
     itemsInOrder: itemsToBeOrdered[] | ItemInCart[],
     user: any,
