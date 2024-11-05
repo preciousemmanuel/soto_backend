@@ -20,6 +20,10 @@ export interface CreateUserDto {
 
 export interface AddShippingAddressDto {
   address: string;
+  city: string;
+  postal_code?: string;
+  state: string;
+  country?: string;
 }
 
 export interface LoginDto {

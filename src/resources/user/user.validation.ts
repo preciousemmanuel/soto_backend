@@ -26,6 +26,10 @@ const signupSchema = Joi.object({
 
 const addShippingAddressSchema = Joi.object({
   address: Joi.string().required(),
+  city: Joi.string().required(),
+  postal_code: Joi.string().optional(),
+  state: Joi.string().required(),
+  country: Joi.string().default("Nigeria").optional(),
 
 });
 
