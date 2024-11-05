@@ -12,19 +12,21 @@ import OrderController from './resources/order/order.controller';
 import MailController from './resources/mail/mail.controller';
 import TransactionController from './resources/transaction/transaction.controller';
 import DeliveryController from './resources/delivery/delivery.controller';
+import AdminOverviewController from './resources/adminOverview/adminOverview.controller';
 
 dotenv.config({ path: `${process.env.NODE_ENV}.env` });
 validateEnv();
 
 const app = new App([
-    new UserController(),
-    new ProductController(),
+    new AdminOverviewController(),
     new BusinessController(),
     new CategoryController(),
-    new OrderController(),
+    new DeliveryController(),
     new MailController(),
+    new OrderController(),
+    new ProductController(),
     new TransactionController(),
-    new DeliveryController()
+    new UserController()
 
 
 ],
