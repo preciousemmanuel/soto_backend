@@ -116,10 +116,21 @@ class UserService {
     user: User
   ): Promise<ResponseData> {
     let responseData: ResponseData
+    const full_address = addShippingAddress.address + ", " + 
+    addShippingAddress.city + ", " +
+    addShippingAddress.state + ", " +
+    addShippingAddress.country 
+
     try {
       user.ShippingAddress = {
-        full_address: addShippingAddress.address,
-        country: "Nigeria"
+        full_address: full_address,
+        address: addShippingAddress.address,
+        city: addShippingAddress.city,
+        state: addShippingAddress.state,
+        ...(addShippingAddress?.postal_code && {
+        postal_code: addShippingAddress.postal_code
+        }),
+        country: addShippingAddress.country
       }
       await user.save()
       responseData = {

@@ -480,8 +480,10 @@ class OrderService {
             filter: { _id: item.product_id },
             update: {
               $inc: {
-                product_quantity: -item.quantity
-              }
+                product_quantity: -item.quantity,
+                total_quantity_sold: item.quantity
+              },
+             
             }
           }
         }

@@ -168,10 +168,7 @@ export const generateUnusedOrderId = async (): Promise<string> => {
 }
 
 export const backDaterForChart = async (payload: any): Promise<BackDaterResponse> => {
-  const {
-    input,
-    format
-  } = payload
+  const { input, format } = payload;
 
   switch (format) {
     case Timeline.TODAY:
@@ -185,7 +182,7 @@ export const backDaterForChart = async (payload: any): Promise<BackDaterResponse
         day: new Date(day1).toDateString(),
       };
       return {
-        format: "Today",
+        format: 'Today',
         array: [object1],
       };
       break;
@@ -201,7 +198,7 @@ export const backDaterForChart = async (payload: any): Promise<BackDaterResponse
       };
 
       return {
-        format: "Yesterday",
+        format: 'Yesterday',
         array: [object2],
       };
       break;
@@ -231,7 +228,7 @@ export const backDaterForChart = async (payload: any): Promise<BackDaterResponse
         startDay = startOfWeek(datew);
       }
       return {
-        format: "This Week",
+        format: 'This Week',
         array,
       };
       break;
@@ -262,7 +259,7 @@ export const backDaterForChart = async (payload: any): Promise<BackDaterResponse
         startDate = fixed;
       }
       return {
-        format: "Last 7 Days",
+        format: 'Last 7 Days',
         array: array1,
       };
       break;
@@ -275,14 +272,12 @@ export const backDaterForChart = async (payload: any): Promise<BackDaterResponse
       var date2 = input ? new Date(input) : new Date();
       let monthStart = startOfMonth(date2),
         monthEnd = endOfWeek(endOfMonth(date2)),
-        gap = Math.round((monthEnd.getTime() - monthStart.getTime()) / (1000 * 60 * 60 * 24)),
+        gap = Math.round(
+          (monthEnd.getTime() - monthStart.getTime()) / (1000 * 60 * 60 * 24),
+        ),
         day: Date = new Date();
 
       while (i2 < gap) {
-        console.log(
-          "🚀 ~ file: index.js:370 ~ exports.backDaterForChart= ~ i:",
-          i2
-        );
         if (count < 1) {
           const start = monthStart;
           const end = endOfWeek(monthStart);
@@ -317,7 +312,7 @@ export const backDaterForChart = async (payload: any): Promise<BackDaterResponse
 
       array2[0].start = monthStart;
       return {
-        format: "This Month",
+        format: 'This Month',
         array: array2,
       };
       break;
@@ -329,7 +324,7 @@ export const backDaterForChart = async (payload: any): Promise<BackDaterResponse
       var fixed6m = date6m;
       while (i6m > -1) {
         const day = new Date(fixed6m.setMonth(fixed6m.getMonth() - i6m));
-        fixed = input ? new Date(input) : new Date();
+        fixed6m = input ? new Date(input) : new Date();
         const start = startOfMonth(day);
         const end = endOfMonth(day);
         const object = {
@@ -341,7 +336,7 @@ export const backDaterForChart = async (payload: any): Promise<BackDaterResponse
         i6m -= 1;
       }
       return {
-        format: "Last 6 Months",
+        format: 'Last 6 Months',
         array: array6m,
       };
       break;
@@ -352,7 +347,7 @@ export const backDaterForChart = async (payload: any): Promise<BackDaterResponse
       let fixed12m = date12m;
       while (i12m > -1) {
         const day = new Date(fixed12m.setMonth(fixed12m.getMonth() - i12m));
-        fixed = input ? new Date(input) : new Date();
+        fixed12m = input ? new Date(input) : new Date();
         const start = startOfMonth(day);
         const end = endOfMonth(day);
         const object = {
@@ -364,7 +359,7 @@ export const backDaterForChart = async (payload: any): Promise<BackDaterResponse
         i12m -= 1;
       }
       return {
-        format: "Last 12 Months",
+        format: 'Last 12 Months',
         array: array12m,
       };
       break;
@@ -375,7 +370,7 @@ export const backDaterForChart = async (payload: any): Promise<BackDaterResponse
       let fixed2y = date2y;
       while (i2y > -1) {
         const day = new Date(fixed2y.setFullYear(fixed2y.getFullYear() - i2y));
-        fixed = input ? new Date(input) : new Date();
+        fixed2y = input ? new Date(input) : new Date();
         const start = startOfYear(day);
         const end = endOfYear(day);
         const object = {
@@ -387,7 +382,7 @@ export const backDaterForChart = async (payload: any): Promise<BackDaterResponse
         i2y -= 1;
       }
       return {
-        format: "Last 2 Years",
+        format: 'Last 2 Years',
         array: array2y,
       };
       break;
@@ -401,14 +396,12 @@ export const backDaterForChart = async (payload: any): Promise<BackDaterResponse
       var date2 = input ? new Date(input) : new Date();
       let monthStartd = startOfMonth(date2),
         monthEndd = endOfWeek(endOfMonth(date2)),
-        gapd = Math.round((monthEndd.getTime() - monthStartd.getTime()) / (1000 * 60 * 60 * 24)),
+        gapd = Math.round(
+          (monthEndd.getTime() - monthStartd.getTime()) / (1000 * 60 * 60 * 24),
+        ),
         dayd: Date = new Date();
 
       while (i2d < gapd) {
-        console.log(
-          "🚀 ~ file: index.js:370 ~ exports.backDaterForChart= ~ i:",
-          i2d
-        );
         if (countd < 1) {
           const start = monthStartd;
           const end = endOfWeek(monthStartd);
@@ -443,10 +436,84 @@ export const backDaterForChart = async (payload: any): Promise<BackDaterResponse
 
       array2d[0].start = monthStartd;
       return {
-        format: "This Month",
+        format: 'This Month',
         array: array2d,
       };
       break;
   }
 
+};
+
+export const getPercentageDifference = (number_1: number, number_2: number) => {
+  try {
+    let percentage_difference = 0;
+    if (number_1 !== 0) {
+      percentage_difference =
+        Number(
+          parseFloat(String(((number_1 - number_2) / number_1) * 100)).toFixed(
+            2,
+          ),
+        ) || 0;
+    }
+
+    const final = percentage_difference === null ? 0 : percentage_difference;
+    return final;
+  } catch (error) {
+    console.log('🚀 ~ getPercentageChange ~ error:', error);
+  }
+};
+
+export const backTrackToADate = (format: string) => {
+  try {
+    let back_date: Date = new Date();
+    let today = new Date();
+    switch (format) {
+      case Timeline.TODAY:
+        back_date = new Date(
+          new Date(today).setDate(new Date(today).getDate() - 1),
+        );
+        break;
+      case Timeline.YESTERDAY:
+        back_date = new Date(
+          new Date(today).setDate(new Date(today).getDate() - 2),
+        );
+        break;
+      case Timeline.THIS_WEEK:
+        back_date = new Date(
+          new Date(today).setDate(new Date(today).getDate() - 7),
+        );
+        break;
+      case Timeline.LAST_7_DAYS:
+        back_date = new Date(
+          new Date(today).setDate(new Date(today).getDate() - 7),
+        );
+        break;
+      case Timeline.THIS_MONTH:
+        back_date = new Date(
+          new Date(today).setMonth(new Date(today).getMonth() - 1),
+        );
+        break;
+      case Timeline.LAST_6_MONTHS:
+        back_date = new Date(
+          new Date(today).setMonth(new Date(today).getMonth() - 6),
+        );
+        break;
+      case Timeline.LAST_12_MONTHS:
+        back_date = new Date(
+          new Date(today).setMonth(new Date(today).getMonth() - 12),
+        );
+        break;
+      case Timeline.LAST_2_YEARS:
+        back_date = new Date(
+          new Date(today).setMonth(new Date(today).getMonth() - 24),
+        );
+        break;
+
+      default:
+        break;
+    }
+    return back_date;
+  } catch (error) {
+    console.log('🚀 ~ backTrackToADate ~ error:', error);
+  }
 };
