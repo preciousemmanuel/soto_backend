@@ -38,6 +38,10 @@ const ProductSchema = new Schema(
       default: 1,
       required: true
     },
+    total_quantity_sold: {
+      type: Number,
+      default: 0,
+    },
     height:{
       type: Number,
       required: true

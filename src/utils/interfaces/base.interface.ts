@@ -9,3 +9,7 @@ export interface backDaterArray extends Object {
   day?: string;
   month?: string
 }
+
+export interface FacetStage {
+  [key: string]: any; 
+}
