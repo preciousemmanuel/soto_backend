@@ -2,6 +2,7 @@ import {
   UserTypes,
   YesOrNo
 } from "@/utils/enums/base.enum";
+import userModel from "../user/user.model";
 
 export interface AddProductDto {
   product_name: string;
@@ -43,6 +44,7 @@ export interface FilterProductsDto {
   category?: string;
   price_upper?: number;
   price_lower?: number;
+  rating?: number;
 }
 
 export interface WriteReviewDto {
@@ -50,6 +52,13 @@ export interface WriteReviewDto {
   rating?: number;
   comment?: string;
 
+}
+
+export interface AddProductReviewDto {
+  user: InstanceType<typeof userModel>;
+  product_id: string;
+  description?: string;
+  rating: number;
 }
 
 

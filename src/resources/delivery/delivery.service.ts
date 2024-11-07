@@ -9,11 +9,12 @@ import {
 
 // import logger from "@/utils/logger";
 import {
+  DeliveryOptionDto,
   GetCitiesDto,
   GetDeliveryRateDto
 } from "./delivery.dto";
 import { hashPassword } from "@/utils/helpers/token";
-import { StatusMessages } from "@/utils/enums/base.enum";
+import { OrderStatus, StatusMessages } from "@/utils/enums/base.enum";
 import ResponseData from "@/utils/interfaces/responseData.interface";
 import { HttpCodes } from "@/utils/constants/httpcode";
 import cloudUploader from "@/utils/config/cloudUploader";
@@ -267,6 +268,64 @@ class DeliveryService {
         return responseData
       })
       
+      return responseData
+
+    } catch (error: any) {
+      console.log("🚀 ~ DeliveryService ~ error:", error)
+      responseData = {
+        status: StatusMessages.error,
+        code: HttpCodes.HTTP_SERVER_ERROR,
+        message: error.toString()
+      }
+      return responseData;
+    }
+  }
+
+   public async selectDeliveryOption(payload: DeliveryOptionDto): Promise<ResponseData> {
+    let responseData: ResponseData ={
+      status: StatusMessages.success,
+      code: HttpCodes.HTTP_OK,
+      message: "Delivery Vendor Selected Successfully"
+    }
+
+    try {
+
+      const {
+        order_id,
+        user,
+        delivery_details
+      } = payload
+
+      const order = await this.Order.findOne({
+        $and:[
+          {
+            user: user._id,
+            _id: order_id,
+            
+          },
+          {
+            status: {$ne: OrderStatus.CANCELLED}
+          },
+          {
+            status: {$ne: OrderStatus.DELIVERED}
+          }
+        ]
+      })
+
+      if(!order){
+        responseData.status = StatusMessages.error
+        responseData.code = HttpCodes.HTTP_BAD_REQUEST
+        responseData.message = "Order Not Found"
+        return responseData
+      }
+      const updatedOrder = await this.Order.findByIdAndUpdate(order_id, {
+        delivery_amount: delivery_details.amount,
+        grand_total: (order.grand_total + Math.round(delivery_details.amount)),
+        delivery_vendor: delivery_details
+      }, {new: true})
+      
+      
+      responseData.data = updatedOrder
       return responseData
 
     } catch (error: any) {
