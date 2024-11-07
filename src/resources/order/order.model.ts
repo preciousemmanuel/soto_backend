@@ -95,6 +95,9 @@ const OrderSchema = new Schema(
       type: String,
       enum: OrderPaymentType,
       default: OrderPaymentType.ON_DELIVERY
+    },
+    delivery_vendor: {
+      type:{}
     }
   },
   {

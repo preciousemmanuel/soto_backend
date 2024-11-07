@@ -11,6 +11,7 @@ import {
 // import logger from "@/utils/logger";
 import {
   AddProductDto,
+  AddProductReviewDto,
   FetchProductsDto,
   UpdateProductDto,
   WriteReviewDto
@@ -129,6 +130,12 @@ class ProductService {
             $lte: payload?.filter?.price_upper
           }
         }),
+        ...((payload?.filter?.rating ) && {
+          rating: {
+            $gte: payload?.filter?.rating
+          }
+        }),
+        
       }
 
       var paginatedRecords = await getPaginatedRecords(
@@ -506,6 +513,7 @@ class ProductService {
     }
 
   }
+
 
 }
 

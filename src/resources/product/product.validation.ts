@@ -32,6 +32,7 @@ const fetchProductSchema = Joi.object({
   category: Joi.string().optional(),
   price_upper: Joi.number().min(0).optional(),
   price_lower: Joi.number().min(0).optional(),
+  rating: Joi.number().min(0).optional(),
 
 });
 
@@ -59,12 +60,17 @@ const updateProductSchema = Joi.object({
   ).min(1).optional(),
 });
 
-
+const addProductReviewSchema = Joi.object({
+  product_: Joi.string().required(),
+  description: Joi.string().optional(),
+  rating: Joi.number().min(1).max(5).required(),
+  });
 
 
 export default {
   addProductSchema,
   fetchProductSchema,
   writeAReviewSchema,
+  addProductReviewSchema,
   updateProductSchema
 }
