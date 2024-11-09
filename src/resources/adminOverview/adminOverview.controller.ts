@@ -8,7 +8,6 @@ import { responseObject } from "@/utils/helpers/http.response";
 import { HttpCodes } from "@/utils/constants/httpcode";
 import authenticatedMiddleware from "@/middleware/authenticated.middleware";
 import { CreateBusinessDto, OverviewDto, VerificationDto } from "./adminOverview.dto";
-import { Business } from './adminOverview.interface'
 import upload from "@/utils/config/multer";
 import { endOfDay, startOfDay } from "date-fns";
 import { backDaterForChart, backTrackToADate } from "@/utils/helpers";
@@ -43,6 +42,24 @@ class AdminOverviewController implements Controller {
       `${this.path}/latest-orders`,
       validationMiddleware(validate.DashboardOverviewSchema, RequestData.query),
       this.getLatestOrders
+    )
+
+    this.router.get(
+      `${this.path}/orders`,
+      validationMiddleware(validate.getOrdersSchema, RequestData.query),
+      this.getOrders
+    )
+
+    this.router.get(
+      `${this.path}/view-an-order/:id`,
+      validationMiddleware(validate.modelIdSchema, RequestData.params),
+      this.viewAnOrder
+    )
+
+    this.router.get(
+      `${this.path}/products-mgt`,
+      validationMiddleware(validate.getOrdersSchema, RequestData.query),
+      this.getProductsMgt
     )
   }
 
@@ -218,7 +235,132 @@ class AdminOverviewController implements Controller {
     }
   }
 
+   private getOrders = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<Response | void> => {
+    try {
+      var query: OverviewDto = req.query
+      const start_date = query?.start_date
+        ? startOfDay(new Date(query.start_date))
+        : query.timeLine
+          ? (await backDaterForChart({ input: new Date(), format: query.timeLine }))
+              .array[0]?.start
+          : undefined;
+      const end_date = query?.end_date
+        ? endOfDay(new Date(query.end_date))
+        : query.timeLine
+          ? (
+              await backDaterForChart({ input: new Date(), format: query.timeLine })
+            ).array.slice(-1)[0]?.end
+          : undefined;
+       
+      const payload: OverviewDto = {
+        ...(start_date && {start_date}),
+        ...(end_date && {end_date}),      
+        limit: query?.limit ? Number(query?.limit) : 10,
+        page: query?.page ? Number(query?.page) : 1,
+        ...((req.query?.status) && {status: String(req.query.status)}),
+        ...((req.query?.tracking_id) && {tracking_id: String(req.query.tracking_id)}),
+      };
+     
+      const user = req.user
+      const {
+        status,
+        code,
+        message,
+        data
+      } = await this.adminOverviewService.getOrders(payload);
+      return responseObject(
+        res,
+        code,
+        status,
+        message,
+        data
+      );
 
+    } catch (error: any) {
+      next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()))
+    }
+    
+  }
+
+  private viewAnOrder = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<Response | void> => {
+    try {
+         const {
+        status,
+        code,
+        message,
+        data
+      } = await this.adminOverviewService.viewAnOrder(String(req.params.id));
+      return responseObject(
+        res,
+        code,
+        status,
+        message,
+        data
+      );
+
+    } catch (error: any) {
+      next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()))
+    }
+  }
+
+  private getProductsMgt = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<Response | void> => {
+    try {
+      var query: OverviewDto = req.query
+      const start_date = query?.start_date
+        ? startOfDay(new Date(query.start_date))
+        : query.timeLine
+          ? (await backDaterForChart({ input: new Date(), format: query.timeLine }))
+              .array[0]?.start
+          : undefined;
+      const end_date = query?.end_date
+        ? endOfDay(new Date(query.end_date))
+        : query.timeLine
+          ? (
+              await backDaterForChart({ input: new Date(), format: query.timeLine })
+            ).array.slice(-1)[0]?.end
+          : undefined;
+       
+      const payload: OverviewDto = {
+        ...(start_date && {start_date}),
+        ...(end_date && {end_date}),      
+        limit: query?.limit ? Number(query?.limit) : 10,
+        page: query?.page ? Number(query?.page) : 1,
+        ...((req.query?.product_name) && {product_name: String(req.query.product_name)}),
+        ...((req.query?.select_type) && {select_type: String(req.query.select_type)}),
+      };
+     
+      const user = req.user
+      const {
+        status,
+        code,
+        message,
+        data
+      } = await this.adminOverviewService.getProductMgts(payload);
+      return responseObject(
+        res,
+        code,
+        status,
+        message,
+        data
+      );
+
+    } catch (error: any) {
+      next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()))
+    }
+    
+  }
   
 
 }

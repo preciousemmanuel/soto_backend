@@ -47,6 +47,7 @@ export enum OrderStatus {
   CANCELLED = "CANCELLED",
   DELIVERED = "DELIVERED",
   FAILED = "FAILED",
+  RETURNED = "RETURNED",
 }
 
 export enum OrderPaymentType {
@@ -127,4 +128,12 @@ export enum RequestData {
   params = "params",
   query = "query",
   body = "query"
+}
+
+export enum ProductMgtOption {
+  ACTIVE = 'ACTIVE',
+  SOLD = 'SOLD',
+  PROMO = 'PROMO',
+  OUT_OF_STOCK = 'OUT_OF_STOCK',
+  RETURNED = 'RETURNED',
 }

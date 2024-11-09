@@ -14,7 +14,7 @@ import {
   VerificationDto,
 } from "./adminOverview.dto";
 import { hashPassword } from "@/utils/helpers/token";
-import { OrderStatus, OtpPurposeOptions, StatusMessages, UserTypes } from "@/utils/enums/base.enum";
+import { OrderStatus, OtpPurposeOptions, ProductMgtOption, StatusMessages, UserTypes } from "@/utils/enums/base.enum";
 import ResponseData from "@/utils/interfaces/responseData.interface";
 import { HttpCodes } from "@/utils/constants/httpcode";
 import cloudUploader from "@/utils/config/cloudUploader";
@@ -23,8 +23,10 @@ import { endOfToday } from "date-fns";
 import orderModel from "../order/order.model";
 import productModel from "../product/product.model";
 import orderDetailsModel from "../order/orderDetails.model";
-import { backDaterArray, FacetStage } from "@/utils/interfaces/base.interface";
+import { backDaterArray, FacetStage, ProductMgtDto } from "@/utils/interfaces/base.interface";
 import { start } from "repl";
+import { getPaginatedRecords, paginateInfo } from "@/utils/helpers/paginate";
+import { HttpCodesEnum } from "@/utils/enums/httpCodes.enum";
 
 class AdminOverviewService {
   private User = UserModel
@@ -602,6 +604,294 @@ class AdminOverviewService {
 
   }
 
+  public async getOrders(payload: any):Promise<ResponseData>{
+    let responseData: ResponseData = {
+      status: StatusMessages.success,
+        code: HttpCodes.HTTP_OK,
+        message:"Orders Retrieved Successfully"
+    }
+    try {
+      const {
+        limit,
+        page,
+        start_date,
+        end_date,
+        status,
+        tracking_id
+      } = payload
+      const filter = {
+        ...(status && {status}),
+        ...(tracking_id && {tracking_id}),
+        ...((start_date && end_date) && {
+          createdAt:{
+            $gte: start_date,
+            $lte: end_date,
+          }
+        })
+      }
+      const records = await getPaginatedRecords(this.Order, {
+        limit,
+        page,
+        data: filter,
+        populateObj: {
+          path:"user",
+          select:"FirstName LastName ProfileImage"
+        }
+      })
+      
+      responseData.data = records
+
+
+      return responseData
+    } catch (error: any) {
+      console.log("🚀 ~ AdminOverviewService ~ getOrders ~ error:", error)
+       responseData = {
+        status: StatusMessages.error,
+        code: HttpCodes.HTTP_SERVER_ERROR,
+        message: error.toString()
+      }
+      return responseData;
+    }
+
+  }
+  
+
+  public async viewAnOrder(order_id: any):Promise<ResponseData>{
+    let responseData: ResponseData = {
+      status: StatusMessages.success,
+        code: HttpCodes.HTTP_OK,
+        message:"Order Retrieved Successfully"
+    }
+    try {
+      const order = await this.Order.findById(order_id)
+      .populate({
+        path:"items.vendor",
+        select:"firstName lastName Email ProfileImage PhoneNumber"
+      })
+      .populate({
+        path:"user",
+        select:"FirstName LastName ProfileImage Email PhoneNumber"
+      })
+        if(!order) {
+          return {
+            status: StatusMessages.error,
+            code: HttpCodesEnum.HTTP_BAD_REQUEST,
+            message: "Order Not Found"
+          }
+        }
+      
+      responseData.data = order
+      return responseData
+    } catch (error: any) {
+      console.log("🚀 ~ AdminOverviewService ~ viewAnOrder ~ error:", error)
+       responseData = {
+        status: StatusMessages.error,
+        code: HttpCodes.HTTP_SERVER_ERROR,
+        message: error.toString()
+      }
+      return responseData;
+    }
+  }
+
+   public async getProductMgts(payload: any):Promise<ResponseData>{
+    let responseData: ResponseData = {
+      status: StatusMessages.success,
+        code: HttpCodes.HTTP_OK,
+        message:"Orders Retrieved Successfully"
+    }
+    try {
+      const {
+        limit,
+        page,
+        start_date,
+        end_date,
+        status,
+        product_name,
+        select_type
+      } = payload
+      let filter: object
+      let productData: ProductMgtDto
+      let paginateRequest
+      let product_type: string
+      switch (select_type) {
+        case ProductMgtOption.SOLD:
+          filter = {
+            ...(status && {status}),
+            ...(product_name && {product_name: {$regex: product_name, $options:"i"}}),
+            ...((start_date && end_date) && {
+              createdAt:{
+                $gte: start_date,
+                $lte: end_date,
+              }
+            }),
+             total_quantity_sold:{$gt: 0},
+          }
+          paginateRequest = await getPaginatedRecords(this.Product, {
+            limit,
+            page,
+            data: filter
+          })
+          paginateRequest.data.map((prod) => {
+            productData = {
+              name: prod.product_name,
+              description: prod.description,
+              images: prod.images,
+              quantity_sold: prod.total_quantity_sold,
+              quantity: prod.product_quantity,
+              price: prod.unit_price,
+              discounted_price: prod.discount_price || 0 ,
+              is_discounted: prod.is_discounted,
+            }
+          })
+          product_type = 'Sold'
+          break;
+        case ProductMgtOption.PROMO:
+          filter = {
+            ...(status && {status}),
+            ...(product_name && {product_name: {$regex: product_name, $options:"i"}}),
+            ...((start_date && end_date) && {
+              createdAt:{
+                $gte: start_date,
+                $lte: end_date,
+              }
+            }),
+             is_discounted:true,
+          }
+          paginateRequest = await getPaginatedRecords(this.Product, {
+            limit,
+            page,
+            data: filter
+          })
+          paginateRequest.data.map((prod) => {
+            productData = {
+              name: prod.product_name,
+              description: prod.description,
+              images: prod.images,
+              quantity_sold: prod.total_quantity_sold,
+              quantity: prod.product_quantity,
+              price: prod.unit_price,
+              discounted_price: prod.discount_price || 0 ,
+              is_discounted: prod.is_discounted,
+            }
+          })
+          product_type = 'Promo'
+          break;
+        case ProductMgtOption.OUT_OF_STOCK:
+          filter = {
+            ...(status && {status}),
+            ...(product_name && {product_name: {$regex: product_name, $options:"i"}}),
+            ...((start_date && end_date) && {
+              createdAt:{
+                $gte: start_date,
+                $lte: end_date,
+              }
+            }),
+             product_quantity:0
+          }
+          paginateRequest = await getPaginatedRecords(this.Product, {
+            limit,
+            page,
+            data: filter
+          })
+          paginateRequest.data.map((prod) => {
+            productData = {
+              name: prod.product_name,
+              description: prod.description,
+              images: prod.images,
+              quantity_sold: prod.total_quantity_sold,
+              quantity: prod.product_quantity,
+              price: prod.unit_price,
+              discounted_price: prod.discount_price || 0 ,
+              is_discounted: prod.is_discounted,
+            }
+          })
+          product_type = 'Out of Stock'
+          break;
+        case ProductMgtOption.RETURNED:
+          filter = {
+            ...(status && {status: OrderStatus.RETURNED}),
+            ...(product_name && {product_name: {$regex: product_name, $options:"i"}}),
+            ...((start_date && end_date) && {
+              createdAt:{
+                $gte: start_date,
+                $lte: end_date,
+              }
+            }),
+          }
+
+          paginateRequest = await getPaginatedRecords(this.OrderDetails, {
+            limit,
+            page,
+            data: filter,
+            populateObj:{
+              path:"product_id",
+              select:"images total_quantity_sold"
+            }
+          })
+          paginateRequest.data.map((prod) => {
+            productData = {
+              name: prod.product_name,
+              description: prod.description || "",
+              images: prod.toObject()?.product_id?.images || [],
+              quantity_sold: prod.toObject()?.product_id?.total_quantity_sold || 0,
+              quantity: prod.quantity,
+              price: prod.unit_price,
+              discounted_price: prod.unit_price || 0 ,
+              is_discounted: prod.is_discounted,
+            }
+          })
+          product_type = 'Returned'
+          break;
+        default:
+          filter = {
+            ...(status && {status}),
+            ...(product_name && {product_name: {$regex: product_name, $options:"i"}}),
+            ...((start_date && end_date) && {
+              createdAt:{
+                $gte: start_date,
+                $lte: end_date,
+              }
+            }),
+            
+            // is_verified:true,
+          }
+            console.log("🚀 ~ AdminOverviewService ~ getProductMgts ~ filter:", filter)
+          
+          paginateRequest = await getPaginatedRecords(this.Product, {
+            limit,
+            page,
+            data: filter
+          })
+          paginateRequest.data.map((prod) => {
+            productData = {
+              name: prod.product_name,
+              description: prod.description,
+              images: prod.images,
+              quantity_sold: prod.total_quantity_sold,
+              quantity: prod.product_quantity,
+              price: prod.unit_price,
+              discounted_price: prod.discount_price || 0 ,
+              is_discounted: prod.is_discounted,
+            }
+          })
+          product_type = 'Active'
+          break;
+      }      
+      responseData.message = product_type + ' Products Retreived Successfully'
+      responseData.data = paginateRequest
+      return responseData
+    } catch (error: any) {
+      console.log("🚀 ~ AdminOverviewService ~ getOrders ~ error:", error)
+       responseData = {
+        status: StatusMessages.error,
+        code: HttpCodes.HTTP_SERVER_ERROR,
+        message: error.toString()
+      }
+      return responseData;
+    }
+
+  }
+  
 
 }
 

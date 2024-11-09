@@ -470,6 +470,7 @@ class ProductService {
     let responseData: ResponseData
     try {
       const product = await this.product.findById(product_id)
+      .populate('category')
       if (!product) {
         return {
           status: StatusMessages.error,

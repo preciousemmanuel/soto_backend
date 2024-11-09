@@ -13,3 +13,15 @@ export interface backDaterArray extends Object {
 export interface FacetStage {
   [key: string]: any; 
 }
+
+
+export interface ProductMgtDto {
+  name?: string;
+  description?: string;
+  images?: string[];
+  quantity_sold?: number;
+  quantity?: number;
+  price?: number;
+  discounted_price?: number;
+  is_discounted?: boolean;
+}
