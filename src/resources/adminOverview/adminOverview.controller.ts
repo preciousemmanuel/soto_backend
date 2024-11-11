@@ -12,6 +12,9 @@ import upload from "@/utils/config/multer";
 import { endOfDay, startOfDay } from "date-fns";
 import { backDaterForChart, backTrackToADate } from "@/utils/helpers";
 import { RequestData } from "@/utils/enums/base.enum";
+import { AddShippingAddressDto } from "../user/user.dto";
+import userModel from "../user/user.model";
+import envConfig from "@/utils/config/env.config";
 
 
 class AdminOverviewController implements Controller {
@@ -60,6 +63,24 @@ class AdminOverviewController implements Controller {
       `${this.path}/products-mgt`,
       validationMiddleware(validate.getOrdersSchema, RequestData.query),
       this.getProductsMgt
+    )
+
+    this.router.post(
+      `${this.path}/update-shipping-address`,
+      validationMiddleware(validate.addShippingAddressSchema),
+      this.adminAddShippingAddress
+    )
+
+    this.router.post(
+      `${this.path}/create-shipment/:id`,
+      validationMiddleware(validate.modelIdSchema, RequestData.params),
+      this.createShipmentForOrder
+    )
+
+    this.router.get(
+      `${this.path}/track-shipment/:id`,
+      validationMiddleware(validate.modelIdSchema, RequestData.params),
+      this.trackShipment
     )
   }
 
@@ -361,7 +382,101 @@ class AdminOverviewController implements Controller {
     }
     
   }
+
+  private adminAddShippingAddress = async (
+      req: Request,
+      res: Response,
+      next: NextFunction
+    ): Promise<Response | void> => {
+
+    try {
+      const address: AddShippingAddressDto = req.body
+      address.is_admin = true
+      const sotoUser = await userModel.findOne({
+        Email: envConfig.SOTO_EMAIL
+      }) || await userModel.findOne()
+      address.user = sotoUser || req.user
+      const {
+        status,
+        code,
+        message,
+        data
+      } = 
+      await this.adminOverviewService.createShippingAddress(address)
+      return responseObject(
+        res,
+        code,
+        status,
+        message,
+        data
+      );
+
+    } catch (error: any) {
+      next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()))
+    }
+  }
+
+  private createShipmentForOrder = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<Response | void> => {
+
+    try {
+      const sotoUser = await userModel.findOne({
+        Email: envConfig.SOTO_EMAIL
+      }) || await userModel.findOne()
+      const payload = {
+        soto_user: sotoUser || req.user,
+        order_id: String(req.params.id)
+      }
+      const {
+        status,
+        code,
+        message,
+        data
+      } = 
+      await this.adminOverviewService.createShipment(payload)
+      return responseObject(
+        res,
+        code,
+        status,
+        message,
+        data
+      );
+
+    } catch (error: any) {
+      next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()))
+    }
+  }
   
+  private trackShipment = async (
+      req: Request,
+      res: Response,
+      next: NextFunction
+    ): Promise<Response | void> => {
+
+    try {
+      const {
+        status,
+        code,
+        message,
+        data
+      } = 
+      await this.adminOverviewService.trackShipment(String(req.params.id))
+      return responseObject(
+        res,
+        code,
+        status,
+        message,
+        data
+      );
+
+    } catch (error: any) {
+      next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()))
+    }
+  }
+
 
 }
 
