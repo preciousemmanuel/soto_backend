@@ -19,6 +19,8 @@ export interface CreateUserDto {
 }
 
 export interface AddShippingAddressDto {
+  user: InstanceType<typeof userModel>
+  is_admin?: boolean;
   address: string;
   city: string;
   postal_code?: string;

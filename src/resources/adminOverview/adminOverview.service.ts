@@ -1,5 +1,5 @@
 import UserModel from "@/resources/user/user.model";
-import { uniqueCode } from "@/utils/helpers";
+import { axiosRequestFunction, formatPhoneNumber, uniqueCode } from "@/utils/helpers";
 import {
   comparePassword,
   createToken,
@@ -27,12 +27,17 @@ import { backDaterArray, FacetStage, ProductMgtDto } from "@/utils/interfaces/ba
 import { start } from "repl";
 import { getPaginatedRecords, paginateInfo } from "@/utils/helpers/paginate";
 import { HttpCodesEnum } from "@/utils/enums/httpCodes.enum";
+import { requestProp } from "../mail/mail.interface";
+import envConfig from "@/utils/config/env.config";
+import { AddShippingAddressDto } from "../user/user.dto";
+import shipmentModel from "../delivery/shipment.model";
 
 class AdminOverviewService {
   private User = UserModel
   private Order = orderModel
   private Product = productModel
   private OrderDetails = orderDetailsModel
+  private Shipment = shipmentModel
   private mailService = new MailService()
 
   public async getOverview(
@@ -890,6 +895,289 @@ class AdminOverviewService {
       return responseData;
     }
 
+  }
+
+  public async createShippingAddress(payload: AddShippingAddressDto):Promise<ResponseData>{
+    let responseData: ResponseData = {
+      status: StatusMessages.success,
+        code: HttpCodes.HTTP_OK,
+        message:"Shipping Address Created Successfully"
+    }
+    try {
+      const {
+        user,
+        address,
+        is_admin = false,
+        city,
+        country = 'NG',
+        state,
+        postal_code
+      } = payload
+      let body:object
+      let filter_id: string = String(user._id)
+      switch (is_admin) {
+        case true:
+        console.log("🚀 ~ AdminOverviewService ~ createShippingAddress ~ is_admin:", is_admin)
+
+          body = {
+            first_name: user?.FirstName,
+            last_name: user?.LastName,
+            email: user?.Email,
+            line1: address,
+            city,
+            country:"NG",
+            state,
+            zip: postal_code
+          }
+          break;
+        default:
+        console.log("🚀 ~ AdminOverviewService ~ createShippingAddress ~ is_admin:", is_admin)
+        filter_id = String(user._id)
+        body = {
+          first_name: user.FirstName,
+          last_name: user.LastName,
+          email: user.Email,
+          phone: formatPhoneNumber(user.PhoneNumber),
+          line1: address,
+          city,
+          country:"NG",
+          state,
+          zip: postal_code
+        }
+          break;
+      }     
+      const axiosConfig: requestProp = {
+        method:"POST",
+        url: envConfig.TERMINAL_AFRICA_BASE_URL + `/addresses`,
+        body: body,
+        headers:{
+          authorization: `Bearer ${envConfig.TERMINAL_AFRICA_SECRET_KEY}`
+        }
+      }
+      const createAddressCall = await axiosRequestFunction(axiosConfig)
+      if(createAddressCall.status === StatusMessages.error) {
+        return createAddressCall
+      }
+      const addressData:any = createAddressCall.data.data
+      const addressUpdate = {
+        ShippingAddress: {
+          full_address: `${address}, ${city}, ${state}, ${country}`,
+          address,
+          address_id: addressData.address_id,
+          city: addressData.city,
+          coordinates: addressData.coordinates,
+          country,
+          postal_code,
+        },
+        shipping_address_id: addressData.address_id
+      }
+      const updatedAddress = await this.User.findByIdAndUpdate(filter_id, addressUpdate, {new: true})
+      responseData.data = updatedAddress      
+      return responseData
+    } catch (error: any) {
+      console.log("🚀 ~ AdminOverviewService ~ createShippingAddress ~ error:", error)
+       responseData = {
+        status: StatusMessages.error,
+        code: HttpCodes.HTTP_SERVER_ERROR,
+        message: error.toString()
+      }
+      return responseData;
+    }
+  }
+
+   public async createShipment(payload: any):Promise<ResponseData>{
+    let responseData: ResponseData = {
+      status: StatusMessages.success,
+        code: HttpCodes.HTTP_OK,
+        message:"Shipment Created Successfully"
+    }
+    try {
+      const {
+        user,
+        order_id,
+        soto_user
+      } = payload
+      const order = await this.Order.findOne({
+        _id: order_id,
+        status: OrderStatus.BOOKED
+      })
+      if(!order) {
+        return {
+          status: StatusMessages.error,
+          code: HttpCodesEnum.HTTP_BAD_REQUEST,
+          message:"Order Not Found"
+        }
+      }
+      const body = {
+        address_from: soto_user.shipping_address_id,
+        address_to: order.delivery_vendor.delivery_address,
+        parcel: order.delivery_vendor.parcel,
+      }
+     
+      const axiosConfig: requestProp = {
+        method:"POST",
+        url: envConfig.TERMINAL_AFRICA_BASE_URL + `/shipments`,
+        body,
+        headers:{
+          authorization: `Bearer ${envConfig.TERMINAL_AFRICA_SECRET_KEY}`
+        }
+      }
+      const createShipmentCall = await axiosRequestFunction(axiosConfig)
+      if(createShipmentCall.status === StatusMessages.error) {
+        return createShipmentCall
+      }
+      const shipmentData:any = createShipmentCall.data.data
+      const createShipmentData = {
+       address_from: shipmentData.address_from,
+       address_return: shipmentData.address_return,
+       address_to: shipmentData.address_to,
+       events: shipmentData.events,
+       created_shipment_id: shipmentData.id,
+       parcel: shipmentData.parcel,
+       shipment_id: shipmentData.shipment_id,
+       status: shipmentData.status,
+       order: order._id
+      }
+      const newShipment = await this.Shipment.create(createShipmentData)
+      await this.Order.findByIdAndUpdate(order._id, {
+        shipment: newShipment._id
+      })
+      
+      responseData.data = newShipment      
+      return responseData
+    } catch (error: any) {
+      console.log("🚀 ~ AdminOverviewService ~ createShipment ~ error:", error)
+       responseData = {
+        status: StatusMessages.error,
+        code: HttpCodes.HTTP_SERVER_ERROR,
+        message: error.toString()
+      }
+      return responseData;
+    }
+  }
+
+  public async arrangePickup(payload: any):Promise<ResponseData>{
+    let responseData: ResponseData = {
+      status: StatusMessages.success,
+        code: HttpCodes.HTTP_OK,
+        message:"Pickup Arranged Successfully"
+    }
+    try {
+      const {
+        user,
+        order_id,
+        soto_user
+      } = payload
+      const order = await this.Order.findOne({
+        _id: order_id,
+        status: OrderStatus.BOOKED
+      })
+      if(!order) {
+        return {
+          status: StatusMessages.error,
+          code: HttpCodesEnum.HTTP_BAD_REQUEST,
+          message:"Order Not Found"
+        }
+      }
+       const body = {
+        rate_id: order.toObject().delivery_vendor.rate_id,
+        parcel: order.delivery_vendor.parcel,
+
+      }
+     
+      const axiosConfig: requestProp = {
+        method:"POST",
+        url: envConfig.TERMINAL_AFRICA_BASE_URL + `/shipments/pickup`,
+        body,
+        headers:{
+          authorization: `Bearer ${envConfig.TERMINAL_AFRICA_SECRET_KEY}`
+        }
+      }
+      const createShipmentCall = await axiosRequestFunction(axiosConfig)
+      if(createShipmentCall.status === StatusMessages.error) {
+        return createShipmentCall
+      }
+      const shipmentData:any = createShipmentCall.data.data
+      const createShipmentData = {
+       address_from: shipmentData.address_from,
+       address_return: shipmentData.address_return,
+       address_to: shipmentData.address_to,
+       events: shipmentData.events,
+       extras: shipmentData.extras,
+       created_shipment_id: shipmentData.id || shipmentData._id,
+       parcel: shipmentData.parcel,
+       shipment_id: shipmentData.shipment_id,
+       status: shipmentData.status,
+       order: order._id
+      }
+      const newShipment = await this.Shipment.create(createShipmentData)
+      await this.Order.findByIdAndUpdate(order._id, {
+        shipment: newShipment._id
+      })
+      
+      responseData.data = newShipment      
+      return responseData
+    } catch (error: any) {
+      console.log("🚀 ~ AdminOverviewService ~ createShipment ~ error:", error)
+       responseData = {
+        status: StatusMessages.error,
+        code: HttpCodes.HTTP_SERVER_ERROR,
+        message: error.toString()
+      }
+      return responseData;
+    }
+  }
+
+  public async trackShipment(order_id: string):Promise<ResponseData>{
+    let responseData: ResponseData = {
+      status: StatusMessages.success,
+        code: HttpCodes.HTTP_OK,
+        message:"Shipment Tracked Successfully"
+    }
+    try {
+      const shipment = await this.Shipment.findOne({
+        order: order_id,
+      })
+      if(!shipment) {
+        return {
+          status: StatusMessages.error,
+          code: HttpCodesEnum.HTTP_BAD_REQUEST,
+          message:"Shipment Not Found"
+        }
+      }
+       const shipment_id = String(shipment.toObject().shipment_id)
+     
+      const axiosConfig: requestProp = {
+        method:"GET",
+        url: envConfig.TERMINAL_AFRICA_BASE_URL + `/shipments/track/${shipment_id}`,
+        headers:{
+          authorization: `Bearer ${envConfig.TERMINAL_AFRICA_SECRET_KEY}`
+        }
+      }
+      const trackShipmentCall = await axiosRequestFunction(axiosConfig)
+      if(trackShipmentCall.status === StatusMessages.error) {
+        return trackShipmentCall
+      }
+      const shipmentData:any = trackShipmentCall.data.data
+      const trackShipmentData = {
+       ...shipmentData
+      }
+      const trackedShipment = await this.Shipment.findByIdAndUpdate(shipment._id, 
+        trackShipmentData,
+        {new: true}
+      )
+     
+      responseData.data = trackedShipment      
+      return responseData
+    } catch (error: any) {
+      console.log("🚀 ~ AdminOverviewService ~ trackShipment ~ error:", error)
+       responseData = {
+        status: StatusMessages.error,
+        code: HttpCodes.HTTP_SERVER_ERROR,
+        message: error.toString()
+      }
+      return responseData;
+    }
   }
   
 

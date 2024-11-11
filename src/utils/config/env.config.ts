@@ -40,5 +40,5 @@ export default {
   TERMINAL_AFRICA_PUBLIC_KEY: process.env.TERMINAL_AFRICA_PUBLIC_KEY || PaymentProvider.PAYSTACK,
   TERMINAL_AFRICA_SECRET_KEY: process.env.TERMINAL_AFRICA_SECRET_KEY || PaymentProvider.PAYSTACK,
   TERMINAL_AFRICA_BASE_URL: process.env.TERMINAL_AFRICA_BASE_URL || PaymentProvider.PAYSTACK,
-
+  SOTO_EMAIL: process.env.SOTO_EMAIL || PaymentProvider.PAYSTACK,
 }

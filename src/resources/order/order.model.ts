@@ -98,7 +98,12 @@ const OrderSchema = new Schema(
     },
     delivery_vendor: {
       type:{}
-    }
+    },
+    shipment: {
+      type: mongoose.Types.ObjectId,
+      ref: "Shipments",
+      required: true
+    },
   },
   {
     collection: "Orders",

@@ -69,6 +69,11 @@ const UserSchema = new Schema(
       city: String,
       state: String,
       postal_code: String,
+      address_id: String,
+      coordinates: {
+        lat: Number,
+        lng: Number,
+      },
       country: {
         type: String,
         default: "Nigeria"

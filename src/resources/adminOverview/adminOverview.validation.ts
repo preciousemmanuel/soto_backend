@@ -59,11 +59,19 @@ const modelIdSchema = Joi.object().keys({
   id: Joi.string().required(),
 })
 
+const addShippingAddressSchema = Joi.object({
+  address: Joi.string().required(),
+  city: Joi.string().required(),
+  postal_code: Joi.string().optional(),
+  state: Joi.string().required(),
+  country: Joi.string().default("Nigeria").optional(),
 
+});
 
 export default {
   createBusinessSchema,
   DashboardOverviewSchema,
   getOrdersSchema,
-  modelIdSchema
+  modelIdSchema,
+  addShippingAddressSchema
 }
