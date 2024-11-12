@@ -34,6 +34,10 @@ const removeFromCartSchema = Joi.object({
   product_id: Joi.string().required(),
 });
 
+const modelIdSchema = Joi.object().keys({
+  id: Joi.string().required(),
+})
+
 const fetchMyOrdersSchema = Joi.object({
   limit: Joi.number().positive().default(10).optional(),
   page: Joi.number().positive().default(1).optional(),
@@ -55,5 +59,6 @@ export default {
   addToCartSchema,
   removeFromCartSchema,
   createOrderSchema,
-  fetchMyOrdersSchema
+  fetchMyOrdersSchema,
+  modelIdSchema
 }

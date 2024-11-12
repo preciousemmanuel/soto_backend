@@ -14,7 +14,7 @@ export const getPaginatedRecords = async (
     populateObj1,
     populateObj2,
   }: paginateInfo
-) => {
+): Promise<paginateResponse> => {
   try {
     const maxLimit = Math.min(limit, 1000); // restrict limit to 1000
     const offset = 0 + (Math.abs(page || 1) - 1) * maxLimit;
@@ -44,12 +44,13 @@ export const getPaginatedRecords = async (
         hasNext: page * maxLimit < modelData,
       },
     };
-  } catch (err) {
+  } catch (err: any) {
     console.log(err);
+    return err
   }
 };
 
-interface paginateInfo {
+export interface paginateInfo {
   limit?: number;
   page?: number;
   data?: {};
@@ -60,4 +61,15 @@ interface paginateInfo {
   populateObj1?: any;
   populateObj2?: any;
 
+}
+
+export interface paginateResponse {
+  data: any[],
+  pagination: {
+    pageSize: number;
+    totalCount: number;
+    pageCount: number;
+    currentPage: number;
+    hasNext: boolean;
+  }
 }

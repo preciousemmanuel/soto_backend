@@ -6,7 +6,7 @@ import validate from "./delivery.validation";
 import { responseObject } from "@/utils/helpers/http.response";
 import { HttpCodes } from "@/utils/constants/httpcode";
 import authenticatedMiddleware from "@/middleware/authenticated.middleware";
-import { GetCitiesDto, GetDeliveryRateDto } from "./delivery.dto";
+import { DeliveryOptionDto, GetCitiesDto, GetDeliveryRateDto } from "./delivery.dto";
 import upload from "@/utils/config/multer";
 import DeliveryService from "./delivery.service";
 import { RequestData } from "@/utils/enums/base.enum";
@@ -40,6 +40,13 @@ class DeliveryController implements Controller {
       authenticatedMiddleware,
       validationMiddleware(validate.getCitiesSchema, RequestData.query),
       this.getCities
+    )
+
+     this.router.post(
+      `${this.path}/select-delivery-vendor/:id`,
+      authenticatedMiddleware,
+      validationMiddleware(validate.selectDeliveryOptionSchema),
+      this.selectDeliveryOption
     )
 
 
@@ -121,6 +128,38 @@ class DeliveryController implements Controller {
         message,
         data
       } = await this.deliveryService.getCities(payload);
+      return responseObject(
+        res,
+        code,
+        status,
+        message,
+        data
+      );
+
+    } catch (error: any) {
+      next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()))
+    }
+  }
+
+   private selectDeliveryOption = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<Response | void> => {
+    try {
+    
+      const payload:DeliveryOptionDto = {
+        user: req.user,
+        order_id: String(req.params.id),
+        delivery_details: req.body
+      }
+
+      const {
+        status,
+        code,
+        message,
+        data
+      } = await this.deliveryService.selectDeliveryOption(payload);
       return responseObject(
         res,
         code,
