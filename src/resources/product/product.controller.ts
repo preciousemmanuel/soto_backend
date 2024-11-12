@@ -125,6 +125,7 @@ class ProductController implements Controller {
           ...(req?.query?.category && { category: String(req?.query?.category) }),
           ...(req?.query?.price_upper && { price_upper: Number(req?.query?.price_upper) }),
           ...(req?.query?.price_lower && { price_lower: Number(req?.query?.price_lower) }),
+          ...(req?.query?.rating && { rating: Number(req?.query?.rating) }),
         }
       }
 

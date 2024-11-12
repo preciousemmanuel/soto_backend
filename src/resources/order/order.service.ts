@@ -579,6 +579,49 @@ class OrderService {
       return responseData;
     }
   }
+
+  public async viewAnOrder(payload: any):Promise<ResponseData>{
+    let responseData: ResponseData = {
+      status: StatusMessages.success,
+        code: HttpCodes.HTTP_OK,
+        message:"Order Retrieved Successfully"
+    }
+    try {
+      const {
+      order_id,
+      user,
+      } = payload
+      const order = await this.Order.findOne({_id:order_id, user: user._id})
+      .populate({
+        path:"items.vendor",
+        select:"firstName lastName Email ProfileImage PhoneNumber"
+      })
+      .populate({
+        path:"user",
+        select:"FirstName LastName ProfileImage Email PhoneNumber"
+      })
+      .populate("shipment")
+      
+      if(!order) {
+        return {
+          status: StatusMessages.error,
+          code: HttpCodes.HTTP_BAD_REQUEST,
+          message: "Order Not Found"
+        }
+      }
+      
+      responseData.data = order
+      return responseData
+    } catch (error: any) {
+      console.log("🚀 ~ AdminOverviewService ~ viewAnOrder ~ error:", error)
+       responseData = {
+        status: StatusMessages.error,
+        code: HttpCodes.HTTP_SERVER_ERROR,
+        message: error.toString()
+      }
+      return responseData;
+    }
+  }
 }
 
 export default OrderService;

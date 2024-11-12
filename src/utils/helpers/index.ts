@@ -47,6 +47,13 @@ export const verificationCode = () => {
   return code;
 };
 
+export const formatPhoneNumber = (phone_number: string) => {
+  const stringed = String(phone_number);
+  let formated;
+  formated = "+234" + stringed.slice(-10);
+  return formated;
+};
+
 export const genAphaNumericCode = () => {
   //define a variable consisting alphabets in small and capital letter
   var characters = "ABCDEFGHIJKLMNOPQRSTUVWXTZ";

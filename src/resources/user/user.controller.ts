@@ -9,12 +9,14 @@ import { HttpCodes } from "@/utils/constants/httpcode";
 import authenticatedMiddleware from "@/middleware/authenticated.middleware";
 import { AddShippingAddressDto, ChangePasswordDto, CreateUserDto, LoginDto, vendorDashboardDto, vendorInventoryDto } from "./user.dto";
 import { User } from './user.interface'
+import AdminOverviewService from "../adminOverview/adminOverview.service";
 
 
 class UserController implements Controller {
   public path = "/user";
   public router = Router();
   private userService = new UserService();
+  private adminOverviewService = new AdminOverviewService();
 
   constructor() {
     this.initializeRoute();
@@ -136,13 +138,15 @@ class UserController implements Controller {
 
     try {
       const address: AddShippingAddressDto = req.body
-      const user: User = req.user
+      address.is_admin = false
+      address.user = req.user
       const {
         status,
         code,
         message,
         data
-      } = await this.userService.addShippingAddress(address, user);
+      } = 
+      await this.adminOverviewService.createShippingAddress(address)
       return responseObject(
         res,
         code,
