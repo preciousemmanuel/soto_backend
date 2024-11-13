@@ -419,10 +419,34 @@ class AdminOverviewService {
         //     }
         //   }),
         // },
+        {
+          $lookup:{
+            from: "Products",
+            localField: "product_id",
+            foreignField: "_id",
+            pipeline:[
+              {
+                $project:{
+                  _id:1,
+                  product_name:1,
+                  images:1
+                }
+              }
+            ],
+            as: "product_with_image"
+          }
+        },
+         {
+          $unwind:{
+            path:"$product_with_image",
+            preserveNullAndEmptyArrays: true
+          }
+        },
          {
           $project: {
             product_id: 1,
             product_name: 1,
+            images:{ $arrayElemAt: ["$product_with_image.images", 0] },
             total_price: { $multiply: ['$unit_price', '$quantity'] },
             quantity: 1
           }
@@ -431,6 +455,7 @@ class AdminOverviewService {
           $group: {
             _id: '$product_id',
             product_name: { $first: '$product_name' },
+            images: { $first: '$images' },
             total_quantity: { $sum: '$quantity' },
             total_price: { $sum: '$total_price' }
           }
@@ -447,8 +472,16 @@ class AdminOverviewService {
         {
       $group: {
         _id: null, 
-          products: { $push: { product_id: '$_id', product_name: '$product_name', total_quantity: '$total_quantity', total_price: '$total_price' } },
-          total_count: { $sum: 1 }
+        products: { 
+          $push: { 
+            product_id: '$_id', 
+            product_name: '$product_name',  
+            images: '$images',
+            total_quantity: '$total_quantity', 
+            total_price: '$total_price' 
+          } 
+        },
+        total_count: { $sum: 1 }
         }
       },
       {
@@ -676,6 +709,20 @@ class AdminOverviewService {
       .populate({
         path:"user",
         select:"FirstName LastName ProfileImage Email PhoneNumber"
+      })
+       .populate({
+        path:"shipment",
+        select: {
+          address_to: {
+            line1:1,
+            line2:1,
+            city:1,
+            state:1,
+            country:1,
+            coordinates:1,
+          },
+          pickup_date:1
+        }
       })
         if(!order) {
           return {
