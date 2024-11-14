@@ -17,11 +17,11 @@ const signupSchema = Joi.object({
     SignupChannels.FACEBOOK,
     SignupChannels.GOOGLE,
     SignupChannels.TWITTER,
-  ).required(),
+  ).default(SignupChannels.DEFAULT).optional(),
   UserType: Joi.string().valid(
     UserTypes.USER,
     UserTypes.VENDOR
-  ).default(UserTypes.USER).required(),
+  ).default(UserTypes.USER).optional(),
 });
 
 const addShippingAddressSchema = Joi.object({
