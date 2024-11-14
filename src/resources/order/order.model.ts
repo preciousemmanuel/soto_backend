@@ -99,6 +99,14 @@ const OrderSchema = new Schema(
     delivery_vendor: {
       type:{}
     },
+    is_coupon_applied:{
+      type: Boolean,
+      default: false
+    },
+    coupon: {
+      type: mongoose.Types.ObjectId,
+      ref: "GeneralCoupons",
+    },
     shipment: {
       type: mongoose.Types.ObjectId,
       ref: "Shipments",

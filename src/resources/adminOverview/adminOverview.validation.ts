@@ -1,18 +1,19 @@
-import { IdentificationTypes, ProductMgtOption, SignupChannels, Timeline, UserTypes } from '@/utils/enums/base.enum';
+import { IdentificationTypes, ProductMgtOption, PromoTypes, SignupChannels, Timeline, UserTypes, YesOrNo } from '@/utils/enums/base.enum';
 import { email } from 'envalid';
 import Joi from 'joi';
 
 
 
-const createBusinessSchema = Joi.object({
-  business_name: Joi.string().required(),
+const adminLoginSchema = Joi.object({
   email: Joi.string().email().required(),
-  phone_number: Joi.string().required(),
   password: Joi.string().required(),
-  adress: Joi.string().required(),
-  category: Joi.string().required(),
-  description: Joi.string().optional(),
-  business_logo: Joi.object({}).optional()
+});
+
+const adminCreateSchema = Joi.object({
+  first_name: Joi.string().required(),
+  last_name: Joi.string().required(),
+  email: Joi.string().email().required(),
+  phone_number: Joi.string().optional(),
 });
 
 const DashboardOverviewSchema = Joi.object().keys({
@@ -45,7 +46,7 @@ const getOrdersSchema = Joi.object().keys({
   page: Joi.number().positive().optional(),
   status: Joi.string().optional(),
   tracking_id: Joi.string().optional(),
-  product_name: Joi.string().optional(),
+  product_name: Joi.string().allow(null).allow("").optional(),
   select_type: Joi.string().valid(
     ProductMgtOption.ACTIVE,
     ProductMgtOption.SOLD,
@@ -65,13 +66,142 @@ const addShippingAddressSchema = Joi.object({
   postal_code: Joi.string().optional(),
   state: Joi.string().required(),
   country: Joi.string().default("Nigeria").optional(),
-
 });
 
+const createCouponSchema = Joi.object().keys({
+  name: Joi.string().required(),
+  coupon_type: Joi.string().valid(
+    PromoTypes.FIXED_DISCOUNT,
+    PromoTypes.FREE_SHIPPING,
+    PromoTypes.PERCENTAGE_DISCOUNT,
+    PromoTypes.PRICE_DISCOUNT,
+  ).required(),
+  amount: Joi.number().positive().required(),
+  applied_to: Joi.string().valid(
+    UserTypes.VENDOR,
+    UserTypes.USER,
+  ).required(),
+  activation_date: Joi.string().pattern(/^(0[1-9]|1[0-2])\/(0[1-9]|[12][0-9]|3[01])\/\d{4}$/)
+    .messages({
+      "string.pattern.base": "activation_date must be in the format MM/DD/YYYY",
+      "string.empty": "activation_date is required"
+    }).optional(),
+  expiry_date: 
+   Joi.alternatives().conditional("remove_expiry_date", {
+    is: false, then: Joi.string().pattern(/^(0[1-9]|1[0-2])\/(0[1-9]|[12][0-9]|3[01])\/\d{4}$/)
+    .required()
+    .messages({
+      "string.pattern.base": "expiry_date must be in the format MM/DD/YYYY",
+      "string.empty": "expiry_date is required"
+    }),
+    otherwise:Joi.string().pattern(/^(0[1-9]|1[0-2])\/(0[1-9]|[12][0-9]|3[01])\/\d{4}$/)
+    .optional()
+    .messages({
+      "string.pattern.base": "expiry_date must be in the format MM/DD/YYYY",
+      "string.empty": "expiry_date is required"
+    })
+  }),
+  remove_expiry_date: Joi.string().valid(
+    YesOrNo.NO,
+    YesOrNo.YES,
+  ).default(YesOrNo.NO),
+  remove_usage_limit:  Joi.string().valid(
+    YesOrNo.NO,
+    YesOrNo.YES,
+  ).default(YesOrNo.NO),
+  usage_limit: Joi.alternatives().conditional("remove_usage_limit", {
+    is: false, then: Joi.number().positive().min(1).required(),
+    otherwise: Joi.number().positive().optional()
+  }
+
+  )
+})
+
+const updateCouponSchema = Joi.object().keys({
+  name: Joi.string().optional(),
+  coupon_type: Joi.string()
+    .valid(
+      PromoTypes.FIXED_DISCOUNT,
+      PromoTypes.FREE_SHIPPING,
+      PromoTypes.PERCENTAGE_DISCOUNT,
+      PromoTypes.PRICE_DISCOUNT,
+    )
+    .optional(),
+  amount: Joi.number().positive().optional(),
+  applied_to: Joi.string()
+    .valid(
+      UserTypes.VENDOR,
+      UserTypes.USER,
+    )
+    .optional(),
+  activation_date: Joi.string()
+    .pattern(/^(0[1-9]|1[0-2])\/(0[1-9]|[12][0-9]|3[01])\/\d{4}$/)
+    .messages({
+      "string.pattern.base": "activation_date must be in the format MM/DD/YYYY",
+      "string.empty": "activation_date is required",
+    })
+    .optional(),
+  expiry_date: Joi.alternatives()
+    .conditional("remove_expiry_date", {
+      is: false,
+      then: Joi.string()
+        .pattern(/^(0[1-9]|1[0-2])\/(0[1-9]|[12][0-9]|3[01])\/\d{4}$/)
+        .messages({
+          "string.pattern.base": "expiry_date must be in the format MM/DD/YYYY",
+          "string.empty": "expiry_date is required",
+        }),
+      otherwise: Joi.string()
+        .pattern(/^(0[1-9]|1[0-2])\/(0[1-9]|[12][0-9]|3[01])\/\d{4}$/)
+        .optional()
+        .messages({
+          "string.pattern.base": "expiry_date must be in the format MM/DD/YYYY",
+          "string.empty": "expiry_date is required",
+        }),
+    }),
+  remove_expiry_date: Joi.string().valid(
+    YesOrNo.NO,
+    YesOrNo.YES,
+  ).default(YesOrNo.NO),
+  remove_usage_limit:  Joi.string().valid(
+    YesOrNo.NO,
+    YesOrNo.YES,
+  ).default(YesOrNo.NO),
+  usage_limit: Joi.alternatives()
+    .conditional("remove_usage_limit", {
+      is: false,
+      then: Joi.number().positive().min(1),
+      otherwise: Joi.number().positive().optional(),
+    })
+}).optional();
+
+
+const paginateSchema= Joi.object({
+  limit: Joi.number().positive().optional(),
+  page: Joi.number().positive().optional(),
+  start_date: Joi.string()
+    .pattern(/^(0[1-9]|1[0-2])\/(0[1-9]|[12][0-9]|3[01])\/\d{4}$/)
+    .messages({
+      'string.pattern.base': 'start_date must be in the format MM/DD/YYYY',
+    })
+    .optional(),
+  end_date: Joi.string()
+    .pattern(/^(0[1-9]|1[0-2])\/(0[1-9]|[12][0-9]|3[01])\/\d{4}$/)
+    .messages({
+      'string.pattern.base': 'end_date must be in the format MM/DD/YYYY',
+    })
+    .optional(),
+  search: Joi.string().optional(),
+});
+
+
 export default {
-  createBusinessSchema,
+  adminLoginSchema,
+  adminCreateSchema,
   DashboardOverviewSchema,
   getOrdersSchema,
   modelIdSchema,
-  addShippingAddressSchema
+  addShippingAddressSchema,
+  createCouponSchema,
+  updateCouponSchema,
+  paginateSchema
 }
