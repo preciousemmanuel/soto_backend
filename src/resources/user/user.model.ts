@@ -1,7 +1,7 @@
 import mongoose, { Schema, model } from "mongoose";
 
 import { User } from "@/resources/user/user.interface";
-import { SignupChannels, UserTypes } from "@/utils/enums/base.enum";
+import { SignupChannels, UserRanks, UserTypes } from "@/utils/enums/base.enum";
 
 
 
@@ -41,10 +41,19 @@ const UserSchema = new Schema(
       type: String
     },
     IsActive: {
-      type: Boolean
+      type: Boolean,
+      default: true
+    },
+    IsBlocked: {
+      type: Boolean,
+      default: false
     },
     Role: {
       type: String
+    },
+    Rank: {
+      type: String,
+      default: UserRanks.AMATEUR,
     },
     Token: {
       type: String

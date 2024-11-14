@@ -15,6 +15,7 @@ import {
   endOfYear
 } from "date-fns";
 import { BackDaterResponse } from "../interfaces/base.interface";
+import genCouponModel from "@/resources/coupon/genCoupon.model";
 
 export const uniqueCode = (): number => {
   const code = Math.floor(1000 + Math.random() * 9000);
@@ -170,6 +171,46 @@ export const generateUnusedOrderId = async (): Promise<string> => {
     return order_id
   } catch (error: any) {
     console.log("🚀 ~ generateUnusedOrderId ~ error:", error)
+    return error.toString()
+  }
+}
+
+export const genCouponCode = () => {
+  //define a variable consisting alphabets in small and capital letter
+  var characters = "ABCDEFGHIJKLMNOPQRSTUVWXTZ";
+  var number = Math.floor(Math.random() * 10000);
+  //specify the length for the new string
+  var lenString = 2;
+  var string = "";
+  //loop to select a new character in each iteration
+  for (var i = 0; i < lenString; i++) {
+    var rnum = Math.floor(Math.random() * characters.length);
+    string += characters.substring(rnum, rnum + 1);
+  }
+  var randomstring = `SCC${number}` + string;
+  //display the generated string
+  return randomstring;
+};
+
+export const generateUnusedCoupon = async (): Promise<string> => {
+  let generatedCouponCode: string
+  let existingCouponWithCode: any
+  let finalCouponCode: string
+  try {
+    generatedCouponCode = String(genCouponCode())
+    existingCouponWithCode = await genCouponModel.findOne({
+      code: generatedCouponCode
+    })
+    finalCouponCode = generatedCouponCode
+    while ((existingCouponWithCode !== null) && (existingCouponWithCode !== undefined)) {
+      existingCouponWithCode = await genCouponModel.findOne({
+        code: generatedCouponCode
+      })
+      finalCouponCode = generatedCouponCode
+    }
+    return finalCouponCode
+  } catch (error: any) {
+    console.log("🚀 ~ generateUnusedCoupon ~ error:", error)
     return error.toString()
   }
 }
