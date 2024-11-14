@@ -1,5 +1,5 @@
 import UserModel from "@/resources/user/user.model";
-import { axiosRequestFunction, formatPhoneNumber, uniqueCode } from "@/utils/helpers";
+import { axiosRequestFunction, formatPhoneNumber, generateUnusedCoupon, uniqueCode } from "@/utils/helpers";
 import {
   comparePassword,
   createToken,
@@ -9,17 +9,21 @@ import {
 
 // import logger from "@/utils/logger";
 import {
-  CreateBusinessDto,
+  AdminLoginDto,
+  CreateAdminDto,
+  CreateCouponDto,
   OverviewDto,
+  paginateDto,
+  UpdateCouponDto,
   VerificationDto,
 } from "./adminOverview.dto";
 import { hashPassword } from "@/utils/helpers/token";
-import { OrderStatus, OtpPurposeOptions, ProductMgtOption, StatusMessages, UserTypes } from "@/utils/enums/base.enum";
+import { DiscountTypes, OrderStatus, OtpPurposeOptions, ProductMgtOption, PromoTypes, StatusMessages, UserTypes, YesOrNo } from "@/utils/enums/base.enum";
 import ResponseData from "@/utils/interfaces/responseData.interface";
 import { HttpCodes } from "@/utils/constants/httpcode";
 import cloudUploader from "@/utils/config/cloudUploader";
 import MailService from "../mail/mail.service";
-import { endOfToday } from "date-fns";
+import { endOfDay, endOfToday, startOfDay } from "date-fns";
 import orderModel from "../order/order.model";
 import productModel from "../product/product.model";
 import orderDetailsModel from "../order/orderDetails.model";
@@ -31,6 +35,10 @@ import { requestProp } from "../mail/mail.interface";
 import envConfig from "@/utils/config/env.config";
 import { AddShippingAddressDto } from "../user/user.dto";
 import shipmentModel from "../delivery/shipment.model";
+import userModel from "@/resources/user/user.model";
+import genCouponModel from "../coupon/genCoupon.model";
+import adminModel from "./admin.model";
+import { catchBlockResponse } from "@/utils/constants/data";
 
 class AdminOverviewService {
   private User = UserModel
@@ -38,7 +46,47 @@ class AdminOverviewService {
   private Product = productModel
   private OrderDetails = orderDetailsModel
   private Shipment = shipmentModel
+  private GeneralCoupon = genCouponModel
+  private Admin = adminModel
   private mailService = new MailService()
+
+
+   public async adminLogin(payload: AdminLoginDto): Promise<ResponseData>{
+    let responseData: ResponseData = {
+      status: StatusMessages.error,
+      code: HttpCodesEnum.HTTP_BAD_REQUEST,
+      message:"Error"
+    }
+    try {
+      const admin = await this.Admin.findOne({
+        Email: payload.email.toLowerCase()
+      })
+     if(!admin){
+      responseData.message = "Invalid Credentials"
+      return responseData
+     }
+     const isPasswordCorrect = await comparePassword(payload.password, admin.Password)
+     if(isPasswordCorrect !== true) {
+      responseData.message = "Invalid Credentials"
+      return responseData
+     }
+     const token = createToken(admin)
+     admin.Token = token
+     responseData = {
+      status: StatusMessages.success,
+      code: HttpCodesEnum.HTTP_OK,
+      message:"Login Successful",
+      data: admin
+     }
+      return responseData
+    } catch (error: any) {
+      console.log("🚀 ~ AdminOverviewService ~ seedSuperAdmin ~ error:", error)
+      responseData.code = HttpCodesEnum.HTTP_SERVER_ERROR,
+      responseData.message = "Unable To Treat Request At This Time"
+      return responseData
+    }
+
+  }
 
   public async getOverview(
     payload: any,
@@ -1226,8 +1274,277 @@ class AdminOverviewService {
       return responseData;
     }
   }
-  
 
+  public async createCoupon(
+    payload: CreateCouponDto, 
+    user: InstanceType<typeof userModel>
+  ):Promise<ResponseData>{
+    let responseData: ResponseData = {
+      status: StatusMessages.success,
+        code: HttpCodes.HTTP_OK,
+        message:"Coupon Created Successfully"
+    }
+    try {
+      const exsitingCoupon = await this.GeneralCoupon.findOne({
+        name: payload.name.toLowerCase(),
+      })
+      if(exsitingCoupon) {
+        return {
+          status: StatusMessages.error,
+          code: HttpCodesEnum.HTTP_BAD_REQUEST,
+          message:"Coupon With This Name Already Exists"
+        }
+      }
+      const code = await generateUnusedCoupon()
+      const coupon_type = (
+        (payload.coupon_type === PromoTypes.FIXED_DISCOUNT) || 
+        (payload.coupon_type === PromoTypes.PRICE_DISCOUNT) || 
+        (payload.coupon_type === PromoTypes.PERCENTAGE_DISCOUNT)
+      ) ? PromoTypes.PRICE_DISCOUNT :  PromoTypes.FREE_SHIPPING
+      
+      const amount_type =  (
+        (payload.coupon_type === PromoTypes.FIXED_DISCOUNT) || 
+        (payload.coupon_type === PromoTypes.PRICE_DISCOUNT) || 
+        (payload.coupon_type === PromoTypes.FREE_SHIPPING)
+      ) ? DiscountTypes.FIXED :  DiscountTypes.PERCENTAGE
+
+      const newGenCoupon = await this.GeneralCoupon.create({
+        name: payload.name.toLowerCase(),
+        code,
+        amount: payload.amount,
+        coupon_type,
+        amount_type,
+        audience: payload.applied_to,
+        activation_date: startOfDay(new Date(payload.activation_date)),
+        ...((payload?.expiry_date && payload.remove_expiry_date ===  YesOrNo.NO) && {
+         expiry_date: endOfDay(new Date(payload.expiry_date))
+        }),
+        ...((payload?.usage_limit && payload.remove_usage_limit ===  YesOrNo.NO) && {
+        usage_limit: payload.usage_limit
+        }),
+        created_by: user?._id,
+        remove_usage_limit: payload.remove_usage_limit === YesOrNo.NO ? true: false,      
+        remove_expiry_date: payload.remove_expiry_date === YesOrNo.NO ? true: false,      
+      })
+      
+      responseData.data = newGenCoupon      
+      return responseData
+    } catch (error: any) {
+      console.log("🚀 ~ AdminOverviewService ~ error:", error)
+       responseData = {
+        status: StatusMessages.error,
+        code: HttpCodes.HTTP_SERVER_ERROR,
+        message: error.toString()
+      }
+      return responseData;
+    }
+  }
+
+   public async updateCoupon(
+    payload: UpdateCouponDto,
+    coupon_id: string, 
+    user: InstanceType<typeof userModel>
+  ):Promise<ResponseData>{
+    let responseData: ResponseData = {
+      status: StatusMessages.success,
+        code: HttpCodes.HTTP_OK,
+        message:"Coupon updated Successfully"
+    }
+    try {
+      const exsitingCoupon = await this.GeneralCoupon.findById(coupon_id)
+      if(!exsitingCoupon) {
+        return {
+          status: StatusMessages.error,
+          code: HttpCodesEnum.HTTP_BAD_REQUEST,
+          message:"Coupon Not Found"
+        }
+      }
+      const coupon_type = payload.coupon_type? (
+        (payload.coupon_type === PromoTypes.FIXED_DISCOUNT) || 
+        (payload.coupon_type === PromoTypes.PRICE_DISCOUNT) || 
+        (payload.coupon_type === PromoTypes.PERCENTAGE_DISCOUNT)
+      ) ? PromoTypes.PRICE_DISCOUNT :  PromoTypes.FREE_SHIPPING: undefined
+      
+      const amount_type = payload.coupon_type? (
+        (payload.coupon_type === PromoTypes.FIXED_DISCOUNT) || 
+        (payload.coupon_type === PromoTypes.PRICE_DISCOUNT) || 
+        (payload.coupon_type === PromoTypes.FREE_SHIPPING)
+      ) ? DiscountTypes.FIXED :  DiscountTypes.PERCENTAGE : undefined
+
+      const update = {
+        ...(payload?.name && {
+          name: payload.name.toLowerCase()
+        }),
+        ...(payload?.amount && {
+          amount: payload.amount
+        }),
+        ...(coupon_type && {
+          coupon_type
+        }),
+        ...(amount_type && {
+          amount_type
+        }),
+        ...(payload?.applied_to && {
+          audience: payload.applied_to
+        }),
+        ...(payload?.activation_date && {
+          activation_date: startOfDay(new Date(payload.activation_date))
+        }),
+        ...(payload?.expiry_date && {
+          expiry_date: endOfDay(new Date(payload.expiry_date))
+        }),
+        ...((payload?.usage_limit && payload.remove_usage_limit ===  YesOrNo.NO) && {
+        usage_limit: payload.usage_limit
+        }),
+        ...(payload?.remove_usage_limit && {
+          remove_usage_limit: payload.remove_usage_limit  === YesOrNo.NO ? true: false
+        }),
+        ...(payload?.remove_expiry_date && {
+          remove_expiry_date: payload.remove_expiry_date === YesOrNo.NO ? true: false
+        }),
+          ...(payload?.active_status && {
+          active_status: payload.active_status === YesOrNo.NO ? true: false
+        }),
+        updated_by: user?._id
+      }
+
+      const updatedCoupon = await this.GeneralCoupon.findByIdAndUpdate(coupon_id, update, {new: true})
+      
+      responseData.data = updatedCoupon      
+      return responseData
+    } catch (error: any) {
+      console.log("🚀 ~ AdminOverviewService ~ error:", error)
+       responseData = {
+        status: StatusMessages.error,
+        code: HttpCodes.HTTP_SERVER_ERROR,
+        message: error.toString()
+      }
+      return responseData;
+    }
+  }
+
+   public async getCoupons(payload: paginateDto): Promise<ResponseData>{
+    let responseData: ResponseData = {
+      status: StatusMessages.success,
+        code: HttpCodes.HTTP_OK,
+        message:"Coupons retreived Successfully"
+    }
+    try {
+      const {
+        limit,
+        page,
+        start_date,
+        end_date,
+        search
+      } = payload
+      const dataFilter = {
+        $or:[
+          {
+            ...((search) && {
+              name: {$regex: search,$options:"i"}
+            }),
+            ...((start_date && end_date) && {
+              createdAt: {
+                $gte: startOfDay(start_date),
+                $lt: endOfDay(end_date),
+              }
+            })
+          },
+          {
+            ...((search) && {
+            code: {$regex: search,$options:"i"}
+            }),
+            ...((start_date && end_date) && {
+                createdAt: {
+                  $gte: startOfDay(start_date),
+                  $lt: endOfDay(end_date),
+                }
+              })
+          }
+        ]
+      }
+      const couponRecords = await getPaginatedRecords(this.GeneralCoupon, {
+        limit,
+        page,
+        data: dataFilter
+      })
+      responseData.data = couponRecords
+
+     
+      return responseData
+    } catch (error: any) {
+      console.log("🚀 ~ AdminOverviewService ~ getCoupons ~ error:", error)
+      return catchBlockResponse
+    }
+
+  }
+  
+  public async seedSuperAdmin(): Promise<any> {
+    try {
+      const admins = await this.Admin.countDocuments()
+      if (admins > 0) {
+        console.log("🚀 ~ AdminOverviewService ~ seedSuperAdmin ~ admins:", admins)
+        return
+      }
+      const sotoAdmin = await this.Admin.create({
+        FirstName: "soto",
+        LastName:"admin",
+        Email:"soto@gmail.com",
+        Password:await hashPassword('Password@123')
+      })
+      const Token = await createToken(sotoAdmin)
+      sotoAdmin.Token = Token
+      await sotoAdmin.save()
+      console.log("🚀 ~ AdminOverviewService ~ seedSuperAdmin ~ sotoAdmin.createdAt:", sotoAdmin.createdAt)
+
+      return
+    } catch (error: any) {
+      console.log("🚀 ~ AdminOverviewService ~ seedSuperAdmin ~ error:", error)
+      return;
+    }
+
+  }
+  
+  public async createAdmin(payload: CreateAdminDto): Promise<ResponseData> {
+    let responseData: ResponseData = {
+      status: StatusMessages.error,
+      code: HttpCodesEnum.HTTP_BAD_REQUEST,
+      message:"Error"
+    }
+    try {
+      const existingAdmin = await this.Admin.findOne({Email: payload.email.toLowerCase()})
+      if (existingAdmin) {
+        responseData.message = "Admin With Same Email already exists"
+        return responseData
+      }
+      const sotoAdmin = await this.Admin.create({
+        FirstName: payload.first_name,
+        LastName:payload.last_name,
+        Email:payload.email.toLowerCase(),
+        ...(payload.phone_number && {
+          PhoneNumber: payload.phone_number
+        }),
+        Password:await hashPassword('Password@123')
+      })
+      const Token = await createToken(sotoAdmin)
+      sotoAdmin.Token = Token
+      await sotoAdmin.save()
+      console.log("🚀 ~ AdminOverviewService ~ seedSuperAdmin ~ sotoAdmin.createdAt:", sotoAdmin.createdAt)
+
+      return {
+        status: StatusMessages.success,
+        code: HttpCodesEnum.HTTP_CREATED,
+        message:"Admin Created Successfully",
+        data: sotoAdmin
+      }
+    } catch (error: any) {
+      console.log("🚀 ~ AdminOverviewService ~ seedSuperAdmin ~ error:", error)
+      responseData.code = HttpCodesEnum.HTTP_SERVER_ERROR
+      responseData.message = "Unable to perform request at this time"
+      return responseData
+    }
+
+  }
 }
 
 export default AdminOverviewService;
