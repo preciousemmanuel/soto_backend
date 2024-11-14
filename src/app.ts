@@ -10,6 +10,7 @@ import ErrorMiddleware from './middleware/error.middleware';
 
 import snsConnection from '@/utils/sns/sns';
 import CategoryService from './resources/category/category.service';
+import AdminOverviewService from './resources/adminOverview/adminOverview.service';
 
 
 
@@ -19,15 +20,18 @@ class App {
     public express: Application;
     public port: number;
     public categoryService!: CategoryService
+    public adminOverviewService!: AdminOverviewService
 
     constructor(
         controllers: Controller[],
         port: number,
-        categoryService: CategoryService
+        categoryService: CategoryService,
+        adminOverviewService: AdminOverviewService
     ) {
         this.express = express();
         this.port = port;
         this.categoryService = categoryService;
+        this.adminOverviewService = adminOverviewService;
         this.initializeDB();
         this.initializeMiddleware();
         this.initializeControllers(controllers);
@@ -91,6 +95,7 @@ class App {
 
     private initializeSeeders() {
         this.categoryService.seedCategories()
+        this.adminOverviewService.seedSuperAdmin()
     }
 
     public listen(): void {

@@ -10,7 +10,7 @@ import { OtpPurposeOptions, StatusMessages } from '../enums/base.enum';
 import BusinessService from '@/resources/business/business.service';
 import userModel from '@/resources/user/user.model';
 
-export const createToken = (user: User): string => {
+export const createToken = (user: User|any): string => {
   const id = user._id || user.id
   return jwt.sign({ id: id }, process.env.JWT_SECRET as jwt.Secret, {
     expiresIn: "1y"

@@ -7,7 +7,7 @@ import validate from "./adminOverview.validation";
 import { responseObject } from "@/utils/helpers/http.response";
 import { HttpCodes } from "@/utils/constants/httpcode";
 import authenticatedMiddleware from "@/middleware/authenticated.middleware";
-import { CreateBusinessDto, OverviewDto, VerificationDto } from "./adminOverview.dto";
+import { AdminLoginDto, CreateAdminDto, CreateBusinessDto, CreateCouponDto, OverviewDto, paginateDto, UpdateCouponDto, VerificationDto } from "./adminOverview.dto";
 import upload from "@/utils/config/multer";
 import { endOfDay, startOfDay } from "date-fns";
 import { backDaterForChart, backTrackToADate } from "@/utils/helpers";
@@ -15,6 +15,7 @@ import { RequestData } from "@/utils/enums/base.enum";
 import { AddShippingAddressDto } from "../user/user.dto";
 import userModel from "../user/user.model";
 import envConfig from "@/utils/config/env.config";
+import adminAuthMiddleware from "@/middleware/adminAuth.middleware";
 
 
 class AdminOverviewController implements Controller {
@@ -28,8 +29,21 @@ class AdminOverviewController implements Controller {
 
   initializeRoute(): void {
 
+     this.router.post(
+      `${this.path}/login`,
+      validationMiddleware(validate.adminLoginSchema),
+      this.adminLogin
+    )
+    this.router.post(
+      `${this.path}/create-new-admin`,
+      adminAuthMiddleware,
+      validationMiddleware(validate.adminCreateSchema),
+      this.createAdmin
+    )
+
     this.router.get(
       `${this.path}/overview`,
+      adminAuthMiddleware,
       validationMiddleware(validate.DashboardOverviewSchema, RequestData.query),
       this.getOverview
     )
@@ -37,52 +51,134 @@ class AdminOverviewController implements Controller {
 
     this.router.get(
       `${this.path}/best-seller`,
+      adminAuthMiddleware,
       validationMiddleware(validate.DashboardOverviewSchema, RequestData.query),
       this.getBestSellingProducts
     )
 
     this.router.get(
       `${this.path}/latest-orders`,
+      adminAuthMiddleware,
       validationMiddleware(validate.DashboardOverviewSchema, RequestData.query),
       this.getLatestOrders
     )
 
     this.router.get(
       `${this.path}/orders`,
+      adminAuthMiddleware,
       validationMiddleware(validate.getOrdersSchema, RequestData.query),
       this.getOrders
     )
 
     this.router.get(
       `${this.path}/view-an-order/:id`,
+      adminAuthMiddleware,
       validationMiddleware(validate.modelIdSchema, RequestData.params),
       this.viewAnOrder
     )
 
     this.router.get(
       `${this.path}/products-mgt`,
+      adminAuthMiddleware,
       validationMiddleware(validate.getOrdersSchema, RequestData.query),
       this.getProductsMgt
     )
 
     this.router.post(
       `${this.path}/update-shipping-address`,
+      adminAuthMiddleware,
       validationMiddleware(validate.addShippingAddressSchema),
       this.adminAddShippingAddress
     )
 
     this.router.post(
       `${this.path}/create-shipment/:id`,
+      adminAuthMiddleware,
       validationMiddleware(validate.modelIdSchema, RequestData.params),
       this.createShipmentForOrder
     )
 
     this.router.get(
       `${this.path}/track-shipment/:id`,
+      adminAuthMiddleware,
       validationMiddleware(validate.modelIdSchema, RequestData.params),
       this.trackShipment
     )
+
+    this.router.post(
+      `${this.path}/create-coupon`,
+      adminAuthMiddleware,
+      validationMiddleware(validate.createCouponSchema),
+      this.createCoupon
+    )
+
+    this.router.put(
+      `${this.path}/update-coupon/:id`,
+      adminAuthMiddleware,
+      validationMiddleware(validate.updateCouponSchema),
+      this.updateCoupon
+    )
+
+    this.router.get(
+      `${this.path}/get-coupons`,
+      adminAuthMiddleware,
+      validationMiddleware(validate.paginateSchema),
+      this.getCoupons
+    )
   }
+
+  private adminLogin = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<Response | void> => {
+    try {
+      const payload: AdminLoginDto = req.body
+      const {
+        status,
+        code,
+        message,
+        data
+      } = await this.adminOverviewService.adminLogin(payload);
+      return responseObject(
+        res,
+        code,
+        status,
+        message,
+        data
+      );
+
+    } catch (error: any) {
+      next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()))
+    }
+  }
+
+  private createAdmin = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<Response | void> => {
+    try {
+      const payload: CreateAdminDto = req.body
+      const {
+        status,
+        code,
+        message,
+        data
+      } = await this.adminOverviewService.createAdmin(payload);
+      return responseObject(
+        res,
+        code,
+        status,
+        message,
+        data
+      );
+
+    } catch (error: any) {
+      next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()))
+    }
+  }
+
 
   private getOverview = async (
     req: Request,
@@ -358,7 +454,11 @@ class AdminOverviewController implements Controller {
         ...(end_date && {end_date}),      
         limit: query?.limit ? Number(query?.limit) : 10,
         page: query?.page ? Number(query?.page) : 1,
-        ...((req.query?.product_name) && {product_name: String(req.query.product_name)}),
+        ...((req.query?.product_name && 
+          (req.query?.product_name !== null) && 
+          (req.query?.product_name !== "")) && 
+          {product_name: String(req.query.product_name)}
+        ),
         ...((req.query?.select_type) && {select_type: String(req.query.select_type)}),
       };
      
@@ -464,6 +564,103 @@ class AdminOverviewController implements Controller {
         data
       } = 
       await this.adminOverviewService.trackShipment(String(req.params.id))
+      return responseObject(
+        res,
+        code,
+        status,
+        message,
+        data
+      );
+
+    } catch (error: any) {
+      next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()))
+    }
+  }
+
+  private createCoupon = async (
+      req: Request,
+      res: Response,
+      next: NextFunction
+    ): Promise<Response | void> => {
+
+    try {
+      const payload: CreateCouponDto = req.body
+      const {
+        status,
+        code,
+        message,
+        data
+      } = 
+      await this.adminOverviewService.createCoupon(payload, req.user)
+      return responseObject(
+        res,
+        code,
+        status,
+        message,
+        data
+      );
+
+    } catch (error: any) {
+      next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()))
+    }
+  }
+
+  private updateCoupon = async (
+      req: Request,
+      res: Response,
+      next: NextFunction
+    ): Promise<Response | void> => {
+
+    try {
+      const payload: UpdateCouponDto = req.body
+      const coupon_id = String(req.params.id)
+      const {
+        status,
+        code,
+        message,
+        data
+      } = 
+      await this.adminOverviewService.updateCoupon(payload, coupon_id, req.user)
+      return responseObject(
+        res,
+        code,
+        status,
+        message,
+        data
+      );
+
+    } catch (error: any) {
+      next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()))
+    }
+  }
+
+  private getCoupons = async (
+      req: Request,
+      res: Response,
+      next: NextFunction
+    ): Promise<Response | void> => {
+
+    try {
+      const payload: paginateDto = {
+        limit: req.query?.limit ? Number(req.query.limit) : 10,
+        page: req.query?.page ? Number(req.query.page) : 1,
+        ...((req?.query?.start_date) && {
+          start_date : new Date(String(req?.query?.start_date))
+        }),
+         ...((req?.query?.end_date) && {
+          end_date : new Date(String(req?.query?.end_date))
+        }),
+        ...((req?.query?.search && (req?.query?.search !== null) && (req?.query?.search !== "")) && 
+        {search: String(req.query.search)}
+      )
+      }
+      const {
+        status,
+        code,
+        message,
+        data
+      } = 
+      await this.adminOverviewService.getCoupons(payload)
       return responseObject(
         res,
         code,

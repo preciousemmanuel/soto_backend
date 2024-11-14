@@ -1,3 +1,7 @@
+import { StatusMessages } from "../enums/base.enum"
+import { HttpCodesEnum } from "../enums/httpCodes.enum"
+import ResponseData from "../interfaces/responseData.interface"
+
 const status = {
   ACTIVE: "ACTIVE",
   PENDING: "PENDING",
@@ -25,9 +29,16 @@ const httpStatusMessage = {
   error: "error"
 }
 
+const catchBlockResponse: ResponseData = {
+  status: StatusMessages.error,
+  code: HttpCodesEnum.HTTP_SERVER_ERROR,
+  message: "Unable To Perform This Request At This Moment",
+}
+
 export {
   status,
   currency,
   cardType,
-  httpStatusMessage
+  httpStatusMessage,
+  catchBlockResponse
 }
