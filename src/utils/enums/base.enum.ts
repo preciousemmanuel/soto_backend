@@ -14,6 +14,10 @@ export enum UserTypes {
   USER = "USER",
   VENDOR = "VENDOR"
 }
+export enum UserRanks {
+  AMATEUR = "AMATEUR",
+  VENDOR = "VENDOR"
+}
 
 export enum StatusMessages {
   success = "success",

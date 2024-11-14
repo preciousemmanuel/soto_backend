@@ -15,12 +15,14 @@ import DeliveryController from './resources/delivery/delivery.controller';
 import AdminOverviewController from './resources/adminOverview/adminOverview.controller';
 import CouponController from './resources/coupon/coupon.controller';
 import AdminOverviewService from './resources/adminOverview/adminOverview.service';
+import AdminPeopleController from './resources/adminPeople/adminPeople.controller';
 
 dotenv.config({ path: `${process.env.NODE_ENV}.env` });
 validateEnv();
 
 const app = new App([
     new AdminOverviewController(),
+    new AdminPeopleController(),
     new BusinessController(),
     new CategoryController(),
     new DeliveryController(),
@@ -29,7 +31,7 @@ const app = new App([
     new ProductController(),
     new TransactionController(),
     new UserController(),
-    new CouponController()
+    new CouponController(),
 
 ],
     Number(process.env.PORT),
