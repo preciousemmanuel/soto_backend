@@ -97,6 +97,7 @@ export enum TransactionNarration {
   PAYOUT = "PAYOUT",
   REFUND = "REFUND",
   WITHDRAWAL = "WITHDRAWAL",
+  ADD_CARD = "ADD_CARD",
 }
 
 export enum PaystackWebHookEvents {

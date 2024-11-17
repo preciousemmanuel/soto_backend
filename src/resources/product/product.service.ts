@@ -114,6 +114,7 @@ class ProductService {
 
   public async fetchProducts(
     payload: FetchProductsDto,
+    user?: InstanceType<typeof this.user>
   ): Promise<ResponseData> {
     let responseData: ResponseData
     try {
@@ -135,27 +136,103 @@ class ProductService {
             $gte: payload?.filter?.rating
           }
         }),
-        
       }
 
-      var paginatedRecords = await getPaginatedRecords(
-        this.product, {
-        limit: payload?.limit,
-        page: payload?.page,
-        data: search,
-        populateObj: {
-          path: "category",
-          select: "name"
+      const skip = (Number(payload.page) - 1) * Number(payload.limit);
+      const pipeline = [
+        {
+          $match: search
+        },
+        {
+          $lookup: {
+            from: 'Favourites',
+            localField: '_id',
+            foreignField: 'product',
+            as: 'favouritesDetails',
+          },
+        },
+        {
+          $addFields: {
+            favourite: {
+              $cond: {
+                if: {
+                  $gt: [
+                    {
+                      $size: {
+                        $filter: {
+                          input: '$favouritesDetails', 
+                          cond: { $eq: ['$$this.user', user?._id] },
+                        },
+                      },
+                    },
+                    0, 
+                  ],
+                },
+                then: true, 
+                else: false, 
+              },
+            },
+          },
+        },
+        {
+          $lookup: {
+            from: 'Categories', 
+            localField: 'category', 
+            foreignField: '_id', 
+            as: 'categoryDetails',
+          },
+        },
+        {
+          $addFields: {
+            category: {
+              $arrayElemAt: ['$categoryDetails', 0], 
+            },
+          },
+        },
+        {
+          $project: {
+            favouritesDetails: 0, 
+            categoryDetails: 0, 
+          },
+        },
+        {
+          $sort: { createdAt: -1 as 1 | -1 }
+        },
+        {
+          $skip: skip 
+        },
+        {
+          $limit: Number(payload.limit) 
+        },
+        {
+          $facet: {
+            metadata: [{ $count: 'total' }],
+            products: [{ $skip: skip }, { $limit: Number(payload.limit) }],
+          },
+        },
+      ];
+
+      const result = await this.product.aggregate(pipeline);
+      const total = result[0]?.metadata[0]?.total || 0;
+      const products = result[0]?.products || [];
+      const pagination = {
+        data: products,
+        pagination:{
+          pageSize: payload.limit,
+          totalCount: total,
+          pageCount : Math.ceil(total/payload.limit),
+          currentPage: +payload.page,
+          hasNext: payload.page * payload.limit < total
         }
       }
-      )
 
       responseData = {
         status: StatusMessages.success,
         code: HttpCodes.HTTP_OK,
         message: "Products Fetched Successfully",
-        data: paginatedRecords
+        data: pagination
       }
+
       return responseData;
     } catch (error: any) {
       console.log("🚀 ~ UserService ~ error:", error)
@@ -371,15 +448,32 @@ class ProductService {
         data: {
           user: user._id
         },
-        populate: "product",
+        populateObj:{
+          path: "product",
+          populate:{
+            path: "category",
+            select:"_id name image"
+          }
+        }
       }
       )
+
+      const paginatedData = paginatedRecords.data.map((mapped) =>{
+        return {
+          ...mapped.toObject()?.product,
+          wishlist_id: mapped.toObject()._id
+        }
+      })
 
       responseData = {
         status: StatusMessages.success,
         code: HttpCodes.HTTP_OK,
         message: "Wishlist Fetched Successfully",
-        data: paginatedRecords
+        // data: paginatedRecords,
+        data: {
+          data: paginatedData,
+          pagination: paginatedRecords.pagination
+        }
       }
       return responseData;
     } catch (error: any) {
