@@ -15,7 +15,7 @@ import {
   RemoveFromCartDto,
 } from "./order.dto";
 import { hashPassword } from "@/utils/helpers/token";
-import { OrderStatus, OtpPurposeOptions, StatusMessages, UserTypes } from "@/utils/enums/base.enum";
+import { OrderStatus, OtpPurposeOptions, StatusMessages, UserTypes, YesOrNo } from "@/utils/enums/base.enum";
 import ResponseData from "@/utils/interfaces/responseData.interface";
 import { HttpCodes } from "@/utils/constants/httpcode";
 import cloudUploader from "@/utils/config/cloudUploader";
@@ -46,8 +46,9 @@ class OrderService {
         user: user?._id
       })
       const currentItemsInCart: any[] = openCart ? [...openCart.toObject().items] : []
-      currentItemsInCart.push(...payload.items)
-      for (const item of currentItemsInCart) {
+      const itemsToEnterCart = payload.items
+      // currentItemsInCart.push(...payload.items)
+      for (const item of itemsToEnterCart) {
         product_ids.push(item.product_id)
       }
       const products = await this.Product.find({
@@ -56,7 +57,7 @@ class OrderService {
       })
 
       const purpose = "cart"
-      const processedItems = await this.processMathcingItems(currentItemsInCart, products, user, purpose)
+      const processedItems = await this.processMathcingItems(itemsToEnterCart, currentItemsInCart, products, user, purpose)
       if (processedItems.status === StatusMessages.error) {
         return processedItems
       }
@@ -171,17 +172,28 @@ class OrderService {
         _id: { $in: product_ids },
         // is_verified: true
       })
-
+      const cartItems = payload.checkout_with_cart === YesOrNo.YES ? (await this.Cart.findOne({user: user._id}))?.items || [] : [] 
       const purpose = "cart"
-      const processedItems = await this.processMathcingItems(payload.items, products, user, purpose)
+      const processedItems = await this.processMathcingItems(payload.items, cartItems, products, user, purpose)
       if (processedItems.status === StatusMessages.error) {
         return processedItems
       }
-
       const openCart = await this.Order.findOne({
+        user: user._id,
         status: OrderStatus.PENDING
       })
+      if(payload.checkout_with_cart === YesOrNo.YES){
+        await this.Cart.findOneAndUpdate({user: user._id}, 
+          {
+          items: null,
+          total_amount: 0,
+          grand_total: 0,
+          }, 
+          {new: true}
+        )
+      }
       if (openCart) {
+        console.log("🚀 ~ OrderService ~ openCart:", openCart)
         openCart.items = processedItems?.data?.itemsInOrder
         openCart.total_amount = processedItems?.data?.total_amount
         openCart.shipping_address = payload.shipping_address || user.ShippingAddress?.full_address || ""
@@ -231,6 +243,7 @@ class OrderService {
 
   public async processMathcingItems(
     items: orderItems[],
+    currentCartItems: any[],
     products: InstanceType<typeof this.Product>[],
     user: InstanceType<typeof this.User>,
     purpose: string
@@ -240,32 +253,74 @@ class OrderService {
     const messages: string[] = []
     let itemsInOrder: itemsToBeOrdered[] = []
     try {
-      for (const item2 of products) {
-        for (const item of items) {
-          const matchingProduct = String(item2._id) === String(item?.product_id)
-          if (matchingProduct === true) {
-            if (item.quantity > item2.product_quantity) {
-              messages.push(`Available Quantities For ${item2.product_name} is ${item2.product_quantity}`)
-            } else {
-              itemsInOrder.push({
-                product_id: String(item2?._id),
-                product_name: item2?.product_name,
-                description: item2?.description,
-                vendor: String(item2?.vendor),
-                images: item2?.images,
-                quantity: item.quantity,
-                height: item2.height,
-                width: item2.width,
-                weight: item2.weight,
-                unit_price: item2?.unit_price,
-                is_discounted: item2?.is_discounted,
-              })
-              const unit_price = (item2?.is_discounted ? item2?.discount_price : item2.unit_price) || 0
-              const amount = item?.quantity * unit_price
-              total_amount += amount
-            }
-          }
+       const productMap: Map<string, { 
+        _id: string;
+        product_name: string, 
+        product_quantity: number; 
+        description: string;
+        vendor?: string;
+        images: string[];
+        height: number;
+        width: number;
+        weight: number;
+        unit_price: number;
+        is_discounted: boolean;
+      }> = new Map();
+
+      products.forEach(product => {
+        productMap.set(product._id.toString(), {
+          _id: String(product._id),
+          product_quantity: product.product_quantity,
+          unit_price: product.unit_price,
+          product_name: product.product_name,
+          description: product.description,
+          vendor: String(product.vendor),
+          images: product.images,
+          height: product.height,
+          width: product.width,
+          weight: product.weight,
+          is_discounted: product.is_discounted,
+        });
+      });
+
+      items.forEach(item => {
+        const product = productMap.get(item.product_id.toString());
+        if (!product) {
+          console.warn(`Product with ID ${item.product_id} not found.`);
+          return;
         }
+        if (item.quantity > product.product_quantity) {
+          console.warn(`Quantity of product ${item.product_id} exceeds available stock.`);
+          messages.push(`Available Quantities For ${product.product_name} is ${product.product_quantity}`)
+          return;
+        }
+        const cartItem = currentCartItems.find(cartItem => ((cartItem.product_id).toString()) === (item.product_id));
+        if (cartItem) {
+          console.log("🚀 ~ OrderService ~ cartItem:", cartItem)
+          cartItem.quantity += item.quantity;
+        } else {
+          const newItemToCart = {
+            product_id: String(item.product_id),
+            quantity: item.quantity,
+            unit_price: product.unit_price,
+            product_name: product.product_name,
+            description: product.description,
+            vendor: product.vendor,
+            images: product.images,
+            height: product.height,
+            width: product.width,
+            weight: product.weight,
+            is_discounted: product.is_discounted,
+          }
+          currentCartItems.push(newItemToCart);
+        }
+      });
+      total_amount = currentCartItems.reduce((total, cartItem) => {
+        return total + cartItem.quantity * cartItem.unit_price;
+      }, 0);
+      const response = {
+        itemsInOrder: currentCartItems,
+        total_amount: total_amount
       }
       if (messages.length > 0) {
         responseData = {
@@ -285,10 +340,7 @@ class OrderService {
           status: StatusMessages.success,
           code: HttpCodes.HTTP_OK,
           message: "",
-          data: {
-            itemsInOrder,
-            total_amount
-          }
+          data:response
         }
       }
       return responseData

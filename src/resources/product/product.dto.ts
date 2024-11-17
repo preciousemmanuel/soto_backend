@@ -33,8 +33,8 @@ export interface UpdateProductDto {
 }
 
 export interface FetchProductsDto {
-  limit?: number
-  page?: number;
+  limit: number
+  page: number;
   filter?: FilterProductsDto
 
 }
