@@ -64,6 +64,8 @@
     "newrelic": "^12.5.1",
     "nodemailer": "^6.9.15",
     "nodemon": "^3.1.7",
+    "onesignal-cordova-plugin": "^5.2.7",
+    "onesignal-node": "^3.4.0",
     "sqs-consumer": "^5.8.0",
     "winston": "^3.13.0",
     "winston-cloudwatch": "^6.3.0"

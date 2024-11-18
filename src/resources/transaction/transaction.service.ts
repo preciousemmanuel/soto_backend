@@ -16,13 +16,10 @@ import {
   GetTransactionsDto,
   VerificationDto,
 } from "./transaction.dto";
-import { hashPassword } from "@/utils/helpers/token";
 import { OtpPurposeOptions, PaymentProvider, PaystackWebHookEvents, StatusMessages, TransactionNarration, TransactionStatus, TransactionType, UserTypes } from "@/utils/enums/base.enum";
 import ResponseData from "@/utils/interfaces/responseData.interface";
 import { HttpCodes } from "@/utils/constants/httpcode";
 import TransactionLogModel from "./transactionLog.model";
-import cloudUploader from "@/utils/config/cloudUploader";
-import MailService from "../mail/mail.service";
 import orderModel from "../order/order.model";
 import PaymentProviderService from "./paypment-provider.service";
 import envConfig from "@/utils/config/env.config";
@@ -30,8 +27,8 @@ import OrderService from "../order/order.service";
 import { getPaginatedRecords } from "@/utils/helpers/paginate";
 import { currency } from "@/utils/constants/data";
 import cardModel from "./card.model";
-import walletModel from "./wallet.model";
-import cartModel from "../order/cart.model";
+import walletModel from "../business/wallet.model";
+
 
 class TransactionService {
   private TransactionLog = TransactionLogModel;

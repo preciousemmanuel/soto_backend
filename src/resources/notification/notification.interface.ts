@@ -1,5 +1,5 @@
 import { UserTypes } from "@/utils/enums/base.enum";
-import mongoose, { Document } from "mongoose";
+import { Document } from "mongoose";
 
 export interface User extends Document {
   // userId:number,
@@ -11,17 +11,12 @@ export interface User extends Document {
   Role: string;
   Token: string;
   PhoneNumber: string;
-  ProfileImage?: string;
   Password: string;
   SignupChannel?: string;
   ShippingAddress?: ShippingAddress;
   UserType?: UserTypes;
-  Isverified?: Boolean;
-  wallet?: mongoose.Types.ObjectId;
-  business?: mongoose.Types.ObjectId;
-  cart?: mongoose.Types.ObjectId;
-  fcmToken?:string;
-  playerId?:string;
+  // fcmToken?:string;
+  // playerId?:string;
 }
 
 export interface ShippingAddress {

@@ -66,12 +66,12 @@ const UserSchema = new Schema(
       enum: UserTypes,
       default: UserTypes.USER
     },
-    // fcmToken:{
-    //     type:String
-    // },
-    // playerId:{
-    //     type:String
-    // },
+    fcmToken:{
+        type:String
+    },
+    playerId:{
+        type:String
+    },
     ShippingAddress: {
       full_address: String,
       address: String,

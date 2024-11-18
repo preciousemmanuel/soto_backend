@@ -16,6 +16,7 @@ import AdminOverviewController from './resources/adminOverview/adminOverview.con
 import CouponController from './resources/coupon/coupon.controller';
 import AdminOverviewService from './resources/adminOverview/adminOverview.service';
 import AdminPeopleController from './resources/adminPeople/adminPeople.controller';
+import NotificationController from './resources/notification/notification.controller';
 
 dotenv.config({ path: `${process.env.NODE_ENV}.env` });
 validateEnv();
@@ -32,6 +33,7 @@ const app = new App([
     new TransactionController(),
     new UserController(),
     new CouponController(),
+    new NotificationController()
 
 ],
     Number(process.env.PORT),

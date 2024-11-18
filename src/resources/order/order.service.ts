@@ -26,6 +26,7 @@ import orderDetailsModel from "./orderDetails.model";
 import { getPaginatedRecords } from "@/utils/helpers/paginate";
 import cartModel from "./cart.model";
 import MailService from "../mail/mail.service";
+import NotificationService from "../notification/notification.service";
 
 class OrderService {
   private Order = orderModel;
@@ -34,6 +35,7 @@ class OrderService {
   private User = UserModel
   private Product = productModel
   private mailService = new MailService()
+  private notificationService = new NotificationService()
 
   public async addToCart(
     payload: AddToCartDto,
@@ -212,7 +214,7 @@ class OrderService {
         const newOrder = await this.Order.create({
           items: processedItems?.data?.itemsInOrder,
           total_amount: processedItems?.data?.total_amount,
-          user,
+          user: user._id,
           status: OrderStatus.PENDING,
           shipping_address: payload.shipping_address || user.ShippingAddress?.full_address || "",
           grand_total: processedItems?.data?.total_amount,
@@ -226,6 +228,11 @@ class OrderService {
           message: "Order Created Successfully",
           data: newOrder
         }
+         this.notificationService.createNotification({
+          receiver: String(newOrder.user),
+          title: "Create Order",
+          content: `You just created an order with tracking id : ${newOrder.tracking_id}`,
+        })
       }
 
       return responseData;
