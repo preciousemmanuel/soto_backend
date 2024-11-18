@@ -31,6 +31,7 @@ class ProductController implements Controller {
 
     this.router.get(
       `${this.path}/fetch`,
+      authenticatedMiddleware,
       validationMiddleware(validate.fetchProductSchema),
       this.fetchProducts
     )
@@ -135,7 +136,7 @@ class ProductController implements Controller {
         code,
         message,
         data
-      } = await this.productService.fetchProducts(payload);
+      } = await this.productService.fetchProducts(payload, req?.user);
       return responseObject(
         res,
         code,

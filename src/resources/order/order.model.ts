@@ -110,7 +110,7 @@ const OrderSchema = new Schema(
     shipment: {
       type: mongoose.Types.ObjectId,
       ref: "Shipments",
-      required: true
+      // required: true
     },
   },
   {
