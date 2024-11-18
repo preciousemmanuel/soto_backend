@@ -66,12 +66,12 @@ const UserSchema = new Schema(
       enum: UserTypes,
       default: UserTypes.USER
     },
-    // fcmToken:{
-    //     type:String
-    // },
-    // playerId:{
-    //     type:String
-    // },
+    fcmToken:{
+        type:String
+    },
+    playerId:{
+        type:String
+    },
     ShippingAddress: {
       full_address: String,
       address: String,
@@ -112,6 +112,10 @@ const UserSchema = new Schema(
     cart: {
       type: mongoose.Types.ObjectId,
       ref: "Carts"
+    },
+    card: {
+      type: mongoose.Types.ObjectId,
+      ref: "Cards"
     }
 
   },

@@ -1,4 +1,4 @@
-import { IdentificationTypes, SignupChannels, TransactionNarration, UserTypes } from '@/utils/enums/base.enum';
+import { IdentificationTypes, SignupChannels, TransactionNarration, UserTypes, YesOrNo } from '@/utils/enums/base.enum';
 import { email } from 'envalid';
 import Joi from 'joi';
 
@@ -14,6 +14,9 @@ const generatePaymentLinkSchema = Joi.object({
     TransactionNarration.REFUND,
     TransactionNarration.WITHDRAWAL,
   ).required(),
+  save_card: Joi.string().valid(
+   YesOrNo.NO, YesOrNo.YES
+  ).default(YesOrNo.NO).optional(),
 
 });
 

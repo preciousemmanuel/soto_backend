@@ -2,28 +2,39 @@ import mongoose, { Schema, model } from "mongoose";
 import { User } from "@/resources/user/user.interface";
 import { IdentificationTypes, TransactionCurrency, TransactionNarration, TransactionStatus, TransactionType, } from "@/utils/enums/base.enum";
 
-const WalletSchema = new Schema(
+const schema = new Schema(
   {
-    current_balance: {
-      type: Number,
-      default: 0.0
+
+    last_4digits: {
+      type: String,
+      required: true
     },
 
-    previous_balance: {
-      type: Number,
-      default: 0.0
+    token: {
+      type: String,
+    },
+
+    paystack_token: {
+      type: String,
     },
 
     user: {
       type: mongoose.Types.ObjectId,
       ref: "Users",
     },
+    expiry: {
+      type: String,
+      required: true
+    },
+    type: {
+      type: String,
+    },
   },
   {
-    collection: "Walllets",
+    collection: "Cards",
     timestamps: true
   }
 );
 
 
-export default model("Walllets", WalletSchema);
+export default model("Cards", schema);
