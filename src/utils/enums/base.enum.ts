@@ -12,8 +12,10 @@ export enum YesOrNo {
 
 export enum UserTypes {
   USER = "USER",
-  VENDOR = "VENDOR"
+  VENDOR = "VENDOR",
+  ALL = "ALL"
 }
+
 export enum UserRanks {
   AMATEUR = "AMATEUR",
   VENDOR = "VENDOR"
@@ -97,6 +99,7 @@ export enum TransactionNarration {
   PAYOUT = "PAYOUT",
   REFUND = "REFUND",
   WITHDRAWAL = "WITHDRAWAL",
+  ADD_CARD = "ADD_CARD",
 }
 
 export enum PaystackWebHookEvents {
@@ -159,3 +162,16 @@ export enum DiscountTypes {
   FIXED= "FIXED",
   PERCENTAGE= "PERCENTAGE",
 };
+
+export enum NotificationTypes {
+  MESSAGE = "MESSAGE",
+  NOTIFICATION = "NOTIFICATION",
+  ALL = "ALL"
+}
+
+
+export enum ReadAndUnread {
+  READ = "READ",
+  UNREAD = "UNREAD",
+  ALL = "ALL"
+}

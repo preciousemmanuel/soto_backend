@@ -1,6 +1,7 @@
 import {
   OrderPaymentType,
   OrderStatus,
+  YesOrNo,
 } from '@/utils/enums/base.enum';
 import { email } from 'envalid';
 import Joi from 'joi';
@@ -19,6 +20,7 @@ const createOrderSchema = Joi.object({
     OrderPaymentType.INSTANT,
     OrderPaymentType.ON_DELIVERY,
   ).optional(),
+  checkout_with_cart: Joi.string().valid(YesOrNo.YES, YesOrNo.NO).default(YesOrNo.YES).optional()
 });
 
 const addToCartSchema = Joi.object({
