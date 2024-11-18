@@ -11,6 +11,7 @@ import { GeneratePaymentLinkDto, GetTransactionsDto, VerificationDto } from "./t
 import { Business } from './transaction.interface'
 import upload from "@/utils/config/multer";
 import TransactionService from "./transaction.service";
+import { YesOrNo } from "@/utils/enums/base.enum";
 
 
 class TransactionController implements Controller {
@@ -30,6 +31,13 @@ class TransactionController implements Controller {
       validationMiddleware(validate.generatePaymentLinkSchema),
       this.generatePaymentLink
     )
+
+    this.router.get(
+      `${this.path}/add-card`,
+      authenticatedMiddleware,
+      this.addCard
+    )
+
 
     this.router.post(
       `${this.path}/paystack/callback`,
@@ -51,8 +59,13 @@ class TransactionController implements Controller {
   ): Promise<Response | void> => {
 
     try {
-
-      const body: GeneratePaymentLinkDto = req.body
+      const payload: GeneratePaymentLinkDto = {
+        amount: req.body.amount,
+        card_id: req.body?.card_id,
+        narration_id: req.body?.narration_id,
+        narration: req.body.narration,
+        save_card: req.body?.save_card === YesOrNo.YES ? true: false,
+      }
 
       const user = req.user
       console.log("🚀 ~ TransactionController ~ user:", user)
@@ -61,7 +74,7 @@ class TransactionController implements Controller {
         code,
         message,
         data
-      } = await this.transactionService.initializePayment(body, user);
+      } = await this.transactionService.initializePayment(payload, user);
       return responseObject(
         res,
         code,
@@ -74,6 +87,34 @@ class TransactionController implements Controller {
       next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()))
     }
   }
+
+  private addCard = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<Response | void> => {
+
+    try {
+      const user = req.user
+      const {
+        status,
+        code,
+        message,
+        data
+      } = await this.transactionService.addCard(user);
+      return responseObject(
+        res,
+        code,
+        status,
+        message,
+        data
+      );
+
+    } catch (error: any) {
+      next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()))
+    }
+  }
+
 
   private paystackCallbackService = async (
     req: Request,

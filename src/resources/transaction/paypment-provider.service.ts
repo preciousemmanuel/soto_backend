@@ -6,7 +6,7 @@ import {
   FullPaymentLinkDto,
 } from "./transaction.dto";
 import { hashPassword } from "@/utils/helpers/token";
-import { StatusMessages } from "@/utils/enums/base.enum";
+import { StatusMessages, TransactionNarration } from "@/utils/enums/base.enum";
 import ResponseData from "@/utils/interfaces/responseData.interface";
 import { HttpCodes } from "@/utils/constants/httpcode";
 import TransactionLogModel from "./transactionLog.model";
@@ -29,7 +29,8 @@ class PaymentProviderService {
         email: payload.user.Email,
         currency: "NGN",
         reference: payload.txnRef,
-        callback_url: envConfig.PAYSTACK_CALLBACK_URL,
+        // callback_url: envConfig.PAYSTACK_CALLBACK_URL,
+        ...(payload.authorization_code && {authorization_code: payload.authorization_code}),
         metadata: {
           customer_id: payload.user.id,
           narration: payload.narration,
@@ -37,24 +38,43 @@ class PaymentProviderService {
           name: payload.user.FirstName + " " + payload.user.LastName,
           email: payload.user.Email,
           phone_number: payload.user.PhoneNumber,
+          save_card: payload?.save_card || false
         }
       }
 
-      const axiosConfig: requestProp = {
-        url: envConfig.PAYSTACK_BASE_URL + '/transaction/initialize',
-        method: "POST",
-        body: paystackPayload,
-        headers: {
-          authorization: "Bearer " + envConfig.PAYSTACK_SECRET_KEY
-        }
+      let axiosConfig: requestProp
+      switch (payload.authorization_code && (payload.is_tokenized === true)) {
+        case true:
+          axiosConfig = {
+            url: envConfig.PAYSTACK_BASE_URL + '/transaction/charge_authorization',
+            method: "POST",
+            body: paystackPayload,
+            headers: {
+              authorization: "Bearer " + envConfig.PAYSTACK_SECRET_KEY
+            }
+          }
+          break;
+        default:
+          axiosConfig = {
+            url: envConfig.PAYSTACK_BASE_URL + '/transaction/initialize',
+            method: "POST",
+            body: paystackPayload,
+            headers: {
+              authorization: "Bearer " + envConfig.PAYSTACK_SECRET_KEY
+            }
+          }
+          break;
       }
+
       const initializeTransaction = await axiosRequestFunction(axiosConfig)
       if ((Number(initializeTransaction?.status) < 400) && (initializeTransaction?.data)) {
         responseData = {
           status: StatusMessages.success,
           code: HttpCodes.HTTP_OK,
-          message: "Link Generated Succcessfully",
-          data: {
+          message: payload.authorization_code ? initializeTransaction.message : "Link Generated Succcessfully",
+          data: payload.authorization_code ? 
+          initializeTransaction.data : 
+          {
             link: initializeTransaction?.data?.authorization_url,
             txRef: initializeTransaction?.data?.reference,
           }

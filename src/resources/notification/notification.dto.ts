@@ -1,21 +1,19 @@
 import {
+  ReadAndUnread,
   UserTypes,
   YesOrNo
 } from "@/utils/enums/base.enum";
 import userModel from "../user/user.model";
+import notificationModel from "./notification.model";
 
-export interface AddProductDto {
-  product_name: string;
-  description: string;
-  category: string;
-  unit_price: number;
-  product_quantity: number;
-  height: number;
-  width: number;
-  weight: number;
-  discount_price?: number;
-  in_stock: YesOrNo;
-  images?: Express.Multer.File[]
+export interface CreateNotificationDto {
+  sender?: string;
+  receiver: string;
+  type?: string;
+  status?: boolean;
+  title?: string;
+  content: string;
+  image?: string
 }
 
 export interface UpdateProductDto {
@@ -32,12 +30,26 @@ export interface UpdateProductDto {
 
 }
 
-export interface FetchProductsDto {
-  limit: number
-  page: number;
-  filter?: FilterProductsDto
-
+export interface OneSignalPushNotificationDto {
+  message: any
+  playerId: string;
+  heading: string;
+  imageUrl?: string
 }
+
+export interface FirebasePushNotificationDto {
+  message: any
+  fcmToken: string;
+  heading: string;
+  imageUrl?: string
+}
+
+export interface AddFcmTokenOrPlayerIdDto {
+  user_id: string
+  fcmToken?: string;
+  playerId?: string;
+}
+
 
 export interface FilterProductsDto {
   product_name?: string;
@@ -54,11 +66,12 @@ export interface WriteReviewDto {
 
 }
 
-export interface AddProductReviewDto {
+export interface FetchNotificationsDto {
   user: InstanceType<typeof userModel>;
-  product_id: string;
-  description?: string;
-  rating: number;
+  type?: string;
+  search?: string;
+  limit: number;
+  page: number;
 }
 
 
