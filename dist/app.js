@@ -11,10 +11,11 @@ const cors_1 = __importDefault(require("cors"));
 const morgan_1 = __importDefault(require("morgan"));
 const error_middleware_1 = __importDefault(require("./middleware/error.middleware"));
 class App {
-    constructor(controllers, port, categoryService) {
+    constructor(controllers, port, categoryService, adminConfigService) {
         this.express = (0, express_1.default)();
         this.port = port;
         this.categoryService = categoryService;
+        this.adminConfigService = adminConfigService;
         this.initializeDB();
         this.initializeMiddleware();
         this.initializeControllers(controllers);
@@ -42,23 +43,25 @@ class App {
     }
     initializeDB() {
         const { MONGO_URI } = process.env;
-        mongoose_1.default.connect(`${MONGO_URI}`).then(() => {
-            console.log('Connected to MongoDB');
+        mongoose_1.default
+            .connect(`${MONGO_URI}`)
+            .then(() => {
+            console.log("Connected to MongoDB");
         })
             .catch((error) => {
-            console.error('Error connecting to MongoDB:', error);
+            console.error("Error connecting to MongoDB:", error);
         });
     }
     connectQueueConsumers() {
         // mqConnection.consume(SEND_EMAIL,fnConsumerEmail);
     }
-    connectSQSConsumers() {
-    }
+    connectSQSConsumers() { }
     connectSNSConsumers() {
         // snsConnection.createSnsConsumer("sns","arn:aws:sns:us-east-1:381491929354:CREATE_ACCOUNT",SQS_CREATE_ACCOUNT_ARN);
     }
     initializeSeeders() {
         this.categoryService.seedCategories();
+        this.adminConfigService.seedSuperAdmin();
     }
     listen() {
         this.express.listen(this.port, () => {

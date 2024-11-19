@@ -4,8 +4,9 @@ import Joi from 'joi';
 
 
 import { HttpCodes } from '@/utils/constants/httpcode'
+import { RequestData } from '@/utils/enums/base.enum';
 
-function validationMiddleware(shema: Joi.Schema): RequestHandler {
+function validationMiddleware(shema: Joi.Schema, requestOptions?: RequestData): RequestHandler {
   return async (
     req: Request,
     res: Response,
@@ -16,10 +17,31 @@ function validationMiddleware(shema: Joi.Schema): RequestHandler {
       allowUnknown: true,
       stripUnknown: true
     };
-
     try {
-      const value = await shema.validateAsync(req.body, validationOptions);
-      req.body = value;
+      if (requestOptions) {
+        switch (requestOptions) {
+          case RequestData.params:
+            const params_value = await shema.validateAsync(req.params, validationOptions);
+            req.params = params_value
+            break;
+          case RequestData.query:
+            const query_value = await shema.validateAsync(req.query, validationOptions);
+            req.query = query_value
+            break;
+          case RequestData.body:
+            const body_value = await shema.validateAsync(req.body, validationOptions);
+            req.body = body_value
+            break;
+
+          default:
+            const value = await shema.validateAsync(req.body, validationOptions);
+            req.body = value;
+            break;
+        }
+      } else {
+        const value = await shema.validateAsync(req.body, validationOptions);
+        req.body = value;
+      }
       next()
     } catch (e: any) {
       const errors: string[] = [];

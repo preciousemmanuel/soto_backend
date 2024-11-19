@@ -1,4 +1,4 @@
-import { OtpPurposeOptions, SignupChannels, UserTypes } from '@/utils/enums/base.enum';
+import { OtpPurposeOptions, SignupChannels, Timeline, UserTypes } from '@/utils/enums/base.enum';
 import { email } from 'envalid';
 import Joi from 'joi';
 
@@ -17,15 +17,19 @@ const signupSchema = Joi.object({
     SignupChannels.FACEBOOK,
     SignupChannels.GOOGLE,
     SignupChannels.TWITTER,
-  ).required(),
+  ).default(SignupChannels.DEFAULT).optional(),
   UserType: Joi.string().valid(
     UserTypes.USER,
     UserTypes.VENDOR
-  ).default(UserTypes.USER).required(),
+  ).default(UserTypes.USER).optional(),
 });
 
 const addShippingAddressSchema = Joi.object({
   address: Joi.string().required(),
+  city: Joi.string().required(),
+  postal_code: Joi.string().optional(),
+  state: Joi.string().required(),
+  country: Joi.string().default("Nigeria").optional(),
 
 });
 
@@ -58,6 +62,26 @@ const newPasswordSchema = Joi.object({
   new_password: Joi.string().required(),
 });
 
+const resetPasswordSchema = Joi.object({
+  otp: Joi.string().required(),
+  new_password: Joi.string().required(),
+});
+
+const vendorAnalyticsSchema = Joi.object().keys({
+  time_frame: Joi.string().valid(
+    Timeline.YESTERDAY,
+    Timeline.TODAY,
+    Timeline.LAST_7_DAYS,
+    Timeline.THIS_MONTH,
+    Timeline.LAST_6_MONTHS,
+    Timeline.LAST_12_MONTHS,
+    Timeline.THIS_YEAR,
+    Timeline.LAST_2_YEARS,
+  ).allow(null).allow("").default(Timeline.THIS_MONTH).optional(),
+  start_date: Joi.string().optional(),
+  end_date: Joi.string().optional(),
+})
+
 export default {
   updateFcm,
   signupSchema,
@@ -65,5 +89,7 @@ export default {
   userLoginSchema,
   changePasswordRequest,
   validateOtpSchema,
-  newPasswordSchema
+  newPasswordSchema,
+  vendorAnalyticsSchema,
+  resetPasswordSchema
 }

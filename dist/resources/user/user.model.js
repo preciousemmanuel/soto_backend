@@ -33,83 +33,112 @@ const UserSchema = new mongoose_1.Schema({
     //   },
     FirstName: {
         type: String,
-        required: true
+        required: true,
     },
     LastName: {
         type: String,
-        required: true
+        required: true,
     },
     Email: {
         type: String,
         required: true,
         unique: true,
-        trim: true
+        trim: true,
+    },
+    ProfileImage: {
+        type: String,
     },
     Password: {
         type: String,
         required: true,
     },
     UserName: {
-        type: String
+        type: String,
     },
     IsActive: {
-        type: Boolean
+        type: Boolean,
+        default: true,
+    },
+    IsBlocked: {
+        type: Boolean,
+        default: false,
     },
     Role: {
-        type: String
+        type: String,
+    },
+    Rank: {
+        type: String,
+        default: base_enum_1.UserRanks.AMATEUR,
     },
     Token: {
-        type: String
+        type: String,
     },
     PhoneNumber: {
-        type: String
+        type: String,
     },
     UserType: {
         type: String,
         enum: base_enum_1.UserTypes,
-        default: base_enum_1.UserTypes.USER
+        default: base_enum_1.UserTypes.USER,
     },
-    // fcmToken:{
-    //     type:String
-    // },
-    // playerId:{
-    //     type:String
-    // },
+    fcmToken: {
+        type: String,
+    },
+    playerId: {
+        type: String,
+    },
     ShippingAddress: {
         full_address: String,
         address: String,
         city: String,
         state: String,
         postal_code: String,
+        address_id: String,
+        coordinates: {
+            lat: Number,
+            lng: Number,
+        },
         country: {
             type: String,
-            default: "Nigeria"
-        }
+            default: "Nigeria",
+        },
+    },
+    shipping_address_id: {
+        type: String,
     },
     SignupChannel: {
         type: String,
         enum: base_enum_1.SignupChannels,
-        default: base_enum_1.SignupChannels.DEFAULT
+        default: base_enum_1.SignupChannels.DEFAULT,
     },
     IsVerified: {
         type: Boolean,
-        default: false
+        default: false,
     },
     wallet: {
         type: mongoose_1.default.Types.ObjectId,
-        ref: "Wallets"
+        ref: "Wallets",
     },
     business: {
         type: mongoose_1.default.Types.ObjectId,
-        ref: "Businesses"
+        ref: "Businesses",
     },
     cart: {
         type: mongoose_1.default.Types.ObjectId,
-        ref: "Carts"
-    }
+        ref: "Carts",
+    },
+    card: {
+        type: mongoose_1.default.Types.ObjectId,
+        ref: "Cards",
+    },
+    coordinate: {
+        type: [Number], // <lng, lat>
+        index: { type: "2dsphere", sparse: false },
+        default: [3.406448, 6.465422],
+    },
 }, {
     collection: "Users",
-    timestamps: true
+    timestamps: true,
 });
 // UserSchema.pre<User>("save",async function (next) {
 //     if(!this.isModified) return next();

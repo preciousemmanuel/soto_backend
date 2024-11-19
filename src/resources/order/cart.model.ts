@@ -5,7 +5,7 @@ const CartSchema = new Schema(
   {
 
     items: [
-      {
+     {
         product_id: {
           type: mongoose.Types.ObjectId,
           ref: "Products",
@@ -34,6 +34,18 @@ const CartSchema = new Schema(
           type: Number,
           required: true
         },
+         height:{
+          type: Number,
+          required: true
+        },
+        width:{
+          type: Number,
+          required: true
+        },
+        weight:{
+          type: Number,
+          required: true
+        },
         is_discounted: {
           type: Boolean,
           default: false
@@ -48,7 +60,6 @@ const CartSchema = new Schema(
     status: {
       type: String,
       enum: OrderStatus,
-      required: true
     },
     total_amount: {
       type: Number,

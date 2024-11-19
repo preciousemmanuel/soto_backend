@@ -10,7 +10,7 @@ import { OtpPurposeOptions, StatusMessages } from '../enums/base.enum';
 import BusinessService from '@/resources/business/business.service';
 import userModel from '@/resources/user/user.model';
 
-export const createToken = (user: User): string => {
+export const createToken = (user: User|any): string => {
   const id = user._id || user.id
   return jwt.sign({ id: id }, process.env.JWT_SECRET as jwt.Secret, {
     expiresIn: "1y"
@@ -157,16 +157,19 @@ export const isOtpCorrect = async (otp: string, purpose: string): Promise<Respon
         message: "Otp Valid",
         data
       }
-      await otpModel.deleteOne({
-        _id: existingOtp._id
-      })
+     
       switch (purpose) {
         case OtpPurposeOptions.ACCOUNT_VALIDATION:
           const businessService = new BusinessService()
           businessService.verifyBusinessComplete(user?._id)
+          await otpModel.deleteOne({
+            _id: existingOtp._id
+          })
           break;
-
+        case OtpPurposeOptions.CHANGE_PASSWORD:
+          
         default:
+          
           break;
       }
 
