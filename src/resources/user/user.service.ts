@@ -20,10 +20,14 @@ import { OtpPurposeOptions, StatusMessages, UserTypes } from "@/utils/enums/base
 import ResponseData from "@/utils/interfaces/responseData.interface";
 import { HttpCodes } from "@/utils/constants/httpcode";
 import WalletModel from "../business/wallet.model";
+import cartModel from "../order/cart.model";
+import MailService from "../mail/mail.service";
 
 class UserService {
   private user = UserModel;
   private wallet = WalletModel
+  private Cart = cartModel
+  private mailService = new MailService()
 
   public async createUser(
     createUser: CreateUserDto
@@ -60,8 +64,12 @@ class UserService {
         const wallet = await this.wallet.create({
           user: createdUser._id
         })
+        const cart = await this.Cart.create({
+          user: createdUser._id
+        })
         createdUser.Token = token
         createdUser.wallet = wallet._id
+        createdUser.cart = cart._id
 
         await createdUser.save()
         responseData = {
@@ -156,6 +164,7 @@ class UserService {
       })
         .populate('business')
         .populate('wallet')
+        .populate('cart')
       if (!user) {
         responseData = {
           status: StatusMessages.error,

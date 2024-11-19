@@ -7,6 +7,7 @@ const BusinessSchema = new Schema(
 
     business_name: {
       type: String,
+      unique: true,
       required: true
     },
 

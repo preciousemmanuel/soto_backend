@@ -13,6 +13,9 @@ const product_controller_1 = __importDefault(require("./resources/product/produc
 const business_controller_1 = __importDefault(require("./resources/business/business.controller"));
 const category_service_1 = __importDefault(require("./resources/category/category.service"));
 const category_controller_1 = __importDefault(require("./resources/category/category.controller"));
+const order_controller_1 = __importDefault(require("./resources/order/order.controller"));
+const mail_controller_1 = __importDefault(require("./resources/mail/mail.controller"));
+const transaction_controller_1 = __importDefault(require("./resources/transaction/transaction.controller"));
 dotenv_1.default.config({ path: `${process.env.NODE_ENV}.env` });
 (0, validateEnv_1.default)();
 const app = new app_1.default([
@@ -20,6 +23,9 @@ const app = new app_1.default([
     new product_controller_1.default(),
     new business_controller_1.default(),
     new category_controller_1.default(),
+    new order_controller_1.default(),
+    new mail_controller_1.default(),
+    new transaction_controller_1.default()
     // new TransactionController(),
 ], Number(process.env.PORT), new category_service_1.default());
 app.listen();

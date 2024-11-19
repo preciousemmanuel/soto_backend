@@ -59,7 +59,7 @@ export const generateOtpModel = async (
   purpose: string,
   user: User,
   email?: string,
-) => {
+): Promise<InstanceType<typeof otpModel>> => {
   try {
     const unusedOtp = await otpModel.findOne({
       purpose,
@@ -183,4 +183,3 @@ export const isOtpCorrect = async (otp: string, purpose: string): Promise<Respon
     return responseData
   }
 }
-

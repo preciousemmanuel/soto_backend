@@ -30,7 +30,8 @@ async function authenticatedMiddleware(
 
     const user = await userModel.findById(payload.id)
       .populate('business')
-      .populate('wallet');
+      .populate('wallet')
+      .populate('cart');
     if (!user) {
       return next(new HttpException(401, "Unauthorized"));
     }

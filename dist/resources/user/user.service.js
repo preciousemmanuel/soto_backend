@@ -18,10 +18,14 @@ const token_2 = require("@/utils/helpers/token");
 const base_enum_1 = require("@/utils/enums/base.enum");
 const httpcode_1 = require("@/utils/constants/httpcode");
 const wallet_model_1 = __importDefault(require("../business/wallet.model"));
+const cart_model_1 = __importDefault(require("../order/cart.model"));
+const mail_service_1 = __importDefault(require("../mail/mail.service"));
 class UserService {
     constructor() {
         this.user = user_model_1.default;
         this.wallet = wallet_model_1.default;
+        this.Cart = cart_model_1.default;
+        this.mailService = new mail_service_1.default();
     }
     createUser(createUser) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -56,8 +60,12 @@ class UserService {
                     const wallet = yield this.wallet.create({
                         user: createdUser._id
                     });
+                    const cart = yield this.Cart.create({
+                        user: createdUser._id
+                    });
                     createdUser.Token = token;
                     createdUser.wallet = wallet._id;
+                    createdUser.cart = cart._id;
                     yield createdUser.save();
                     responseData = {
                         status: base_enum_1.StatusMessages.success,
@@ -147,7 +155,8 @@ class UserService {
                     ]
                 })
                     .populate('business')
-                    .populate('wallet');
+                    .populate('wallet')
+                    .populate('cart');
                 if (!user) {
                     responseData = {
                         status: base_enum_1.StatusMessages.error,

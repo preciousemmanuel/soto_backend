@@ -32,7 +32,8 @@ function authenticatedMiddleware(req, res, next) {
             }
             const user = yield user_model_1.default.findById(payload.id)
                 .populate('business')
-                .populate('wallet');
+                .populate('wallet')
+                .populate('cart');
             if (!user) {
                 return next(new http_exception_1.default(401, "Unauthorized"));
             }
