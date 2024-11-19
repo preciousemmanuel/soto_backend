@@ -40,7 +40,20 @@ const schema = new Schema(
 			type: String,
 		},
 		address_details: {
-			type: String,
+			full_address: String,
+			address: String,
+			city: String,
+			state: String,
+			postal_code: String,
+			address_id: String,
+			coordinates: {
+				lat: Number,
+				lng: Number,
+			},
+			country: {
+				type: String,
+				default: "Nigeria",
+			},
 		},
 		address_id: {
 			type: String,
