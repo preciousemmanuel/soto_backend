@@ -16,6 +16,12 @@ const adminCreateSchema = Joi.object({
 	last_name: Joi.string().required(),
 	email: Joi.string().email().required(),
 	phone_number: Joi.string().optional(),
+	role: Joi.string().required(),
+	address: Joi.string().required(),
+	city: Joi.string().required(),
+	postal_code: Joi.string().optional(),
+	state: Joi.string().required(),
+	country: Joi.string().required(),
 });
 
 const paginationSchema = Joi.object().keys({
