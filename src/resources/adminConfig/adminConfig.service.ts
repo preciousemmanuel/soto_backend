@@ -1,5 +1,9 @@
 import UserModel from "@/resources/user/user.model";
-import { uniqueCode } from "@/utils/helpers";
+import {
+	axiosRequestFunction,
+	formatPhoneNumber,
+	uniqueCode,
+} from "@/utils/helpers";
 import {
 	comparePassword,
 	createToken,
@@ -9,6 +13,7 @@ import {
 
 // import logger from "@/utils/logger";
 import {
+	AddStaffAddressDto,
 	AdminLoginDto,
 	CreateAdminDto,
 	CreateBusinessDto,
@@ -37,6 +42,9 @@ import adminModel from "./admin.model";
 import { HttpCodesEnum } from "@/utils/enums/httpCodes.enum";
 import roleModel from "./role.model";
 import { getPaginatedRecords } from "@/utils/helpers/paginate";
+import { requestProp } from "../mail/mail.interface";
+import envConfig from "@/utils/config/env.config";
+import { catchBlockResponse } from "@/utils/constants/data";
 
 class AdminConfigService {
 	private User = UserModel;
@@ -147,6 +155,15 @@ class AdminConfigService {
 				"🚀 ~ AdminOverviewService ~ seedSuperAdmin ~ sotoAdmin.createdAt:",
 				sotoAdmin.createdAt
 			);
+			const addressDetails: AddStaffAddressDto = {
+				admin: sotoAdmin,
+				address: payload.address,
+				city: payload.city,
+				postal_code: payload.postal_code,
+				state: payload.state,
+				country: payload.country,
+			};
+			this.addAddressDetails(addressDetails);
 
 			return {
 				status: StatusMessages.success,
@@ -159,6 +176,71 @@ class AdminConfigService {
 			responseData.code = HttpCodesEnum.HTTP_SERVER_ERROR;
 			responseData.message = "Unable to perform request at this time";
 			return responseData;
+		}
+	}
+
+	public async addAddressDetails(
+		payload: AddStaffAddressDto
+	): Promise<ResponseData> {
+		let responseData: ResponseData = {
+			status: StatusMessages.success,
+			code: HttpCodes.HTTP_OK,
+			message: "Address Details Added Successfully",
+		};
+		try {
+			const { admin, address, city, postal_code, state, country } = payload;
+			const body = {
+				first_name: admin.FirstName,
+				last_name: admin.FirstName,
+				email: admin.Email,
+				phone: formatPhoneNumber(admin.PhoneNumber),
+				line1: address,
+				city,
+				country: "NG",
+				state,
+				zip: postal_code,
+			};
+
+			const axiosConfig: requestProp = {
+				method: "POST",
+				url: envConfig.TERMINAL_AFRICA_BASE_URL + `/addresses`,
+				body: body,
+				headers: {
+					authorization: `Bearer ${envConfig.TERMINAL_AFRICA_SECRET_KEY}`,
+				},
+			};
+			const createAddressCall = await axiosRequestFunction(axiosConfig);
+			if (createAddressCall.status === StatusMessages.error) {
+				return createAddressCall;
+			}
+			const addressData: any = createAddressCall.data.data;
+			const addressUpdate = {
+				coordinate: [
+					addressData?.coordinates?.lng,
+					addressData?.coordinates?.lat,
+				],
+				address_details: {
+					full_address: `${address}, ${city}, ${state}, ${country}`,
+					address,
+					address_id: addressData.address_id,
+					city: addressData.city,
+					coordinates: addressData.coordinates,
+					country,
+					postal_code,
+				},
+				address_id: addressData.address_id,
+			};
+
+			const updatedAddress = await this.Admin.findByIdAndUpdate(
+				admin._id,
+				addressUpdate,
+				{ new: true }
+			);
+			responseData.data = updatedAddress;
+			return responseData;
+		} catch (error: any) {
+			console.log("🚀 ~ AdminConfigService ~ error:", error);
+			return catchBlockResponse;
 		}
 	}
 
@@ -188,9 +270,7 @@ class AdminConfigService {
 			};
 		} catch (error: any) {
 			console.log("🚀 ~ AdminConfigService ~ createRole ~ error:", error);
-			responseData.code = HttpCodesEnum.HTTP_SERVER_ERROR;
-			responseData.message = "Unable to perform request at this time";
-			return responseData;
+			return catchBlockResponse;
 		}
 	}
 

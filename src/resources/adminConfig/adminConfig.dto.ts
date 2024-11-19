@@ -8,6 +8,7 @@ import {
 	backDaterArray,
 	ReadWriteDto,
 } from "@/utils/interfaces/base.interface";
+import adminModel from "./admin.model";
 
 export interface CreateBusinessDto {
 	business_name: string;
@@ -49,6 +50,11 @@ export interface CreateAdminDto {
 	email: string;
 	phone_number?: string;
 	role: string;
+	address: string;
+	city: string;
+	postal_code?: string;
+	state: string;
+	country: string;
 }
 
 export interface CreateRoleDto {
@@ -61,4 +67,13 @@ export interface CreateRoleDto {
 	product: ReadWriteDto;
 	transaction: ReadWriteDto;
 	created_by?: string;
+}
+
+export interface AddStaffAddressDto {
+	admin: InstanceType<typeof adminModel>;
+	address: string;
+	city: string;
+	postal_code?: string;
+	state: string;
+	country?: string;
 }

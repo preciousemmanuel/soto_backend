@@ -20,6 +20,7 @@ const schema = new Schema(
 			type: String,
 			unique: true,
 			trim: true,
+			required: true,
 		},
 		ProfileImage: {
 			type: String,
@@ -37,6 +38,17 @@ const schema = new Schema(
 		},
 		Token: {
 			type: String,
+		},
+		address_details: {
+			type: String,
+		},
+		address_id: {
+			type: String,
+		},
+		coordinate: {
+			type: [Number], // <lng, lat>
+			index: { type: "2dsphere", sparse: false },
+			default: [3.406448, 6.465422],
 		},
 	},
 	{

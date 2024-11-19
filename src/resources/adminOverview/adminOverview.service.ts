@@ -1122,6 +1122,10 @@ class AdminOverviewService {
 			}
 			const addressData: any = createAddressCall.data.data;
 			const addressUpdate = {
+				coordinate: [
+					addressData?.coordinates?.lng,
+					addressData?.coordinates?.lat,
+				],
 				ShippingAddress: {
 					full_address: `${address}, ${city}, ${state}, ${country}`,
 					address,
