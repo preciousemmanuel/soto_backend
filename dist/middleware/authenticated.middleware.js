@@ -18,30 +18,42 @@ const token_1 = require("@/utils/helpers/token");
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 function authenticatedMiddleware(req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
-        const bearer = req.headers.authorization;
-        if (!bearer || !bearer.startsWith("Bearer ")) {
-            // return res.status(401).json({error:"Unauthorized"});
-            return next(new http_exception_1.default(401, "Unauthorized"));
-        }
-        const accessToken = bearer.split("Bearer ")[1].trim();
         try {
+            const bearer = req.headers.authorization || "Bearer abcdef";
+            console.log("🚀 ~ bearer:", bearer);
+            if (!bearer || !bearer.startsWith("Bearer ")) {
+                if (!req.path.includes('/product/fetch')) {
+                    return next(new http_exception_1.default(401, "Unauthorized"));
+                }
+                return next(); // Allow through for `/product/fetch`
+            }
+            const accessToken = bearer.split("Bearer ")[1].trim();
+            const productPath = req.path.includes('/product/fetch');
+            console.log("🚀 ~ productPath:", productPath);
             const payload = yield (0, token_1.verifyToken)(accessToken);
             if (payload instanceof jsonwebtoken_1.default.JsonWebTokenError) {
-                // return res.status(401).json({error:"Unauthorized"});
-                return next(new http_exception_1.default(401, "Unauthorized"));
+                if (!productPath) {
+                    return next(new http_exception_1.default(401, "Unauthorized"));
+                }
+                return next(); // Allow through for `/product/fetch`
             }
             const user = yield user_model_1.default.findById(payload.id)
                 .populate('business')
                 .populate('wallet')
-                .populate('cart');
-            if (!user) {
+                .populate('cart')
+                .populate('card');
+            if (!user && !productPath) {
                 return next(new http_exception_1.default(401, "Unauthorized"));
             }
             req.user = user;
             next();
         }
         catch (error) {
-            return next(new http_exception_1.default(401, "Unauthorized"));
+            console.log("🚀authenticatedMiddleware ~ error:", error);
+            if (!req.path.includes('/product/fetch')) {
+                return next(new http_exception_1.default(401, "Unauthorized"));
+            }
+            next(); // Allow through for `/product/fetch` on error
         }
     });
 }

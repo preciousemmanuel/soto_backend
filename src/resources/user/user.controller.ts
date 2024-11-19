@@ -7,14 +7,16 @@ import validate from "./user.validation";
 import { responseObject } from "@/utils/helpers/http.response";
 import { HttpCodes } from "@/utils/constants/httpcode";
 import authenticatedMiddleware from "@/middleware/authenticated.middleware";
-import { AddShippingAddressDto, ChangePasswordDto, CreateUserDto, LoginDto } from "./user.dto";
+import { AddShippingAddressDto, ChangePasswordDto, CreateUserDto, LoginDto, vendorDashboardDto, vendorInventoryDto } from "./user.dto";
 import { User } from './user.interface'
+import AdminOverviewService from "../adminOverview/adminOverview.service";
 
 
 class UserController implements Controller {
   public path = "/user";
   public router = Router();
   private userService = new UserService();
+  private adminOverviewService = new AdminOverviewService();
 
   constructor() {
     this.initializeRoute();
@@ -48,6 +50,25 @@ class UserController implements Controller {
       this.getProfile
     )
 
+
+    this.router.get(
+      `${this.path}/vendor-overview`,
+      authenticatedMiddleware,
+      this.getVendorDashboard
+    )
+
+    this.router.get(
+      `${this.path}/vendor-inventory`,
+      authenticatedMiddleware,
+      this.getVendorInventory
+    )
+
+     this.router.get(
+      `${this.path}/sales-analytics`,
+      authenticatedMiddleware,
+      this.getSalesAnalytics
+    )
+
     this.router.post(
       `${this.path}/login`,
       validationMiddleware(validate.userLoginSchema),
@@ -71,6 +92,12 @@ class UserController implements Controller {
       authenticatedMiddleware,
       validationMiddleware(validate.newPasswordSchema),
       this.newPasswordChange
+    )
+
+    this.router.put(
+      `${this.path}/reset-password`,
+      validationMiddleware(validate.resetPasswordSchema),
+      this.newPasswordReset
     )
 
   }
@@ -111,13 +138,15 @@ class UserController implements Controller {
 
     try {
       const address: AddShippingAddressDto = req.body
-      const user: User = req.user
+      address.is_admin = false
+      address.user = req.user
       const {
         status,
         code,
         message,
         data
-      } = await this.userService.addShippingAddress(address, user);
+      } = 
+      await this.adminOverviewService.createShippingAddress(address)
       return responseObject(
         res,
         code,
@@ -145,6 +174,111 @@ class UserController implements Controller {
         message,
         data
       } = await this.userService.getProfile(user);
+      return responseObject(
+        res,
+        code,
+        status,
+        message,
+        data
+      );
+
+    } catch (error: any) {
+      next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()))
+    }
+  }
+
+  private getVendorDashboard = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<Response | void> => {
+    try {
+      const is_custom =
+        req?.query?.start_date !== null &&
+        req?.query?.end_date !== null &&
+        req?.query?.start_date !== undefined &&
+        req?.query?.end_date !== undefined
+      const timeFrame = (
+        (is_custom === false) &&
+        (req.query?.time_frame) && (req.query?.time_frame !== null) && (req.query?.time_frame !== "")) ?
+        String(req.query?.time_frame) : undefined
+      const custom_date = (
+        is_custom === true
+      ) ? {
+        start_date: new Date(String(req?.query?.start_date)),
+        end_date: new Date(String(req?.query?.end_date)),
+      } : undefined
+      const user: User = req.user
+      const payload: vendorDashboardDto = {
+        user,
+        ...(timeFrame && { timeFrame }),
+        ...((custom_date) && { custom: custom_date })
+      };
+      const {
+        status,
+        code,
+        message,
+        data
+      } = await this.userService.getVendorDashboard(payload);
+      return responseObject(
+        res,
+        code,
+        status,
+        message,
+        data
+      );
+
+    } catch (error: any) {
+      next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()))
+    }
+  }
+
+  private getVendorInventory = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<Response | void> => {
+    try {
+
+      const user: User = req.user
+      const payload: vendorInventoryDto = {
+        user,
+        limit: req?.query?.limit ? Number(req?.query?.limit) : 10,
+        page: req?.query?.page ? Number(req?.query?.page) : 1,
+      };
+      const {
+        status,
+        code,
+        message,
+        data
+      } = await this.userService.getVendorInventory(payload);
+      return responseObject(
+        res,
+        code,
+        status,
+        message,
+        data
+      );
+
+    } catch (error: any) {
+      next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()))
+    }
+  }
+
+  private getSalesAnalytics = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<Response | void> => {
+    try {
+      const user: User = req.user
+     
+      const {
+        status,
+        code,
+        message,
+        data
+      } = await this.userService.getSalesAnalytics(user);
       return responseObject(
         res,
         code,
@@ -256,6 +390,34 @@ class UserController implements Controller {
         message,
         data
       } = await this.userService.newPasswordChange(new_password, user);
+      return responseObject(
+        res,
+        code,
+        status,
+        message,
+        data
+      );
+
+    } catch (error: any) {
+      next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()))
+    }
+  }
+
+  private newPasswordReset = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<Response | void> => {
+
+    try {
+      const new_password: string = req.body.new_password
+      const otp: string = req.body.otp
+      const {
+        status,
+        code,
+        message,
+        data
+      } = await this.userService.newPasswordReset(new_password, otp);
       return responseObject(
         res,
         code,

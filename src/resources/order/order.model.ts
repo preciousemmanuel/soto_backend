@@ -34,6 +34,18 @@ const OrderSchema = new Schema(
           type: Number,
           required: true
         },
+         height:{
+          type: Number,
+          required: true
+        },
+        width:{
+          type: Number,
+          required: true
+        },
+        weight:{
+          type: Number,
+          required: true
+        },
         is_discounted: {
           type: Boolean,
           default: false
@@ -61,10 +73,17 @@ const OrderSchema = new Schema(
     shipping_address: {
       type: String,
     },
+    shipping_address_id: {
+      type: String,
+    },
     expected_delivery_date: {
       type: Date
     },
     order_itinerary: {
+      type: String,
+      default: ""
+    },
+    tracking_id: {
       type: String,
       default: ""
     },
@@ -76,7 +95,23 @@ const OrderSchema = new Schema(
       type: String,
       enum: OrderPaymentType,
       default: OrderPaymentType.ON_DELIVERY
-    }
+    },
+    delivery_vendor: {
+      type:{}
+    },
+    is_coupon_applied:{
+      type: Boolean,
+      default: false
+    },
+    coupon: {
+      type: mongoose.Types.ObjectId,
+      ref: "GeneralCoupons",
+    },
+    shipment: {
+      type: mongoose.Types.ObjectId,
+      ref: "Shipments",
+      // required: true
+    },
   },
   {
     collection: "Orders",

@@ -1,5 +1,5 @@
 import UserModel from "@/resources/user/user.model";
-import { uniqueCode } from "@/utils/helpers";
+import { generateUnusedOrderId, uniqueCode } from "@/utils/helpers";
 import {
   comparePassword,
   createToken,
@@ -15,7 +15,7 @@ import {
   RemoveFromCartDto,
 } from "./order.dto";
 import { hashPassword } from "@/utils/helpers/token";
-import { OrderStatus, OtpPurposeOptions, StatusMessages, UserTypes } from "@/utils/enums/base.enum";
+import { OrderStatus, OtpPurposeOptions, StatusMessages, UserTypes, YesOrNo } from "@/utils/enums/base.enum";
 import ResponseData from "@/utils/interfaces/responseData.interface";
 import { HttpCodes } from "@/utils/constants/httpcode";
 import cloudUploader from "@/utils/config/cloudUploader";
@@ -26,6 +26,7 @@ import orderDetailsModel from "./orderDetails.model";
 import { getPaginatedRecords } from "@/utils/helpers/paginate";
 import cartModel from "./cart.model";
 import MailService from "../mail/mail.service";
+import NotificationService from "../notification/notification.service";
 
 class OrderService {
   private Order = orderModel;
@@ -34,6 +35,7 @@ class OrderService {
   private User = UserModel
   private Product = productModel
   private mailService = new MailService()
+  private notificationService = new NotificationService()
 
   public async addToCart(
     payload: AddToCartDto,
@@ -46,8 +48,9 @@ class OrderService {
         user: user?._id
       })
       const currentItemsInCart: any[] = openCart ? [...openCart.toObject().items] : []
-      currentItemsInCart.push(...payload.items)
-      for (const item of currentItemsInCart) {
+      const itemsToEnterCart = payload.items
+      // currentItemsInCart.push(...payload.items)
+      for (const item of itemsToEnterCart) {
         product_ids.push(item.product_id)
       }
       const products = await this.Product.find({
@@ -56,7 +59,7 @@ class OrderService {
       })
 
       const purpose = "cart"
-      const processedItems = await this.processMathcingItems(currentItemsInCart, products, user, purpose)
+      const processedItems = await this.processMathcingItems(itemsToEnterCart, currentItemsInCart, products, user, purpose)
       if (processedItems.status === StatusMessages.error) {
         return processedItems
       }
@@ -171,17 +174,28 @@ class OrderService {
         _id: { $in: product_ids },
         // is_verified: true
       })
-
+      const cartItems = payload.checkout_with_cart === YesOrNo.YES ? (await this.Cart.findOne({user: user._id}))?.items || [] : [] 
       const purpose = "cart"
-      const processedItems = await this.processMathcingItems(payload.items, products, user, purpose)
+      const processedItems = await this.processMathcingItems(payload.items, cartItems, products, user, purpose)
       if (processedItems.status === StatusMessages.error) {
         return processedItems
       }
-
       const openCart = await this.Order.findOne({
+        user: user._id,
         status: OrderStatus.PENDING
       })
+      if(payload.checkout_with_cart === YesOrNo.YES){
+        await this.Cart.findOneAndUpdate({user: user._id}, 
+          {
+          items: null,
+          total_amount: 0,
+          grand_total: 0,
+          }, 
+          {new: true}
+        )
+      }
       if (openCart) {
+        console.log("🚀 ~ OrderService ~ openCart:", openCart)
         openCart.items = processedItems?.data?.itemsInOrder
         openCart.total_amount = processedItems?.data?.total_amount
         openCart.shipping_address = payload.shipping_address || user.ShippingAddress?.full_address || ""
@@ -196,13 +210,15 @@ class OrderService {
         }
 
       } else {
+        const tracking_id = await generateUnusedOrderId()
         const newOrder = await this.Order.create({
           items: processedItems?.data?.itemsInOrder,
           total_amount: processedItems?.data?.total_amount,
-          user,
+          user: user._id,
           status: OrderStatus.PENDING,
           shipping_address: payload.shipping_address || user.ShippingAddress?.full_address || "",
           grand_total: processedItems?.data?.total_amount,
+          tracking_id,
           ...(payload?.payment_type && { payment_type: payload?.payment_type })
         })
 
@@ -212,6 +228,11 @@ class OrderService {
           message: "Order Created Successfully",
           data: newOrder
         }
+         this.notificationService.createNotification({
+          receiver: String(newOrder.user),
+          title: "Create Order",
+          content: `You just created an order with tracking id : ${newOrder.tracking_id}`,
+        })
       }
 
       return responseData;
@@ -229,6 +250,7 @@ class OrderService {
 
   public async processMathcingItems(
     items: orderItems[],
+    currentCartItems: any[],
     products: InstanceType<typeof this.Product>[],
     user: InstanceType<typeof this.User>,
     purpose: string
@@ -238,29 +260,74 @@ class OrderService {
     const messages: string[] = []
     let itemsInOrder: itemsToBeOrdered[] = []
     try {
-      for (const item2 of products) {
-        for (const item of items) {
-          const matchingProduct = String(item2._id) === String(item?.product_id)
-          if (matchingProduct === true) {
-            if (item.quantity > item2.product_quantity) {
-              messages.push(`Available Quantities For ${item2.product_name} is ${item2.product_quantity}`)
-            } else {
-              itemsInOrder.push({
-                product_id: String(item2?._id),
-                product_name: item2?.product_name,
-                description: item2?.description,
-                vendor: String(item2?.vendor),
-                images: item2?.images,
-                quantity: item.quantity,
-                unit_price: item2?.unit_price,
-                is_discounted: item2?.is_discounted,
-              })
-              const unit_price = (item2?.is_discounted ? item2?.discount_price : item2.unit_price) || 0
-              const amount = item?.quantity * unit_price
-              total_amount += amount
-            }
-          }
+       const productMap: Map<string, { 
+        _id: string;
+        product_name: string, 
+        product_quantity: number; 
+        description: string;
+        vendor?: string;
+        images: string[];
+        height: number;
+        width: number;
+        weight: number;
+        unit_price: number;
+        is_discounted: boolean;
+      }> = new Map();
+
+      products.forEach(product => {
+        productMap.set(product._id.toString(), {
+          _id: String(product._id),
+          product_quantity: product.product_quantity,
+          unit_price: product.unit_price,
+          product_name: product.product_name,
+          description: product.description,
+          vendor: String(product.vendor),
+          images: product.images,
+          height: product.height,
+          width: product.width,
+          weight: product.weight,
+          is_discounted: product.is_discounted,
+        });
+      });
+
+      items.forEach(item => {
+        const product = productMap.get(item.product_id.toString());
+        if (!product) {
+          console.warn(`Product with ID ${item.product_id} not found.`);
+          return;
         }
+        if (item.quantity > product.product_quantity) {
+          console.warn(`Quantity of product ${item.product_id} exceeds available stock.`);
+          messages.push(`Available Quantities For ${product.product_name} is ${product.product_quantity}`)
+          return;
+        }
+        const cartItem = currentCartItems.find(cartItem => ((cartItem.product_id).toString()) === (item.product_id));
+        if (cartItem) {
+          console.log("🚀 ~ OrderService ~ cartItem:", cartItem)
+          cartItem.quantity += item.quantity;
+        } else {
+          const newItemToCart = {
+            product_id: String(item.product_id),
+            quantity: item.quantity,
+            unit_price: product.unit_price,
+            product_name: product.product_name,
+            description: product.description,
+            vendor: product.vendor,
+            images: product.images,
+            height: product.height,
+            width: product.width,
+            weight: product.weight,
+            is_discounted: product.is_discounted,
+          }
+          currentCartItems.push(newItemToCart);
+        }
+      });
+      total_amount = currentCartItems.reduce((total, cartItem) => {
+        return total + cartItem.quantity * cartItem.unit_price;
+      }, 0);
+      const response = {
+        itemsInOrder: currentCartItems,
+        total_amount: total_amount
       }
       if (messages.length > 0) {
         responseData = {
@@ -280,10 +347,7 @@ class OrderService {
           status: StatusMessages.success,
           code: HttpCodes.HTTP_OK,
           message: "",
-          data: {
-            itemsInOrder,
-            total_amount
-          }
+          data:response
         }
       }
       return responseData
@@ -331,6 +395,54 @@ class OrderService {
           path: "product_id",
           select: "product_name images product_quantity"
         }
+      }
+      )
+
+      responseData = {
+        status: StatusMessages.success,
+        code: HttpCodes.HTTP_OK,
+        message: "success",
+        data: paginatedRecords
+      }
+      return responseData
+
+    } catch (error: any) {
+      console.log("🚀 ~ OrderService ~ error:", error)
+      responseData = {
+        status: StatusMessages.error,
+        code: HttpCodes.HTTP_SERVER_ERROR,
+        message: error.toString()
+      }
+      return responseData;
+    }
+  }
+
+   public async getMyOrdersBuyer(
+    myOrdersDto: FetchMyOrdersDto,
+    user: InstanceType<typeof this.User>
+  ): Promise<ResponseData> {
+    let responseData: ResponseData
+    try {
+
+      const search = {
+        ...((myOrdersDto?.filter?.start_date && myOrdersDto?.filter?.end_date) && {
+          createdAt: {
+            $gte: new Date(myOrdersDto?.filter?.start_date),
+            $lte: new Date(myOrdersDto?.filter?.end_date)
+          }
+        }),
+        ...(myOrdersDto?.filter?.status && {
+          status: myOrdersDto?.filter?.status
+        }),
+        user: user?._id
+      }
+
+      var paginatedRecords = await getPaginatedRecords(
+        this.Order, {
+        limit: myOrdersDto?.limit,
+        page: myOrdersDto?.page,
+        data: search,
+       
       }
       )
 
@@ -427,8 +539,10 @@ class OrderService {
             filter: { _id: item.product_id },
             update: {
               $inc: {
-                product_quantity: -item.quantity
-              }
+                product_quantity: -item.quantity,
+                total_quantity_sold: item.quantity
+              },
+             
             }
           }
         }
@@ -443,6 +557,9 @@ class OrderService {
           images: item.images,
           quantity: item.quantity,
           unit_price: item.unit_price,
+          height: item.height,
+          width: item.width,
+          weight: item.weight,
           is_discounted: item.is_discounted,
           status: OrderStatus.BOOKED,
         }
@@ -514,6 +631,49 @@ class OrderService {
     } catch (error: any) {
       console.log("🚀 ~ OrderService ~ error:", error)
       responseData = {
+        status: StatusMessages.error,
+        code: HttpCodes.HTTP_SERVER_ERROR,
+        message: error.toString()
+      }
+      return responseData;
+    }
+  }
+
+  public async viewAnOrder(payload: any):Promise<ResponseData>{
+    let responseData: ResponseData = {
+      status: StatusMessages.success,
+        code: HttpCodes.HTTP_OK,
+        message:"Order Retrieved Successfully"
+    }
+    try {
+      const {
+      order_id,
+      user,
+      } = payload
+      const order = await this.Order.findOne({_id:order_id, user: user._id})
+      .populate({
+        path:"items.vendor",
+        select:"firstName lastName Email ProfileImage PhoneNumber"
+      })
+      .populate({
+        path:"user",
+        select:"FirstName LastName ProfileImage Email PhoneNumber"
+      })
+      .populate("shipment")
+      
+      if(!order) {
+        return {
+          status: StatusMessages.error,
+          code: HttpCodes.HTTP_BAD_REQUEST,
+          message: "Order Not Found"
+        }
+      }
+      
+      responseData.data = order
+      return responseData
+    } catch (error: any) {
+      console.log("🚀 ~ AdminOverviewService ~ viewAnOrder ~ error:", error)
+       responseData = {
         status: StatusMessages.error,
         code: HttpCodes.HTTP_SERVER_ERROR,
         message: error.toString()

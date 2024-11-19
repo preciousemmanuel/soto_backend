@@ -16,16 +16,28 @@ const category_controller_1 = __importDefault(require("./resources/category/cate
 const order_controller_1 = __importDefault(require("./resources/order/order.controller"));
 const mail_controller_1 = __importDefault(require("./resources/mail/mail.controller"));
 const transaction_controller_1 = __importDefault(require("./resources/transaction/transaction.controller"));
+const delivery_controller_1 = __importDefault(require("./resources/delivery/delivery.controller"));
+const adminOverview_controller_1 = __importDefault(require("./resources/adminOverview/adminOverview.controller"));
+const coupon_controller_1 = __importDefault(require("./resources/coupon/coupon.controller"));
+const adminPeople_controller_1 = __importDefault(require("./resources/adminPeople/adminPeople.controller"));
+const notification_controller_1 = __importDefault(require("./resources/notification/notification.controller"));
+const adminConfig_controller_1 = __importDefault(require("./resources/adminConfig/adminConfig.controller"));
+const adminConfig_service_1 = __importDefault(require("./resources/adminConfig/adminConfig.service"));
 dotenv_1.default.config({ path: `${process.env.NODE_ENV}.env` });
 (0, validateEnv_1.default)();
 const app = new app_1.default([
-    new user_controller_1.default(),
-    new product_controller_1.default(),
+    new adminConfig_controller_1.default(),
+    new adminOverview_controller_1.default(),
+    new adminPeople_controller_1.default(),
     new business_controller_1.default(),
     new category_controller_1.default(),
-    new order_controller_1.default(),
+    new delivery_controller_1.default(),
     new mail_controller_1.default(),
-    new transaction_controller_1.default()
-    // new TransactionController(),
-], Number(process.env.PORT), new category_service_1.default());
+    new order_controller_1.default(),
+    new product_controller_1.default(),
+    new transaction_controller_1.default(),
+    new user_controller_1.default(),
+    new coupon_controller_1.default(),
+    new notification_controller_1.default(),
+], Number(process.env.PORT), new category_service_1.default(), new adminConfig_service_1.default());
 app.listen();

@@ -11,6 +11,7 @@ export interface User extends Document {
   Role: string;
   Token: string;
   PhoneNumber: string;
+  ProfileImage?: string;
   Password: string;
   SignupChannel?: string;
   ShippingAddress?: ShippingAddress;
@@ -19,8 +20,8 @@ export interface User extends Document {
   wallet?: mongoose.Types.ObjectId;
   business?: mongoose.Types.ObjectId;
   cart?: mongoose.Types.ObjectId;
-  // fcmToken?:string;
-  // playerId?:string;
+  fcmToken?:string;
+  playerId?:string;
 }
 
 export interface ShippingAddress {

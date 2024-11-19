@@ -5,7 +5,7 @@ import { IdentificationTypes, } from "@/utils/enums/base.enum";
 
 
 
-const WalletSchema = new Schema(
+const CouponSchema = new Schema(
   {
     user: {
       type: mongoose.Types.ObjectId,
@@ -35,4 +35,4 @@ const WalletSchema = new Schema(
 );
 
 
-export default model("Wallets", WalletSchema);
+export default model("Coupons", CouponSchema);

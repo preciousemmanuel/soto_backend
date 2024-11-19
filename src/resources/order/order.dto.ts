@@ -2,7 +2,8 @@ import {
   IdentificationTypes,
   OrderPaymentType,
   SignupChannels,
-  UserTypes
+  UserTypes,
+  YesOrNo
 } from "@/utils/enums/base.enum";
 import { orderItems } from "./order.interface";
 import { OrderStatus } from "aws-sdk/clients/outposts";
@@ -12,6 +13,7 @@ export interface CreateOrderDto {
   items: orderItems[];
   shipping_address?: string;
   payment_type?: OrderPaymentType;
+  checkout_with_cart: YesOrNo
 }
 
 export interface AddToCartDto {
