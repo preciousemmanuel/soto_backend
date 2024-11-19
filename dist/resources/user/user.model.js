@@ -102,6 +102,10 @@ const UserSchema = new mongoose_1.Schema({
     business: {
         type: mongoose_1.default.Types.ObjectId,
         ref: "Businesses"
+    },
+    cart: {
+        type: mongoose_1.default.Types.ObjectId,
+        ref: "Carts"
     }
 }, {
     collection: "Users",
