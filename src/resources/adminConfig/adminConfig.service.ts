@@ -189,6 +189,10 @@ class AdminConfigService {
 		};
 		try {
 			const { admin, address, city, postal_code, state, country } = payload;
+			console.log(
+				"🚀 ~ AdminConfigService addAddressDetails ~ payload:",
+				payload
+			);
 			const body = {
 				first_name: admin.FirstName,
 				last_name: admin.FirstName,
@@ -239,7 +243,7 @@ class AdminConfigService {
 			responseData.data = updatedAddress;
 			return responseData;
 		} catch (error: any) {
-			console.log("🚀 ~ AdminConfigService ~ error:", error);
+			console.log("🚀 ~ AdminConfigService addAddressDetails~ error:", error);
 			return catchBlockResponse;
 		}
 	}
