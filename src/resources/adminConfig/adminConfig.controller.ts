@@ -13,6 +13,8 @@ import {
 	CreateBusinessDto,
 	CreateRoleDto,
 	OverviewDto,
+	UpdateAdminProfileDto,
+	UpdateRoleDto,
 	VerificationDto,
 } from "./adminConfig.dto";
 import { Business } from "./adminConfig.interface";
@@ -61,11 +63,40 @@ class AdminConfigController implements Controller {
 			this.fetchRoles
 		);
 
+		this.router.put(
+			`${this.path}/role/update/:id`,
+			adminAuthMiddleware(AdminPermissions.CONFIG, AccessControlOptions.WRITE),
+			validationMiddleware(validate.modelIdSchema, RequestData.params),
+			validationMiddleware(validate.UpdateAdminRoleSchema),
+			this.updateAdminRole
+		);
+
 		this.router.get(
 			`${this.path}/staffs/fetch`,
 			adminAuthMiddleware(AdminPermissions.ADMIN, AccessControlOptions.READ),
 			validationMiddleware(validate.paginationSchema, RequestData.query),
 			this.getStaffs
+		);
+
+		this.router.put(
+			`${this.path}/staffs/update-role/:id`,
+			adminAuthMiddleware(AdminPermissions.CONFIG, AccessControlOptions.WRITE),
+			validationMiddleware(validate.modelIdSchema, RequestData.params),
+			validationMiddleware(validate.updateStaffRoleSchema, RequestData.query),
+			this.updateStaffRole
+		);
+
+		this.router.get(
+			`${this.path}/profile`,
+			adminAuthMiddleware(AdminPermissions.ADMIN, AccessControlOptions.READ),
+			this.getProfile
+		);
+		this.router.put(
+			`${this.path}/edit-profile`,
+			adminAuthMiddleware(AdminPermissions.ADMIN, AccessControlOptions.READ),
+			upload.single("profile_image"),
+			validationMiddleware(validate.editProfileSchema),
+			this.editProfile
 		);
 	}
 
@@ -78,6 +109,38 @@ class AdminConfigController implements Controller {
 			const payload: AdminLoginDto = req.body;
 			const { status, code, message, data } =
 				await this.adminOverviewService.adminLogin(payload);
+			return responseObject(res, code, status, message, data);
+		} catch (error: any) {
+			next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()));
+		}
+	};
+
+	private getProfile = async (
+		req: Request,
+		res: Response,
+		next: NextFunction
+	): Promise<Response | void> => {
+		try {
+			const { status, code, message, data } =
+				await this.adminOverviewService.getProfile(req.admin);
+			return responseObject(res, code, status, message, data);
+		} catch (error: any) {
+			next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()));
+		}
+	};
+
+	private editProfile = async (
+		req: Request,
+		res: Response,
+		next: NextFunction
+	): Promise<Response | void> => {
+		try {
+			const payload: UpdateAdminProfileDto = req.body;
+			if (req.file) {
+				payload.profile_image = req.file as Express.Multer.File;
+			}
+			const { status, code, message, data } =
+				await this.adminOverviewService.editProfile(req.admin, payload);
 			return responseObject(res, code, status, message, data);
 		} catch (error: any) {
 			next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()));
@@ -134,6 +197,27 @@ class AdminConfigController implements Controller {
 		}
 	};
 
+	private updateAdminRole = async (
+		req: Request,
+		res: Response,
+		next: NextFunction
+	): Promise<Response | void> => {
+		try {
+			const payload: UpdateRoleDto = {
+				...req.body,
+				...(req?.admin && { created_by: String(req.admin._id) }),
+			};
+			const { status, code, message, data } =
+				await this.adminOverviewService.updateRole(
+					payload,
+					String(req.params.id)
+				);
+			return responseObject(res, code, status, message, data);
+		} catch (error: any) {
+			next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()));
+		}
+	};
+
 	private getStaffs = async (
 		req: Request,
 		res: Response,
@@ -146,6 +230,22 @@ class AdminConfigController implements Controller {
 			const role = req?.query?.role ? String(req.query.role) : undefined;
 			const { status, code, message, data } =
 				await this.adminOverviewService.getStaffs(limit, page, search, role);
+			return responseObject(res, code, status, message, data);
+		} catch (error: any) {
+			next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()));
+		}
+	};
+
+	private updateStaffRole = async (
+		req: Request,
+		res: Response,
+		next: NextFunction
+	): Promise<Response | void> => {
+		try {
+			const staff_id = String(req.params.id);
+			const role_id = String(req.query.role_id);
+			const { status, code, message, data } =
+				await this.adminOverviewService.updateStaffRole(staff_id, role_id);
 			return responseObject(res, code, status, message, data);
 		} catch (error: any) {
 			next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()));

@@ -54,6 +54,7 @@ export enum OrderStatus {
 	DELIVERED = "DELIVERED",
 	FAILED = "FAILED",
 	RETURNED = "RETURNED",
+	PICKED_UP = "PICKED_UP",
 }
 
 export enum OrderPaymentType {
