@@ -15,13 +15,19 @@ import {
 import { Business } from "./adminPeople.interface";
 import upload from "@/utils/config/multer";
 import { endOfDay, startOfDay } from "date-fns";
-import { backDaterForChart, backTrackToADate } from "@/utils/helpers";
+import {
+	backDaterForChart,
+	backDaterForChartCustomDate,
+	backTrackToADate,
+} from "@/utils/helpers";
 import {
 	AccessControlOptions,
 	AdminPermissions,
 	RequestData,
 } from "@/utils/enums/base.enum";
 import adminAuthMiddleware from "@/middleware/adminAuth.middleware";
+import mongoose from "mongoose";
+import { backDaterArray } from "@/utils/interfaces/base.interface";
 
 class AdminPeopleController implements Controller {
 	public path = "/admin";
@@ -59,6 +65,26 @@ class AdminPeopleController implements Controller {
 				adminAuthMiddleware(AdminPermissions.SELLER, AccessControlOptions.READ),
 				validationMiddleware(validate.modelIdSchema, RequestData.params),
 				this.viewOneSeller
+			),
+			this.router.get(
+				`${this.path}/purchasers/get-all`,
+				adminAuthMiddleware(AdminPermissions.ADMIN, AccessControlOptions.READ),
+				this.getPurchasers
+			),
+			this.router.get(
+				`${this.path}/purchasers/view-one/:id`,
+				adminAuthMiddleware(AdminPermissions.ADMIN, AccessControlOptions.READ),
+				validationMiddleware(validate.modelIdSchema, RequestData.params),
+				this.viewAPurchaser
+			),
+			this.router.get(
+				`${this.path}/purchasers/get-pickups`,
+				adminAuthMiddleware(AdminPermissions.ADMIN, AccessControlOptions.READ),
+				validationMiddleware(
+					validate.DashboardOverviewSchema,
+					RequestData.query
+				),
+				this.getPickupAssignments
 			);
 	}
 
@@ -138,25 +164,28 @@ class AdminPeopleController implements Controller {
 	): Promise<Response | void> => {
 		try {
 			var query: OverviewDto = req.query;
-			const start_date = query?.start_date
-				? startOfDay(new Date(query.start_date))
-				: query.timeLine
-					? (
-							await backDaterForChart({
-								input: new Date(),
-								format: query.timeLine,
-							})
-						).array[0]?.start
+			const customDateRange =
+				query?.start_date && query?.end_date
+					? await backDaterForChartCustomDate({
+							start_date: new Date(String(query.start_date)),
+							end_date: new Date(String(query.end_date)),
+						})
 					: undefined;
-			const end_date = query?.end_date
-				? endOfDay(new Date(query.end_date))
-				: query.timeLine
-					? (
-							await backDaterForChart({
-								input: new Date(),
-								format: query.timeLine,
-							})
-						).array.slice(-1)[0]?.end
+			const timeLineRange = query?.timeLine
+				? await backDaterForChart({
+						input: new Date(),
+						format: query.timeLine,
+					})
+				: undefined;
+			const start_date = customDateRange
+				? customDateRange.array[0]?.start
+				: timeLineRange
+					? timeLineRange.array[0]?.start
+					: undefined;
+			const end_date = customDateRange
+				? customDateRange.array.slice(-1)[0]?.end
+				: timeLineRange
+					? timeLineRange.array.slice(-1)[0]?.end
 					: undefined;
 
 			const payload: OverviewDto = {
@@ -167,11 +196,18 @@ class AdminPeopleController implements Controller {
 				...(query?.search &&
 					query?.search !== "" &&
 					query?.search !== null && { search: String(query.search) }),
+				advanced_report_timeline: customDateRange
+					? customDateRange.array
+					: timeLineRange?.array,
 			};
+
+			const dateRange: backDaterArray[] = customDateRange
+				? customDateRange.array
+				: timeLineRange?.array || [];
 
 			const user = req.user;
 			const { status, code, message, data } =
-				await this.adminOverviewService.getSellers(payload);
+				await this.adminOverviewService.getSellers(payload, dateRange);
 			return responseObject(res, code, status, message, data);
 		} catch (error: any) {
 			next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()));
@@ -194,6 +230,77 @@ class AdminPeopleController implements Controller {
 			const user = req.user;
 			const { status, code, message, data } =
 				await this.adminOverviewService.viewOneSeller(payload);
+			return responseObject(res, code, status, message, data);
+		} catch (error: any) {
+			next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()));
+		}
+	};
+
+	private getPurchasers = async (
+		req: Request,
+		res: Response,
+		next: NextFunction
+	): Promise<Response | void> => {
+		try {
+			var query: OverviewDto = req.query;
+			const payload: any = {
+				limit: query?.limit ? Number(query?.limit) : 10,
+				page: query?.page ? Number(query?.page) : 1,
+				...(req.query?.search &&
+					req?.query?.search !== null &&
+					req?.query?.search !== "" && { search: String(req.query?.search) }),
+			};
+
+			const user = req.user;
+			const { status, code, message, data } =
+				await this.adminOverviewService.getPurchasers(payload);
+			return responseObject(res, code, status, message, data);
+		} catch (error: any) {
+			next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()));
+		}
+	};
+
+	private viewAPurchaser = async (
+		req: Request,
+		res: Response,
+		next: NextFunction
+	): Promise<Response | void> => {
+		try {
+			const purchaser_id = String(req.params.id);
+			const { status, code, message, data } =
+				await this.adminOverviewService.viewaPurchaser(purchaser_id);
+			return responseObject(res, code, status, message, data);
+		} catch (error: any) {
+			next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()));
+		}
+	};
+
+	private getPickupAssignments = async (
+		req: Request,
+		res: Response,
+		next: NextFunction
+	): Promise<Response | void> => {
+		try {
+			var query: OverviewDto = req.query;
+			const payload: any = {
+				limit: query?.limit ? Number(query?.limit) : 10,
+				page: query?.page ? Number(query?.page) : 1,
+				...(req.query?.search &&
+					req?.query?.search !== null &&
+					req?.query?.search !== "" && { search: String(req.query?.search) }),
+				...(req.query?.status &&
+					req?.query?.status !== null &&
+					req?.query?.status !== "" && { status: String(req.query?.status) }),
+				...(req.query?.purchaser &&
+					req?.query?.purchaser !== null &&
+					req?.query?.purchaser !== "" && {
+						purchaser: new mongoose.Types.ObjectId(String(req.query?.status)),
+					}),
+			};
+
+			const user = req.user;
+			const { status, code, message, data } =
+				await this.adminOverviewService.getPickupAssignments(payload);
 			return responseObject(res, code, status, message, data);
 		} catch (error: any) {
 			next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()));
