@@ -55,6 +55,8 @@ import userModel from "@/resources/user/user.model";
 import genCouponModel from "../coupon/genCoupon.model";
 import adminModel from "../adminConfig/admin.model";
 import { catchBlockResponse } from "@/utils/constants/data";
+import { AddProductDto, UpdateProductDto } from "../product/product.dto";
+import ProductService from "../product/product.service";
 
 class AdminOverviewService {
 	private User = UserModel;
@@ -65,6 +67,7 @@ class AdminOverviewService {
 	private GeneralCoupon = genCouponModel;
 	private Admin = adminModel;
 	private mailService = new MailService();
+	private productService = new ProductService();
 
 	public async getOverview(
 		payload: any,
@@ -84,9 +87,16 @@ class AdminOverviewService {
 				page,
 				limit,
 			} = payload;
+			console.log("🚀 ~ AdminOverviewService ~ payload:", payload);
 			let revenue_amount: number = 0;
 			let previous_revenue_amount: number = 0;
 			let revenue_percentage: number = 0;
+			let buyers_amount: number = 0;
+			let previous_buyers_amount: number = 0;
+			let buyers_percentage: number = 0;
+			let sellers_amount: number = 0;
+			let previous_sellers_amount: number = 0;
+			let sellers_percentage: number = 0;
 			let visitors_amount: number = 0;
 			let previous_visitors_amount: number = 0;
 			let visitors_percentage: number = 0;
@@ -162,7 +172,7 @@ class AdminOverviewService {
 									$multiply: [
 										{
 											$divide: [
-												{ $subtract: ["$sumAmount2", "$sumAmount1"] },
+												{ $subtract: ["$sumAmount1", "$sumAmount2"] },
 												"$sumAmount1",
 											],
 										},
@@ -241,7 +251,7 @@ class AdminOverviewService {
 									$multiply: [
 										{
 											$divide: [
-												{ $subtract: ["$countAmount2", "$countAmount1"] },
+												{ $subtract: ["$countAmount1", "$countAmount2"] },
 												"$countAmount1",
 											],
 										},
@@ -255,15 +265,164 @@ class AdminOverviewService {
 			];
 
 			const orderAggregate = await this.Order.aggregate(orderPipeline);
-			console.log(
-				"🚀 ~ AdminOverviewService ~ orderAggregate:",
-				orderAggregate
-			);
 			if (orderAggregate.length > 0) {
 				orders_amount = orderAggregate[0]?.countAmount1 || 0;
 				previous_orders_amount = orderAggregate[0]?.countAmount2 || 0;
 				orders_percentage = orderAggregate[0]?.percentageDifference || 0;
 			}
+
+			const buyersPipeline = [
+				{
+					$facet: {
+						count1: [
+							{
+								$match: {
+									createdAt: {
+										$gte: new Date(start_date),
+										$lte: new Date(end_date),
+									},
+									UserType: UserTypes.USER,
+								},
+							},
+							{
+								$count: "totalCount",
+							},
+						],
+						count2: [
+							{
+								$match: {
+									createdAt: {
+										$gte: new Date(previous_start_date),
+										$lte: new Date(previous_end_date),
+									},
+									UserType: UserTypes.USER,
+								},
+							},
+							{
+								$count: "totalCount",
+							},
+						],
+					},
+				},
+				{
+					$project: {
+						countAmount1: { $arrayElemAt: ["$count1.totalCount", 0] },
+						countAmount2: { $arrayElemAt: ["$count2.totalCount", 0] },
+					},
+				},
+				{
+					$addFields: {
+						percentageDifference: {
+							$cond: {
+								if: { $eq: ["$countAmount1", 0] },
+								then: {
+									$cond: {
+										if: { $eq: ["$countAmount2", 0] },
+										then: 0,
+										else: 100,
+									},
+								},
+								else: {
+									$multiply: [
+										{
+											$divide: [
+												{ $subtract: ["$countAmount1", "$countAmount2"] },
+												"$countAmount1",
+											],
+										},
+										100,
+									],
+								},
+							},
+						},
+					},
+				},
+			];
+
+			const buyerAggregate = await this.User.aggregate(buyersPipeline);
+
+			if (buyerAggregate.length > 0) {
+				buyers_amount = buyerAggregate[0]?.countAmount1 || 0;
+				previous_buyers_amount = buyerAggregate[0]?.countAmount2 || 0;
+				buyers_percentage = buyerAggregate[0]?.percentageDifference || 0;
+			}
+
+			const sellersPipeline = [
+				{
+					$facet: {
+						count1: [
+							{
+								$match: {
+									createdAt: {
+										$gte: new Date(start_date),
+										$lte: new Date(end_date),
+									},
+									UserType: UserTypes.VENDOR,
+								},
+							},
+							{
+								$count: "totalCount",
+							},
+						],
+						count2: [
+							{
+								$match: {
+									createdAt: {
+										$gte: new Date(previous_start_date),
+										$lte: new Date(previous_end_date),
+									},
+									UserType: UserTypes.VENDOR,
+								},
+							},
+							{
+								$count: "totalCount",
+							},
+						],
+					},
+				},
+				{
+					$project: {
+						countAmount1: { $arrayElemAt: ["$count1.totalCount", 0] },
+						countAmount2: { $arrayElemAt: ["$count2.totalCount", 0] },
+					},
+				},
+				{
+					$addFields: {
+						percentageDifference: {
+							$cond: {
+								if: { $eq: ["$countAmount1", 0] },
+								then: {
+									$cond: {
+										if: { $eq: ["$countAmount2", 0] },
+										then: 0,
+										else: 100,
+									},
+								},
+								else: {
+									$multiply: [
+										{
+											$divide: [
+												{ $subtract: ["$countAmount1", "$countAmount2"] },
+												"$countAmount1",
+											],
+										},
+										100,
+									],
+								},
+							},
+						},
+					},
+				},
+			];
+
+			const sellersAggregate = await this.User.aggregate(sellersPipeline);
+
+			if (sellersAggregate.length > 0) {
+				sellers_amount = sellersAggregate[0]?.countAmount1 || 0;
+				previous_sellers_amount = sellersAggregate[0]?.countAmount2 || 0;
+				sellers_percentage = sellersAggregate[0]?.percentageDifference || 0;
+			}
+
 			const advanced_report_pipeline = [];
 
 			const facetStage: { $facet: FacetStage } = {
@@ -408,7 +567,7 @@ class AdminOverviewService {
 									$multiply: [
 										{
 											$divide: [
-												{ $subtract: ["$sumAmount2", "$sumAmount1"] },
+												{ $subtract: ["$sumAmount1", "$sumAmount2"] },
 												"$sumAmount1",
 											],
 										},
@@ -432,25 +591,47 @@ class AdminOverviewService {
 			responseData.data = {
 				revenue: {
 					amount: revenue_amount,
-					percentage_change: revenue_percentage,
+					percentage_change: Number(
+						parseFloat(revenue_percentage.toString()).toFixed(1)
+					),
+				},
+				buyers: {
+					amount: buyers_amount,
+					percentage_change: Number(
+						parseFloat(buyers_percentage.toString()).toFixed(1)
+					),
+				},
+				sellers: {
+					amount: sellers_amount,
+					percentage_change: Number(
+						parseFloat(sellers_percentage.toString()).toFixed(1)
+					),
 				},
 				visitors: {
 					amount: visitors_amount,
-					percentage_change: visitors_percentage,
+					percentage_change: Number(
+						parseFloat(visitors_percentage.toString()).toFixed(1)
+					),
 				},
 				orders: {
 					amount: orders_amount,
-					percentage_change: orders_percentage,
+					percentage_change: Number(
+						parseFloat(orders_percentage.toString()).toFixed(1)
+					),
 				},
 				conversion: {
 					amount: conversion_amount,
-					percentage_change: conversion_percentage,
+					percentage_change: Number(
+						parseFloat(conversion_percentage.toString()).toFixed(1)
+					),
 				},
 				advanced_report,
 				cart: {
 					abandonned_cart: abandonned_cart_amount,
 					abandonned_revenue: abandonned_cart_revenue,
-					percentage: abandonned_cart_percentage,
+					percentage: Number(
+						parseFloat(abandonned_cart_percentage.toString()).toFixed(1)
+					),
 				},
 			};
 
@@ -1048,6 +1229,63 @@ class AdminOverviewService {
 				message: error.toString(),
 			};
 			return responseData;
+		}
+	}
+
+	public async createProduct(payload: AddProductDto): Promise<ResponseData> {
+		try {
+			const sotoUser =
+				(await this.User.findOne({
+					FirstName: "SOTO",
+					LastName: "SOTO",
+					Email: "soto@gmail.com",
+					PhoneNumber: "0000000",
+				})) ||
+				(await this.User.create({
+					FirstName: "SOTO",
+					LastName: "SOTO",
+					Email: "soto@gmail.com",
+					PhoneNumber: "0000000",
+				}));
+			const addProduct = await this.productService.addProduct(
+				payload,
+				sotoUser
+			);
+			return addProduct;
+		} catch (error: any) {
+			console.log("🚀 ~ AdminOverviewService ~ createProduct ~ error:", error);
+			return catchBlockResponse;
+		}
+	}
+
+	public async updateProduct(payload: UpdateProductDto): Promise<ResponseData> {
+		try {
+			const sotoUser =
+				(await this.User.findOne({
+					FirstName: "SOTO",
+					LastName: "SOTO",
+					Email: "soto@gmail.com",
+					PhoneNumber: "0000000",
+				})) ||
+				(await this.User.create({
+					FirstName: "SOTO",
+					LastName: "SOTO",
+					Email: "soto@gmail.com",
+					PhoneNumber: "0000000",
+				}));
+			console.log(
+				"🚀 ~ AdminOverviewService ~ updateProduct ~ sotoUser:",
+				sotoUser
+			);
+
+			const addProduct = await this.productService.updateProduct(
+				payload,
+				sotoUser
+			);
+			return addProduct;
+		} catch (error: any) {
+			console.log("🚀 ~ AdminOverviewService ~ updateProduct ~ error:", error);
+			return catchBlockResponse;
 		}
 	}
 
