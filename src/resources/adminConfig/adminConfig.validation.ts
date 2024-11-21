@@ -7,8 +7,11 @@ const adminLoginSchema = Joi.object({
 });
 
 const modelIdSchema = Joi.object({
-	email: Joi.string().email().required(),
-	password: Joi.string().required(),
+	id: Joi.string().required(),
+});
+
+const updateStaffRoleSchema = Joi.object({
+	role_id: Joi.string().required(),
 });
 
 const adminCreateSchema = Joi.object({
@@ -22,6 +25,20 @@ const adminCreateSchema = Joi.object({
 	postal_code: Joi.string().optional(),
 	state: Joi.string().required(),
 	country: Joi.string().required(),
+});
+
+const editProfileSchema = Joi.object({
+	first_name: Joi.string().optional(),
+	last_name: Joi.string().optional(),
+	email: Joi.string().email().optional(),
+	phone_number: Joi.string().optional(),
+	password: Joi.string().optional(),
+	address: Joi.string().optional(),
+	city: Joi.string().optional(),
+	postal_code: Joi.string().optional(),
+	state: Joi.string().optional(),
+	country: Joi.string().optional(),
+	profile_image: Joi.object({}).optional(),
 });
 
 const paginationSchema = Joi.object().keys({
@@ -63,10 +80,59 @@ const CreateAdminRoleSchema = Joi.object().keys({
 	}),
 });
 
+const UpdateAdminRoleSchema = Joi.object().keys({
+	name: Joi.string(),
+	admin: Joi.object()
+		.keys({
+			read: Joi.string().valid(YesOrNo.YES, YesOrNo.NO),
+			write: Joi.string().valid(YesOrNo.YES, YesOrNo.NO),
+		})
+		.optional(),
+	config: Joi.object()
+		.keys({
+			read: Joi.string().valid(YesOrNo.YES, YesOrNo.NO),
+			write: Joi.string().valid(YesOrNo.YES, YesOrNo.NO),
+		})
+		.optional(),
+	order: Joi.object()
+		.keys({
+			read: Joi.string().valid(YesOrNo.YES, YesOrNo.NO),
+			write: Joi.string().valid(YesOrNo.YES, YesOrNo.NO),
+		})
+		.optional(),
+	buyer: Joi.object()
+		.keys({
+			read: Joi.string().valid(YesOrNo.YES, YesOrNo.NO),
+			write: Joi.string().valid(YesOrNo.YES, YesOrNo.NO),
+		})
+		.optional(),
+	seller: Joi.object()
+		.keys({
+			read: Joi.string().valid(YesOrNo.YES, YesOrNo.NO),
+			write: Joi.string().valid(YesOrNo.YES, YesOrNo.NO),
+		})
+		.optional(),
+	product: Joi.object()
+		.keys({
+			read: Joi.string().valid(YesOrNo.YES, YesOrNo.NO),
+			write: Joi.string().valid(YesOrNo.YES, YesOrNo.NO),
+		})
+		.optional(),
+	transaction: Joi.object()
+		.keys({
+			read: Joi.string().valid(YesOrNo.YES, YesOrNo.NO),
+			write: Joi.string().valid(YesOrNo.YES, YesOrNo.NO),
+		})
+		.optional(),
+});
+
 export default {
 	adminLoginSchema,
 	modelIdSchema,
 	paginationSchema,
 	CreateAdminRoleSchema,
+	UpdateAdminRoleSchema,
 	adminCreateSchema,
+	updateStaffRoleSchema,
+	editProfileSchema,
 };
