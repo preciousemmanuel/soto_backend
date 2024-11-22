@@ -10,6 +10,7 @@ import authenticatedMiddleware from "@/middleware/authenticated.middleware";
 import {
 	CreateBusinessDto,
 	OverviewDto,
+	UpdateUserByAdminDto,
 	VerificationDto,
 } from "./adminPeople.dto";
 import { Business } from "./adminPeople.interface";
@@ -65,6 +66,13 @@ class AdminPeopleController implements Controller {
 				adminAuthMiddleware(AdminPermissions.SELLER, AccessControlOptions.READ),
 				validationMiddleware(validate.modelIdSchema, RequestData.params),
 				this.viewOneSeller
+			),
+			this.router.put(
+				`${this.path}/update-a-buyer-or-seller/:id`,
+				adminAuthMiddleware(AdminPermissions.SELLER, AccessControlOptions.READ),
+				validationMiddleware(validate.modelIdSchema, RequestData.params),
+				validationMiddleware(validate.updateUserSchema),
+				this.updateBuyerOrSeller
 			),
 			this.router.get(
 				`${this.path}/purchasers/get-all`,
@@ -160,6 +168,27 @@ class AdminPeopleController implements Controller {
 			const user = req.user;
 			const { status, code, message, data } =
 				await this.adminOverviewService.viewOneBuyer(payload);
+			return responseObject(res, code, status, message, data);
+		} catch (error: any) {
+			next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()));
+		}
+	};
+
+	private updateBuyerOrSeller = async (
+		req: Request,
+		res: Response,
+		next: NextFunction
+	): Promise<Response | void> => {
+		try {
+			const user_id = req.params.id.toString();
+			const payload: UpdateUserByAdminDto = req.body;
+			const admin = req.admin;
+			const { status, code, message, data } =
+				await this.adminOverviewService.updateBuyerOrSeller(
+					admin,
+					user_id,
+					payload
+				);
 			return responseObject(res, code, status, message, data);
 		} catch (error: any) {
 			next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()));
