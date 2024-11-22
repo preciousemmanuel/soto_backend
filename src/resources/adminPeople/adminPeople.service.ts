@@ -53,6 +53,7 @@ class AdminPeopleService {
 		payload: any,
 		dateRange: backDaterArray[]
 	): Promise<ResponseData> {
+
 		let responseData: ResponseData = {
 			status: StatusMessages.success,
 			code: HttpCodes.HTTP_OK,

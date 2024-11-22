@@ -232,6 +232,7 @@ export const backDaterForChart = async (
 				end,
 				day: new Date(day1).toDateString(),
 				raw_date: new Date(day1),
+
 			};
 			return {
 				format: "Today",
@@ -248,6 +249,7 @@ export const backDaterForChart = async (
 				end,
 				day: new Date(day2y).toDateString(),
 				raw_date: new Date(day2y),
+
 			};
 
 			return {
@@ -268,6 +270,7 @@ export const backDaterForChart = async (
 				end: endOfDay(startDay),
 				day: startDay.toDateString(),
 				raw_date: new Date(startDay),
+
 			};
 			array.push(object3);
 			while (i < 7) {
@@ -310,6 +313,7 @@ export const backDaterForChart = async (
 					end,
 					day: new Date(day).toDateString(),
 					raw_date: new Date(day),
+
 				};
 				array1.push(object);
 				i1 -= 1;
@@ -344,6 +348,7 @@ export const backDaterForChart = async (
 						end,
 						day: day.toDateString(),
 						raw_date: new Date(day),
+
 					};
 					array2.unshift(dateObject);
 					thisArray.unshift(dateObject);
@@ -359,6 +364,7 @@ export const backDaterForChart = async (
 						end,
 						day: new Date(day).toDateString(),
 						raw_date: new Date(day),
+
 					};
 					array2.push(object);
 					i2 += 7;

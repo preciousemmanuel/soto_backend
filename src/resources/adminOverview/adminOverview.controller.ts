@@ -97,6 +97,7 @@ class AdminOverviewController implements Controller {
 			this.updateAProduct
 		);
 
+
 		this.router.get(
 			`${this.path}/view-a-product/:id`,
 			adminAuthMiddleware(AdminPermissions.PRODUCT, AccessControlOptions.READ),
@@ -182,6 +183,7 @@ class AdminOverviewController implements Controller {
 			const previous_start_date = backDaterForPrevious
 				? backDaterForPrevious.array[0]?.start
 				: undefined;
+
 			// const previous_end_date = backDaterForPrevious
 			// 	? backDaterForPrevious.array.slice(-1)[0]?.end
 			// 	: undefined;
@@ -475,6 +477,7 @@ class AdminOverviewController implements Controller {
 			next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()));
 		}
 	};
+
 
 	private adminAddShippingAddress = async (
 		req: Request,

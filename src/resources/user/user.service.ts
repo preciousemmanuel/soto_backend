@@ -635,6 +635,7 @@ class UserService {
 				otp: oneTimePassword.otp,
 				first_name: user.FirstName,
 			});
+
 			responseData = {
 				status: StatusMessages.success,
 				code: HttpCodes.HTTP_OK,

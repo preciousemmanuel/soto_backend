@@ -29,6 +29,7 @@ import { currency } from "@/utils/constants/data";
 import cardModel from "./card.model";
 import walletModel from "../business/wallet.model";
 
+
 class TransactionService {
   private TransactionLog = TransactionLogModel;
   private User = UserModel
