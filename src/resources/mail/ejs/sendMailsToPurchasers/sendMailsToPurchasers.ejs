@@ -6,7 +6,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
-  <title>SOTO e commerce</title>
+  <title>Soto Vendor Pickup</title>
   <style>
     @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap");
 
@@ -158,8 +158,8 @@
       <img src="https://res.cloudinary.com/pabloclueless/image/upload/v1692004278/onboard-logo_z6lkdr.png" alt=""
         style="width: 150px;">
       <div class="row" style="gap: 10px;">
-        <p style="font-size: 12px;color: #fff;">Signup</p>
         <p style="font-size: 12px;color: #fff;">Order</p>
+        <p style="font-size: 12px;color: #fff;">Buy</p>
         <p style="font-size: 12px;color: #fff;">Deliver</p>
       </div>
     </div>
@@ -167,29 +167,34 @@
   <main style="width: 100%;padding: 38px 20px;margin-bottom: 66px;">
     <p class="text__name">Hi <%= String(first_name).toUpperCase() %>,</p>
     <div class="body">
-      <p class="body-text">Welcome To Soto!!!
+      <p class="body-text">You Have Vendor Pickup Request
       </p>
-      <p class="body-text">click Here To Complete User Sign Up: <br>
-        <a href="<%=verify_signup_link %>" class="verify-button">Verify Signup</a>
+      <% for (const item of assignments) {%>
+        <p class="body-text"> Product Name: <%= item.extra_detail.product_name %>, | Quantity Ordered: <%= item.extra_detail.quantity %>
+        </p>
+        <p class="body-text"> Vendor Name: <%= item.vendor_contact.first_name %>, <%= item.vendor_contact.first_name %>
+        </p>
+        <p class="body-text"> Vendor Phone: <%= item.vendor_contact.phone_number %>,
+        </p>
+        <p class="body-text"> Vendor Full Address: <%= item.vendor_contact.full_address %>,
+        </p>
+        <p class="body-text"> Vendor Street: <%= item.vendor_contact.address %>,
+        </p>
+        <p class="body-text"> Vendor City: <%= item.vendor_contact.city %>,
+        </p>
+        <p class="body-text"> Vendor State: <%= item.vendor_contact.state %>,
+        </p>
+        <% } %>
 
-      </p>
-
-      <p class="body-text">If there are any additional documents required or if we need further
-        information
-        from your end, our team will be in touch promptly. You can track the status of your booking at any time by
-        logging into your account on our website.</p>
-      <p class="body-text">We value your business and are committed to providing you with a seamless
-        experience
-        throughout the visa application process. If you have any questions or concerns, please don't hesitate to reach
-        out to our dedicated customer support team at <a href="mailto: Info@onboard.com.ng">Info@onboard.com.ng</a>.</p>
-      <p class="body-text">Thank you for choosing Onboard Web Logistics for your visa application
-        needs. We
-        look forward to assisting you on your journey.</p>
-      <p class="body-text">
-        <span>Best regards,</span>
-        <br>
-        <b>Onboard NG</b>
-      </p>
+          <p class="body-text">If there are any additional information you need, kindly reach out to our help desk.</p>
+         
+          <p class="body-text">Thank you for choosing Soto E-commerce. We
+            look forward to assisting you on your journey.</p>
+          <p class="body-text">
+            <span>Best regards,</span>
+            <br>
+            <b>Soto NG</b>
+          </p>
     </div>
   </main>
   <footer
@@ -205,9 +210,8 @@
     </div>
     <p style="margin: 16px 0 32px 0;">&copy; <span id="year"></span> Onboard. All rights reserved.</p>
     <div class="footer-details">
-      <p>You are receiving this mail because you registered to join the Onboard platform as a user or a creator. This
-        also shows that you agree to our Terms of use and Privacy Policies. If you no longer want to receive mails from
-        use, click the unsubscribe link below to unsubscribe.</p>
+      <p>You are receiving this mail because you registered as a pickup agent on the soto e commerce platoform. This
+        also shows that you agree to our Terms of use and Privacy Policies. .</p>
       <div style="display: flex;align-items: center;gap: 8px;" class="flex items-center gap-2">
         <a href="https://onboard.com.ng/privacy" target="_blank" style="text-decoration: underline;color: #333;">Privacy
           policy</a>

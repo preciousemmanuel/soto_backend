@@ -18,6 +18,7 @@ import AdminPeopleController from "./resources/adminPeople/adminPeople.controlle
 import NotificationController from "./resources/notification/notification.controller";
 import AdminConfigController from "./resources/adminConfig/adminConfig.controller";
 import AdminConfigService from "./resources/adminConfig/adminConfig.service";
+import AssignmentController from "./resources/assignment/assignment.controller";
 
 dotenv.config({ path: `${process.env.NODE_ENV}.env` });
 validateEnv();
@@ -37,6 +38,7 @@ const app = new App(
 		new UserController(),
 		new CouponController(),
 		new NotificationController(),
+		new AssignmentController(),
 	],
 	Number(process.env.PORT),
 	new CategoryService(),

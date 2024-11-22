@@ -27,6 +27,7 @@ import { AddShippingAddressDto } from "../user/user.dto";
 import userModel from "../user/user.model";
 import envConfig from "@/utils/config/env.config";
 import adminAuthMiddleware from "@/middleware/adminAuth.middleware";
+import { AddProductDto, UpdateProductDto } from "../product/product.dto";
 
 class AdminOverviewController implements Controller {
 	public path = "/admin";
@@ -75,9 +76,32 @@ class AdminOverviewController implements Controller {
 
 		this.router.get(
 			`${this.path}/products-mgt`,
-			adminAuthMiddleware(AdminPermissions.ORDER, AccessControlOptions.READ),
+			adminAuthMiddleware(AdminPermissions.PRODUCT, AccessControlOptions.READ),
 			validationMiddleware(validate.getOrdersSchema, RequestData.query),
 			this.getProductsMgt
+		);
+
+		this.router.post(
+			`${this.path}/add-new-product`,
+			adminAuthMiddleware(AdminPermissions.PRODUCT, AccessControlOptions.WRITE),
+			upload.array("images"),
+			validationMiddleware(validate.addProductAdminSchema),
+			this.createAProduct
+		);
+
+		this.router.put(
+			`${this.path}/update-product/:id`,
+			adminAuthMiddleware(AdminPermissions.PRODUCT, AccessControlOptions.WRITE),
+			upload.array("images"),
+			validationMiddleware(validate.updateProductSchema),
+			this.updateAProduct
+		);
+
+		this.router.get(
+			`${this.path}/view-a-product/:id`,
+			adminAuthMiddleware(AdminPermissions.PRODUCT, AccessControlOptions.READ),
+			validationMiddleware(validate.modelIdSchema, RequestData.params),
+			this.viewAProduct
 		);
 
 		this.router.post(
@@ -130,46 +154,39 @@ class AdminOverviewController implements Controller {
 	): Promise<Response | void> => {
 		try {
 			var query: OverviewDto = req.query;
+			const backDaterForCurrent = query.timeLine
+				? await backDaterForChart({
+						input: new Date(),
+						format: query.timeLine,
+					})
+				: undefined;
+
 			const start_date = query?.start_date
 				? startOfDay(new Date(query.start_date))
-				: query.timeLine
-					? (
-							await backDaterForChart({
-								input: new Date(),
-								format: query.timeLine,
-							})
-						).array[0]?.start
+				: backDaterForCurrent
+					? backDaterForCurrent.array[0]?.start
 					: undefined;
 			const end_date = query?.end_date
 				? endOfDay(new Date(query.end_date))
-				: query.timeLine
-					? (
-							await backDaterForChart({
-								input: new Date(),
-								format: query.timeLine,
-							})
-						).array.slice(-1)[0]?.end
+				: backDaterForCurrent
+					? backDaterForCurrent.array.slice(-1)[0]?.end
 					: undefined;
 			const previous_backtrack = backTrackToADate(String(query.timeLine));
-			console.log(
-				"🚀 ~ AdminOverviewController ~ previous_backtrack:",
-				previous_backtrack
-			);
-			const previous_start_date = previous_backtrack
-				? (
-						await backDaterForChart({
-							input: previous_backtrack,
-							format: query.timeLine,
-						})
-					).array[0]?.start
+			const backDaterForPrevious = previous_backtrack
+				? await backDaterForChart({
+						input: previous_backtrack,
+						format: query.timeLine,
+					})
 				: undefined;
-			const previous_end_date = previous_backtrack
-				? (
-						await backDaterForChart({
-							input: previous_backtrack,
-							format: query.timeLine,
-						})
-					).array.slice(-1)[0]?.end
+
+			const previous_start_date = backDaterForPrevious
+				? backDaterForPrevious.array[0]?.start
+				: undefined;
+			// const previous_end_date = backDaterForPrevious
+			// 	? backDaterForPrevious.array.slice(-1)[0]?.end
+			// 	: undefined;
+			const previous_end_date = backDaterForCurrent
+				? backDaterForCurrent.array[0]?.start
 				: undefined;
 
 			const advancedReportTimeline = (
@@ -396,6 +413,63 @@ class AdminOverviewController implements Controller {
 			const user = req.user;
 			const { status, code, message, data } =
 				await this.adminOverviewService.getProductMgts(payload);
+			return responseObject(res, code, status, message, data);
+		} catch (error: any) {
+			next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()));
+		}
+	};
+
+	private createAProduct = async (
+		req: Request,
+		res: Response,
+		next: NextFunction
+	): Promise<Response | void> => {
+		try {
+			const body: AddProductDto = req.body;
+			if (req.files) {
+				body.images = req.files as Express.Multer.File[];
+			}
+			console.log("🚀 ~ ProductController ~ body:", body);
+
+			const { status, code, message, data } =
+				await this.adminOverviewService.createProduct(body);
+			return responseObject(res, code, status, message, data);
+		} catch (error: any) {
+			next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()));
+		}
+	};
+
+	private updateAProduct = async (
+		req: Request,
+		res: Response,
+		next: NextFunction
+	): Promise<Response | void> => {
+		try {
+			const body: UpdateProductDto = {
+				product_id: req.params.id,
+				...req.body,
+			};
+			if (req.files) {
+				body.images = req.files as Express.Multer.File[];
+			}
+			console.log("🚀 ~ ProductController ~ body:", body);
+
+			const { status, code, message, data } =
+				await this.adminOverviewService.updateProduct(body);
+			return responseObject(res, code, status, message, data);
+		} catch (error: any) {
+			next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()));
+		}
+	};
+
+	private viewAProduct = async (
+		req: Request,
+		res: Response,
+		next: NextFunction
+	): Promise<Response | void> => {
+		try {
+			const { status, code, message, data } =
+				await this.adminOverviewService.viewAProduct(String(req.params.id));
 			return responseObject(res, code, status, message, data);
 		} catch (error: any) {
 			next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()));

@@ -57,6 +57,11 @@ export interface CreateAdminDto {
 	country: string;
 }
 
+export interface UpdateAdminProfileDto extends Partial<CreateAdminDto> {
+	password?: string;
+	profile_image?: Express.Multer.File;
+}
+
 export interface CreateRoleDto {
 	name: string;
 	admin: ReadWriteDto;
@@ -68,6 +73,8 @@ export interface CreateRoleDto {
 	transaction: ReadWriteDto;
 	created_by?: string;
 }
+
+export interface UpdateRoleDto extends Partial<CreateRoleDto> {}
 
 export interface AddStaffAddressDto {
 	admin: InstanceType<typeof adminModel>;
