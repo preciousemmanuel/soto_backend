@@ -4,6 +4,7 @@ import {
 	SignupChannels,
 	Timeline,
 	UserTypes,
+	YesOrNo,
 } from "@/utils/enums/base.enum";
 import { email } from "envalid";
 import Joi from "joi";
@@ -53,7 +54,18 @@ const DashboardOverviewSchema = Joi.object().keys({
 		.optional(),
 });
 
+const updateUserSchema = Joi.object().keys({
+	first_name: Joi.string().optional(),
+	last_name: Joi.string().optional(),
+	email: Joi.string().optional(),
+	phone_number: Joi.string().optional(),
+	is_blocked: Joi.string().valid(YesOrNo.YES, YesOrNo.NO).optional(),
+	is_verified: Joi.string().valid(YesOrNo.YES, YesOrNo.NO).optional(),
+	is_active: Joi.string().valid(YesOrNo.YES, YesOrNo.NO).optional(),
+});
+
 export default {
 	modelIdSchema,
 	DashboardOverviewSchema,
+	updateUserSchema,
 };
