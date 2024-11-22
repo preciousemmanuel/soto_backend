@@ -11,23 +11,16 @@ import {
 	isOtpCorrect,
 } from "@/utils/helpers/token";
 
-// import logger from "@/utils/logger";
 import {
 	AddStaffAddressDto,
 	AdminLoginDto,
 	CreateAdminDto,
-	CreateBusinessDto,
 	CreateRoleDto,
-	OverviewDto,
-	VerificationDto,
+	UpdateAdminProfileDto,
+	UpdateRoleDto,
 } from "./adminConfig.dto";
 import { hashPassword } from "@/utils/helpers/token";
-import {
-	OrderStatus,
-	OtpPurposeOptions,
-	StatusMessages,
-	UserTypes,
-} from "@/utils/enums/base.enum";
+import { StatusMessages, UserTypes } from "@/utils/enums/base.enum";
 import ResponseData from "@/utils/interfaces/responseData.interface";
 import { HttpCodes } from "@/utils/constants/httpcode";
 import cloudUploader from "@/utils/config/cloudUploader";
@@ -311,6 +304,121 @@ class AdminConfigService {
 		}
 	}
 
+	public async updateRole(
+		payload: UpdateRoleDto,
+		id: string
+	): Promise<ResponseData> {
+		let responseData: ResponseData = {
+			status: StatusMessages.error,
+			code: HttpCodesEnum.HTTP_BAD_REQUEST,
+			message: "Error",
+		};
+		try {
+			const existingRole = await this.Role.findById(id);
+			if (!existingRole) {
+				responseData.message = "Role Not Found";
+				return responseData;
+			}
+			const updatedRole = await this.Role.findByIdAndUpdate(
+				id,
+				{
+					...(payload.name && { name: payload.name.toLowerCase() }),
+					...(payload.admin && {
+						admin: {
+							read: payload.admin?.read
+								? payload?.admin?.read
+								: existingRole?.admin?.read,
+							write: payload.admin?.write
+								? payload?.admin?.write
+								: existingRole?.admin?.write,
+						},
+					}),
+					...(payload.config && {
+						config: {
+							read: payload.config?.read
+								? payload?.config?.read
+								: existingRole?.config?.read,
+							write: payload.config?.write
+								? payload?.config?.write
+								: existingRole?.config?.write,
+						},
+					}),
+					...(payload.order && {
+						order: {
+							read: payload.order?.read
+								? payload?.order?.read
+								: existingRole?.order?.read,
+							write: payload.order?.write
+								? payload?.order?.write
+								: existingRole?.order?.write,
+						},
+					}),
+					...(payload.buyer && {
+						buyer: {
+							read: payload.buyer?.read
+								? payload?.buyer?.read
+								: existingRole?.buyer?.read,
+							write: payload.buyer?.write
+								? payload?.buyer?.write
+								: existingRole?.buyer?.write,
+						},
+					}),
+					...(payload.seller && {
+						seller: {
+							read: payload.seller?.read
+								? payload?.seller?.read
+								: existingRole?.seller?.read,
+							write: payload.seller?.write
+								? payload?.seller?.write
+								: existingRole?.seller?.write,
+						},
+					}),
+					...(payload.product && {
+						product: {
+							read: payload.product?.read
+								? payload?.product?.read
+								: existingRole?.product?.read,
+							write: payload.product?.write
+								? payload?.product?.write
+								: existingRole?.product?.write,
+						},
+					}),
+					...(payload.admin && {
+						admin: {
+							read: payload.admin?.read
+								? payload?.admin?.read
+								: existingRole?.admin?.read,
+							write: payload.admin?.write
+								? payload?.admin?.write
+								: existingRole?.admin?.write,
+						},
+					}),
+					...(payload.transaction && {
+						transaction: {
+							read: payload.transaction?.read
+								? payload?.transaction?.read
+								: existingRole?.transaction?.read,
+							write: payload.transaction?.write
+								? payload?.transaction?.write
+								: existingRole?.transaction?.write,
+						},
+					}),
+				},
+				{ new: true }
+			);
+
+			return {
+				status: StatusMessages.success,
+				code: HttpCodesEnum.HTTP_OK,
+				message: "Role updated Successfully",
+				data: updatedRole,
+			};
+		} catch (error: any) {
+			console.log("🚀 ~ AdminConfigService ~ updateRole ~ error:", error);
+			return catchBlockResponse;
+		}
+	}
+
 	public async getStaffs(
 		limit: number,
 		page: number,
@@ -363,6 +471,138 @@ class AdminConfigService {
 			responseData.code = HttpCodesEnum.HTTP_SERVER_ERROR;
 			responseData.message = "Unable to perform request at this time";
 			return responseData;
+		}
+	}
+
+	public async updateStaffRole(
+		staff_id: string,
+		role_id: string
+	): Promise<ResponseData> {
+		let responseData: ResponseData = {
+			status: StatusMessages.error,
+			code: HttpCodesEnum.HTTP_BAD_REQUEST,
+			message: "Error",
+		};
+		try {
+			const existingRole = await this.Role.findById(role_id);
+			if (!existingRole) {
+				responseData.message = "Role Not Found";
+				return responseData;
+			}
+			const existingStaff = await this.Admin.findById(staff_id);
+			if (!existingStaff) {
+				responseData.message = "Staff Not Found";
+				return responseData;
+			}
+			const updatedStaffRole = await this.Admin.findByIdAndUpdate(
+				staff_id,
+				{
+					Role: role_id,
+				},
+				{ new: true }
+			);
+
+			return {
+				status: StatusMessages.success,
+				code: HttpCodesEnum.HTTP_OK,
+				message: "Staff Role updated Successfully",
+				data: updatedStaffRole,
+			};
+		} catch (error: any) {
+			console.log("🚀 ~ AdminConfigService ~ updateStaffRole ~ error:", error);
+			return catchBlockResponse;
+		}
+	}
+
+	public async getProfile(
+		admin: InstanceType<typeof this.Admin>
+	): Promise<ResponseData> {
+		let responseData: ResponseData = {
+			status: StatusMessages.error,
+			code: HttpCodesEnum.HTTP_BAD_REQUEST,
+			message: "Error",
+		};
+		try {
+			const fullDetails = await this.Admin.findById(admin._id).populate("Role");
+			return {
+				status: StatusMessages.success,
+				code: HttpCodesEnum.HTTP_OK,
+				message: "Profile updated Successfully",
+				data: fullDetails,
+			};
+		} catch (error: any) {
+			console.log("🚀 ~ AdminConfigService ~ getProfile ~ error:", error);
+			return catchBlockResponse;
+		}
+	}
+
+	public async editProfile(
+		admin: InstanceType<typeof this.Admin>,
+		payload: UpdateAdminProfileDto
+	): Promise<ResponseData> {
+		let responseData: ResponseData = {
+			status: StatusMessages.error,
+			code: HttpCodesEnum.HTTP_BAD_REQUEST,
+			message: "Error",
+		};
+		try {
+			let image: string | undefined = payload.profile_image
+				? await cloudUploader.imageUploader(payload.profile_image)
+				: undefined;
+
+			const updateProfile = await this.Admin.findByIdAndUpdate(
+				admin._id,
+				{
+					...(payload?.first_name && {
+						FirstName: payload.first_name.toLowerCase(),
+					}),
+					...(payload?.last_name && {
+						LastName: payload.last_name.toLowerCase(),
+					}),
+					...(payload?.first_name && {
+						FirstName: payload.first_name.toLowerCase(),
+					}),
+					...(payload?.email && {
+						Email: payload.email.toLowerCase(),
+					}),
+					...(payload?.phone_number && {
+						PhoneNumber: formatPhoneNumber(payload.phone_number),
+					}),
+					...(payload?.password && {
+						Password: hashPassword(payload.password),
+					}),
+					...(image && {
+						ProfileImage: image,
+					}),
+				},
+				{ new: true }
+			);
+			if (
+				payload?.city ||
+				payload?.address ||
+				payload?.state ||
+				payload?.city
+			) {
+				const addressDetails: AddStaffAddressDto = {
+					admin: admin,
+					address: payload.address || admin.address_details?.address || "lagos",
+					city: payload?.city || admin.address_details?.city || "lagos",
+					state: payload.state || admin.address_details?.state || "lagos",
+					postal_code: payload.postal_code,
+					country: payload?.country || admin.address_details?.country,
+				};
+				this.addAddressDetails(addressDetails);
+			}
+
+			return {
+				status: StatusMessages.success,
+				code: HttpCodesEnum.HTTP_OK,
+				message: "Profile updated Successfully",
+				data: updateProfile,
+			};
+		} catch (error: any) {
+			console.log("🚀 ~ AdminConfigService ~ editProfile ~ error:", error);
+			return catchBlockResponse;
 		}
 	}
 }
