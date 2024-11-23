@@ -8,6 +8,7 @@ export interface User extends Document {
 	Email: string;
 	UserName?: string;
 	IsActive: boolean;
+	IsBlocked: boolean;
 	Role: string;
 	Token: string;
 	PhoneNumber: string;

@@ -429,8 +429,8 @@ class AdminOverviewService {
 				$facet: {},
 			};
 			advanced_report_timeline.forEach((range) => {
-				const { start, end, day, month } = range;
-				const key = day || month || "date";
+				const { start, end, day, month, raw_date } = range;
+				const key: string = day || month || "date";
 
 				if (key) {
 					facetStage.$facet[key] = [
@@ -453,6 +453,7 @@ class AdminOverviewService {
 							$project: {
 								_id: 0,
 								amount: { $ifNull: ["$totalAmount", 0] },
+								raw_iso_date: "$iso_date",
 							},
 						},
 					];
@@ -1285,6 +1286,16 @@ class AdminOverviewService {
 			return addProduct;
 		} catch (error: any) {
 			console.log("🚀 ~ AdminOverviewService ~ updateProduct ~ error:", error);
+			return catchBlockResponse;
+		}
+	}
+
+	public async viewAProduct(product_id: string): Promise<ResponseData> {
+		try {
+			const viewAProduct = await this.productService.viewAProduct(product_id);
+			return viewAProduct;
+		} catch (error: any) {
+			console.log("🚀 ~ AdminOverviewService ~ viewAProduct ~ error:", error);
 			return catchBlockResponse;
 		}
 	}
