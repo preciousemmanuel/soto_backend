@@ -570,6 +570,11 @@ class UserService {
                     return responseData;
                 }
                 const oneTimePassword = yield (0, token_1.generateOtpModel)(base_enum_1.OtpPurposeOptions.CHANGE_PASSWORD, user, user === null || user === void 0 ? void 0 : user.Email);
+                this.mailService.sendOtpMail({
+                    email: user.Email,
+                    otp: oneTimePassword.otp,
+                    first_name: user.FirstName,
+                });
                 responseData = {
                     status: base_enum_1.StatusMessages.success,
                     code: httpcode_1.HttpCodes.HTTP_OK,
