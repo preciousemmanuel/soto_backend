@@ -74,6 +74,7 @@ class AdminPeopleController implements Controller {
 				validationMiddleware(validate.updateUserSchema),
 				this.updateBuyerOrSeller
 			),
+
 			this.router.get(
 				`${this.path}/purchasers/get-all`,
 				adminAuthMiddleware(AdminPermissions.ADMIN, AccessControlOptions.READ),

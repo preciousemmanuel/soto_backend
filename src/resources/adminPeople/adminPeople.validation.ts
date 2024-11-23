@@ -64,8 +64,10 @@ const updateUserSchema = Joi.object().keys({
 	is_active: Joi.string().valid(YesOrNo.YES, YesOrNo.NO).optional(),
 });
 
+
 export default {
 	modelIdSchema,
 	DashboardOverviewSchema,
 	updateUserSchema,
+
 };

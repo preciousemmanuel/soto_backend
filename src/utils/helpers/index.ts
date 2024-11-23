@@ -268,6 +268,7 @@ export const backDaterForChart = async (
 				end: endOfDay(startDay),
 				day: startDay.toDateString(),
 				raw_date: new Date(startDay),
+
 			};
 			array.push(object3);
 			while (i < 7) {
@@ -487,7 +488,7 @@ export const backDaterForChart = async (
 						end,
 						day: dayd.toDateString(),
 						raw_date: new Date(dayd),
-					};
+=					};
 					array2d.unshift(dateObject);
 					thisArrayd.unshift(dateObject);
 					i2d += 7;
