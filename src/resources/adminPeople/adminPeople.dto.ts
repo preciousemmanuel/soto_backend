@@ -3,6 +3,7 @@ import {
 	SignupChannels,
 	Timeline,
 	UserTypes,
+	YesOrNo,
 } from "@/utils/enums/base.enum";
 import { backDaterArray } from "@/utils/interfaces/base.interface";
 
@@ -35,3 +36,15 @@ export interface OverviewDto {
 	advanced_report_timeline?: backDaterArray[];
 	search?: string;
 }
+
+export interface UpdateUserByAdminDto {
+	first_name?: string;
+	last_name?: string;
+	email?: string;
+	password?: string;
+	phone_number?: string;
+	is_blocked?: YesOrNo;
+	is_verified?: YesOrNo;
+	is_active?: YesOrNo;
+}
+

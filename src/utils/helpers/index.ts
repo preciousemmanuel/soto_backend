@@ -231,6 +231,7 @@ export const backDaterForChart = async (
 				start,
 				end,
 				day: new Date(day1).toDateString(),
+				raw_date: new Date(day1),
 			};
 			return {
 				format: "Today",
@@ -246,6 +247,7 @@ export const backDaterForChart = async (
 				start,
 				end,
 				day: new Date(day2y).toDateString(),
+				raw_date: new Date(day2y),
 			};
 
 			return {
@@ -265,6 +267,8 @@ export const backDaterForChart = async (
 				start: startOfDay(startDay),
 				end: endOfDay(startDay),
 				day: startDay.toDateString(),
+				raw_date: new Date(startDay),
+
 			};
 			array.push(object3);
 			while (i < 7) {
@@ -273,6 +277,7 @@ export const backDaterForChart = async (
 					start: startOfDay(set),
 					end: endOfDay(set),
 					day: set.toDateString(),
+					raw_date: new Date(set),
 				};
 				array.push(object3);
 				i += 1;
@@ -294,6 +299,7 @@ export const backDaterForChart = async (
 				start: startOfDay(fixed),
 				end: endOfDay(fixed),
 				day: fixed.toDateString(),
+				raw_date: new Date(fixed),
 			};
 			array1.push(object);
 			while (i1 > -1) {
@@ -304,6 +310,7 @@ export const backDaterForChart = async (
 					start,
 					end,
 					day: new Date(day).toDateString(),
+					raw_date: new Date(day),
 				};
 				array1.push(object);
 				i1 -= 1;
@@ -337,6 +344,7 @@ export const backDaterForChart = async (
 						start,
 						end,
 						day: day.toDateString(),
+						raw_date: new Date(day),
 					};
 					array2.unshift(dateObject);
 					thisArray.unshift(dateObject);
@@ -351,6 +359,7 @@ export const backDaterForChart = async (
 						start,
 						end,
 						day: new Date(day).toDateString(),
+						raw_date: new Date(day),
 					};
 					array2.push(object);
 					i2 += 7;
@@ -362,6 +371,7 @@ export const backDaterForChart = async (
 						start,
 						end,
 						day: new Date(day).toDateString(),
+						raw_date: new Date(day),
 					};
 					if (end < monthEnd) {
 						array2.push(object);
@@ -395,6 +405,7 @@ export const backDaterForChart = async (
 					start,
 					end,
 					month: new Date(day).toDateString(),
+					raw_date: new Date(day),
 				};
 				array6m.push(object);
 				i6m -= 1;
@@ -418,6 +429,7 @@ export const backDaterForChart = async (
 					start,
 					end,
 					month: new Date(day).toDateString(),
+					raw_date: new Date(day),
 				};
 				array12m.push(object);
 				i12m -= 1;
@@ -441,6 +453,7 @@ export const backDaterForChart = async (
 					start,
 					end,
 					month: new Date(day).toDateString(),
+					raw_date: new Date(day),
 				};
 				array2y.push(object);
 				i2y -= 1;
@@ -474,7 +487,8 @@ export const backDaterForChart = async (
 						start,
 						end,
 						day: dayd.toDateString(),
-					};
+						raw_date: new Date(dayd),
+				};
 					array2d.unshift(dateObject);
 					thisArrayd.unshift(dateObject);
 					i2d += 7;
@@ -488,6 +502,7 @@ export const backDaterForChart = async (
 						start,
 						end,
 						day: new Date(dayd).toDateString(),
+						raw_date: new Date(dayd),
 					};
 					array2d.push(object);
 					i2d += 7;
@@ -526,6 +541,7 @@ export const backDaterForChartCustomDate = async (
 			end: end_of_day,
 			day: start_of_day.toDateString(),
 			month: start_of_day.toDateString(),
+			raw_date: start_date,
 		});
 		start_date_obj.setDate(start_date_obj.getDate() + 1);
 	}
