@@ -17,7 +17,7 @@ export interface User extends Document {
 	SignupChannel?: string;
 	ShippingAddress?: ShippingAddress;
 	UserType?: UserTypes;
-	Isverified?: Boolean;
+	IsVerified?: Boolean;
 	wallet?: mongoose.Types.ObjectId;
 	business?: mongoose.Types.ObjectId;
 	cart?: mongoose.Types.ObjectId;

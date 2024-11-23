@@ -21,7 +21,6 @@ import {
 	StatusMessages,
 	UserTypes,
 	YesOrNo,
-
 } from "@/utils/enums/base.enum";
 import ResponseData from "@/utils/interfaces/responseData.interface";
 import { HttpCodes } from "@/utils/constants/httpcode";
@@ -42,7 +41,6 @@ import roleModel from "../adminConfig/role.model";
 import mongoose from "mongoose";
 import { catchBlockResponse } from "@/utils/constants/data";
 
-
 class AdminPeopleService {
 	private User = UserModel;
 	private Business = businessModel;
@@ -58,7 +56,6 @@ class AdminPeopleService {
 		payload: any,
 		dateRange: backDaterArray[]
 	): Promise<ResponseData> {
-
 		let responseData: ResponseData = {
 			status: StatusMessages.success,
 			code: HttpCodes.HTTP_OK,
@@ -369,7 +366,7 @@ class AdminPeopleService {
 		let responseData: ResponseData = {
 			status: StatusMessages.success,
 			code: HttpCodes.HTTP_OK,
-			message: "Buyer updated Successfully",
+			message: "Update Successful",
 		};
 		try {
 			const user = await this.User.findById(user_id);
@@ -399,8 +396,8 @@ class AdminPeopleService {
 					...(payload?.is_blocked && {
 						IsBlocked: payload.is_blocked === YesOrNo.YES ? true : false,
 					}),
-					...(payload?.is_active && {
-						FirstName: payload.is_active === YesOrNo.YES ? true : false,
+					...(payload?.is_verified && {
+						IsVerified: payload.is_verified === YesOrNo.YES ? true : false,
 					}),
 					...(payload?.is_active && {
 						IsActive: payload.is_active === YesOrNo.YES ? true : false,
@@ -467,7 +464,6 @@ class AdminPeopleService {
 			return catchBlockResponse;
 		}
 	}
-
 
 	public async getSellers(
 		payload: any,
