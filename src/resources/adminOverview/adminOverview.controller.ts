@@ -97,6 +97,13 @@ class AdminOverviewController implements Controller {
 			this.updateAProduct
 		);
 
+		this.router.get(
+			`${this.path}/view-a-product/:id`,
+			adminAuthMiddleware(AdminPermissions.PRODUCT, AccessControlOptions.READ),
+			validationMiddleware(validate.modelIdSchema, RequestData.params),
+			this.viewAProduct
+		);
+
 		this.router.post(
 			`${this.path}/update-shipping-address`,
 			adminAuthMiddleware(AdminPermissions.ORDER, AccessControlOptions.READ),
@@ -175,6 +182,7 @@ class AdminOverviewController implements Controller {
 			const previous_start_date = backDaterForPrevious
 				? backDaterForPrevious.array[0]?.start
 				: undefined;
+
 			// const previous_end_date = backDaterForPrevious
 			// 	? backDaterForPrevious.array.slice(-1)[0]?.end
 			// 	: undefined;
@@ -449,6 +457,20 @@ class AdminOverviewController implements Controller {
 
 			const { status, code, message, data } =
 				await this.adminOverviewService.updateProduct(body);
+			return responseObject(res, code, status, message, data);
+		} catch (error: any) {
+			next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()));
+		}
+	};
+
+	private viewAProduct = async (
+		req: Request,
+		res: Response,
+		next: NextFunction
+	): Promise<Response | void> => {
+		try {
+			const { status, code, message, data } =
+				await this.adminOverviewService.viewAProduct(String(req.params.id));
 			return responseObject(res, code, status, message, data);
 		} catch (error: any) {
 			next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()));

@@ -10,6 +10,7 @@ export interface backDaterArray extends Object {
 	end: Date;
 	day?: string;
 	month?: string;
+	raw_date?: Date;
 }
 
 export interface FacetStage {

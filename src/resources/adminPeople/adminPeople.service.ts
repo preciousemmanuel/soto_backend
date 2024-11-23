@@ -1,5 +1,5 @@
 import UserModel from "@/resources/user/user.model";
-import { uniqueCode } from "@/utils/helpers";
+import { formatPhoneNumber, uniqueCode } from "@/utils/helpers";
 import {
 	comparePassword,
 	createToken,
@@ -11,6 +11,7 @@ import {
 import {
 	CreateBusinessDto,
 	OverviewDto,
+	UpdateUserByAdminDto,
 	VerificationDto,
 } from "./adminPeople.dto";
 import { hashPassword } from "@/utils/helpers/token";
@@ -19,6 +20,8 @@ import {
 	OtpPurposeOptions,
 	StatusMessages,
 	UserTypes,
+	YesOrNo,
+
 } from "@/utils/enums/base.enum";
 import ResponseData from "@/utils/interfaces/responseData.interface";
 import { HttpCodes } from "@/utils/constants/httpcode";
@@ -37,6 +40,8 @@ import assignmentModel from "../assignment/assignment.model";
 import adminModel from "../adminConfig/admin.model";
 import roleModel from "../adminConfig/role.model";
 import mongoose from "mongoose";
+import { catchBlockResponse } from "@/utils/constants/data";
+
 
 class AdminPeopleService {
 	private User = UserModel;
@@ -49,7 +54,11 @@ class AdminPeopleService {
 	private Role = roleModel;
 	private mailService = new MailService();
 
-	public async getBuyers(payload: any): Promise<ResponseData> {
+	public async getBuyers(
+		payload: any,
+		dateRange: backDaterArray[]
+	): Promise<ResponseData> {
+
 		let responseData: ResponseData = {
 			status: StatusMessages.success,
 			code: HttpCodes.HTTP_OK,
@@ -134,7 +143,7 @@ class AdminPeopleService {
 								first_name: "$FirstName",
 								last_name: "$LastName",
 								email: "$Email",
-								profile_image: "$ProfileImage",
+								profile_image: { $ifNull: ["$ProfileImage", ""] },
 								createdAt: "$createdAt",
 								rank: "$Rank",
 								total_spent: "$total_spent",
@@ -158,7 +167,74 @@ class AdminPeopleService {
 			const pageCount = Math.ceil(Number(totalCount) / limit);
 			const currentPage = page;
 			const hasNext = page * limit < totalCount;
+			const revenueFromBuyersChartPipeline = [];
+			const facetStage: { $facet: FacetStage } = {
+				$facet: {},
+			};
+			dateRange.forEach((range) => {
+				const { start, end, day, month } = range;
+				const key = day || month || "date";
+
+				if (key) {
+					facetStage.$facet[key] = [
+						{
+							$match: {
+								createdAt: {
+									$gte: new Date(start),
+									$lte: new Date(end),
+								},
+								// status: OrderStatus.DELIVERED
+							},
+						},
+						{
+							$group: {
+								_id: null,
+								totalAmount: { $sum: "$grand_total" },
+							},
+						},
+						{
+							$project: {
+								_id: 0,
+								amount: { $ifNull: ["$totalAmount", 0] },
+							},
+						},
+					];
+				}
+			});
+			revenueFromBuyersChartPipeline.push(facetStage);
+			revenueFromBuyersChartPipeline.push({
+				$project: {
+					results: {
+						$reduce: {
+							input: { $objectToArray: "$$ROOT" },
+							initialValue: [],
+							in: {
+								$concatArrays: [
+									"$$value",
+									[
+										{
+											day_or_month: "$$this.k",
+											amount: {
+												$ifNull: [{ $arrayElemAt: ["$$this.v.amount", 0] }, 0],
+											},
+										},
+									],
+								],
+							},
+						},
+					},
+				},
+			});
+
+			const revenueFromBuyersChartAggregate = await this.Order.aggregate(
+				revenueFromBuyersChartPipeline
+			);
+			const revenueFromBuyers =
+				revenueFromBuyersChartAggregate.length > 0
+					? revenueFromBuyersChartAggregate[0]?.results
+					: [];
 			const pagination = {
+				revenue_from_buyers_chart: revenueFromBuyers,
 				data,
 				pagination: {
 					pageSize: limit,
@@ -284,6 +360,114 @@ class AdminPeopleService {
 			return responseData;
 		}
 	}
+
+	public async updateBuyerOrSeller(
+		admin: InstanceType<typeof this.Admin>,
+		user_id: string,
+		payload: UpdateUserByAdminDto
+	): Promise<ResponseData> {
+		let responseData: ResponseData = {
+			status: StatusMessages.success,
+			code: HttpCodes.HTTP_OK,
+			message: "Buyer updated Successfully",
+		};
+		try {
+			const user = await this.User.findById(user_id);
+			if (!user) {
+				return {
+					status: StatusMessages.error,
+					code: HttpCodesEnum.HTTP_BAD_REQUEST,
+					message: "User Not Found",
+				};
+			}
+
+			const updatedUser = await this.User.findByIdAndUpdate(
+				user_id,
+				{
+					...(payload.first_name && {
+						FirstName: payload.first_name.toLowerCase(),
+					}),
+					...(payload?.last_name && {
+						LastName: payload.last_name.toLowerCase(),
+					}),
+					...(payload?.email && {
+						Email: payload.email.toLowerCase(),
+					}),
+					...(payload?.phone_number && {
+						PhoneNumber: formatPhoneNumber(payload.phone_number),
+					}),
+					...(payload?.is_blocked && {
+						IsBlocked: payload.is_blocked === YesOrNo.YES ? true : false,
+					}),
+					...(payload?.is_active && {
+						FirstName: payload.is_active === YesOrNo.YES ? true : false,
+					}),
+					...(payload?.is_active && {
+						IsActive: payload.is_active === YesOrNo.YES ? true : false,
+					}),
+				},
+				{ new: true }
+			);
+
+			if (
+				payload?.is_blocked &&
+				payload.is_blocked === YesOrNo.YES &&
+				user.UserType === UserTypes.VENDOR
+			) {
+				this.blockUnblockSellerActions(user_id, payload.is_blocked);
+			}
+
+			responseData.data = updatedUser;
+			return responseData;
+		} catch (error: any) {
+			console.log("🚀 ~ AdminPeopleService ~ viewOneBuyer ~ error:", error);
+			responseData = {
+				status: StatusMessages.error,
+				code: HttpCodes.HTTP_SERVER_ERROR,
+				message: error.toString(),
+			};
+			return responseData;
+		}
+	}
+
+	public async blockUnblockSellerActions(
+		id: string,
+		is_blocked: string
+	): Promise<ResponseData> {
+		let responseData: ResponseData = {
+			status: StatusMessages.success,
+			code: HttpCodes.HTTP_OK,
+			message: "Products Blocked Successfully",
+		};
+		try {
+			let update: any;
+			switch (is_blocked) {
+				case YesOrNo.YES:
+					update = {
+						is_verified: false,
+						is_deleted: true,
+					};
+					break;
+				default:
+					update = {
+						is_verified: true,
+						is_deleted: false,
+					};
+					break;
+			}
+			const blockAllProductsOfASeller = await this.Product.updateMany(
+				{ vendor: id },
+				{
+					$set: update,
+				}
+			);
+			responseData.data = blockAllProductsOfASeller;
+			return responseData;
+		} catch (error) {
+			return catchBlockResponse;
+		}
+	}
+
 
 	public async getSellers(
 		payload: any,

@@ -38,6 +38,7 @@ import { BackDaterResponse } from "@/utils/interfaces/base.interface";
 import { getPaginatedRecords } from "@/utils/helpers/paginate";
 import otpModel from "./otp.model";
 import { endOfMonth, startOfMonth } from "date-fns";
+import { email } from "envalid";
 
 class UserService {
 	private user = UserModel;
@@ -629,6 +630,12 @@ class UserService {
 				user,
 				user?.Email
 			);
+			this.mailService.sendOtpMail({
+				email: user.Email,
+				otp: oneTimePassword.otp,
+				first_name: user.FirstName,
+			});
+
 			responseData = {
 				status: StatusMessages.success,
 				code: HttpCodes.HTTP_OK,
