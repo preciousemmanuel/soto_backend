@@ -6,7 +6,7 @@ import userModel from "@/resources/user/user.model";
 declare global {
 	namespace Express {
 		export interface Request {
-			user: InstanceType<typeof userModel>;
+			user: User;
 			admin: InstanceType<typeof adminModel>;
 		}
 	}

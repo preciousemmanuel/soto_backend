@@ -47,3 +47,4 @@ export interface UpdateUserByAdminDto {
 	is_verified?: YesOrNo;
 	is_active?: YesOrNo;
 }
+

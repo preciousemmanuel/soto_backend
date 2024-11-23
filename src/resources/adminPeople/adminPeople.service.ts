@@ -21,6 +21,7 @@ import {
 	StatusMessages,
 	UserTypes,
 	YesOrNo,
+
 } from "@/utils/enums/base.enum";
 import ResponseData from "@/utils/interfaces/responseData.interface";
 import { HttpCodes } from "@/utils/constants/httpcode";
@@ -41,6 +42,7 @@ import roleModel from "../adminConfig/role.model";
 import mongoose from "mongoose";
 import { catchBlockResponse } from "@/utils/constants/data";
 
+
 class AdminPeopleService {
 	private User = UserModel;
 	private Business = businessModel;
@@ -56,6 +58,7 @@ class AdminPeopleService {
 		payload: any,
 		dateRange: backDaterArray[]
 	): Promise<ResponseData> {
+
 		let responseData: ResponseData = {
 			status: StatusMessages.success,
 			code: HttpCodes.HTTP_OK,
@@ -464,6 +467,7 @@ class AdminPeopleService {
 			return catchBlockResponse;
 		}
 	}
+
 
 	public async getSellers(
 		payload: any,

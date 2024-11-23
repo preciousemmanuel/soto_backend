@@ -182,6 +182,7 @@ class AdminOverviewController implements Controller {
 			const previous_start_date = backDaterForPrevious
 				? backDaterForPrevious.array[0]?.start
 				: undefined;
+
 			// const previous_end_date = backDaterForPrevious
 			// 	? backDaterForPrevious.array.slice(-1)[0]?.end
 			// 	: undefined;
