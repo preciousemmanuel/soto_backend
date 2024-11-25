@@ -57,6 +57,7 @@ import adminModel from "../adminConfig/admin.model";
 import { catchBlockResponse } from "@/utils/constants/data";
 import { AddProductDto, UpdateProductDto } from "../product/product.dto";
 import ProductService from "../product/product.service";
+import transactionLogModel from "../transaction/transactionLog.model";
 
 class AdminOverviewService {
 	private User = UserModel;
@@ -65,6 +66,7 @@ class AdminOverviewService {
 	private OrderDetails = orderDetailsModel;
 	private Shipment = shipmentModel;
 	private GeneralCoupon = genCouponModel;
+	private TxnLog = transactionLogModel;
 	private Admin = adminModel;
 	private mailService = new MailService();
 	private productService = new ProductService();
@@ -1002,8 +1004,12 @@ class AdminOverviewService {
 					message: "Order Not Found",
 				};
 			}
+			const log = await this.TxnLog.find({ narration_id: order_id });
 
-			responseData.data = order;
+			responseData.data = {
+				...order.toObject(),
+				payment_details: log,
+			};
 			return responseData;
 		} catch (error: any) {
 			console.log("🚀 ~ AdminOverviewService ~ viewAnOrder ~ error:", error);
