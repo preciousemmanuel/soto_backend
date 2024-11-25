@@ -17,6 +17,10 @@ export interface FacetStage {
 	[key: string]: any;
 }
 
+export interface MatchStage$and {
+	$and: any[];
+}
+
 export interface ProductMgtDto {
 	name?: string;
 	description?: string;

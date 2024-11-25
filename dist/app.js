@@ -60,8 +60,9 @@ class App {
         // snsConnection.createSnsConsumer("sns","arn:aws:sns:us-east-1:381491929354:CREATE_ACCOUNT",SQS_CREATE_ACCOUNT_ARN);
     }
     initializeSeeders() {
-        this.categoryService.seedCategories();
-        this.adminConfigService.seedSuperAdmin();
+        // this.categoryService.seedCategories();
+        // this.adminConfigService.seedSuperAdmin();
+        // this.adminConfigService.seedBanks();
     }
     listen() {
         this.express.listen(this.port, () => {

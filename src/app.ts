@@ -81,8 +81,9 @@ class App {
 	}
 
 	private initializeSeeders() {
-		this.categoryService.seedCategories();
-		this.adminConfigService.seedSuperAdmin();
+		// this.categoryService.seedCategories();
+		// this.adminConfigService.seedSuperAdmin();
+		// this.adminConfigService.seedBanks();
 	}
 
 	public listen(): void {
