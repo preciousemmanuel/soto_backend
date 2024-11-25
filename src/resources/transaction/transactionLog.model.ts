@@ -2,6 +2,7 @@ import mongoose, { Schema, model } from "mongoose";
 import { User } from "@/resources/user/user.interface";
 import {
 	IdentificationTypes,
+	PaymentProvider,
 	TransactionCurrency,
 	TransactionNarration,
 	TransactionStatus,
@@ -46,6 +47,11 @@ const TransactionSchema = new Schema(
 		},
 		narration_id: {
 			type: String,
+		},
+		payment_provider: {
+			type: String,
+			enum: [PaymentProvider.FLUTTERWAVE, PaymentProvider.PAYSTACK],
+			default: PaymentProvider.PAYSTACK,
 		},
 
 		transfer_request: {

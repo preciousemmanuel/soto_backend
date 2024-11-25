@@ -28,7 +28,11 @@ import {
 import ResponseData from "@/utils/interfaces/responseData.interface";
 import { HttpCodes } from "@/utils/constants/httpcode";
 import MailService from "../mail/mail.service";
-import { MatchStage$and } from "@/utils/interfaces/base.interface";
+import {
+	backDaterArray,
+	FacetStage,
+	MatchStage$and,
+} from "@/utils/interfaces/base.interface";
 import withdrawalModel from "../business/withdrawal.model";
 import { PipelineStage } from "mongoose";
 import { catchBlockResponseFn } from "@/utils/constants/data";
@@ -39,6 +43,8 @@ import bankDetailsModel from "../business/bankDetails.model";
 import bankModel from "../transaction/bank.model";
 import PaymentProviderService from "../transaction/paypment-provider.service";
 import BusinessService from "../business/business.service";
+import { endOfToday } from "date-fns";
+import { getPaginatedRecords } from "@/utils/helpers/paginate";
 
 class AdminTransactionService {
 	private Bank = bankModel;
@@ -49,6 +55,393 @@ class AdminTransactionService {
 	private mailService = new MailService();
 	private businessService = new BusinessService();
 	private paymentProviderService = new PaymentProviderService();
+
+	public async getWalletOverview(
+		payload: any,
+		advanced_report_timeline: backDaterArray[]
+	): Promise<ResponseData> {
+		let responseData: ResponseData = {
+			status: StatusMessages.success,
+			code: HttpCodes.HTTP_OK,
+			message: "",
+		};
+		try {
+			const {
+				previous_start_date,
+				previous_end_date,
+				start_date,
+				end_date = endOfToday(),
+				page,
+				limit,
+			} = payload;
+			console.log("🚀 ~ AdminOverviewService ~ payload:", payload);
+			let txn_amount: number = 0;
+			let previous_txn_amount: number = 0;
+			let txn_percentage: number = 0;
+			let income_amount: number = 0;
+			let previous_income_amount: number = 0;
+			let income_percentage: number = 0;
+			let withdrawal_amount: number = 0;
+			let previous_withdrawal_amount: number = 0;
+			let withdrawal_percentage: number = 0;
+			let remittance_amount: number = 0;
+			let previous_remittance_amount: number = 0;
+			let remittance_percentage: number = 0;
+
+			const transactionPipeline = [
+				{
+					$facet: {
+						sum1: [
+							{
+								$match: {
+									createdAt: {
+										$gte: new Date(start_date),
+										$lte: new Date(end_date),
+									},
+									// status: OrderStatus.DELIVERED
+								},
+							},
+							{
+								$group: {
+									_id: null,
+									totalAmount: { $sum: "$amount" },
+								},
+							},
+						],
+						sum2: [
+							{
+								$match: {
+									createdAt: {
+										$gte: new Date(previous_start_date),
+										$lte: new Date(previous_end_date),
+									},
+									// status: OrderStatus.DELIVERED
+								},
+							},
+							{
+								$group: {
+									_id: null,
+									totalAmount: { $sum: "$amount" },
+								},
+							},
+						],
+					},
+				},
+				{
+					$project: {
+						sumAmount1: { $arrayElemAt: ["$sum1.totalAmount", 0] },
+						sumAmount2: { $arrayElemAt: ["$sum2.totalAmount", 0] },
+					},
+				},
+				{
+					$addFields: {
+						percentageDifference: {
+							$cond: {
+								if: { $eq: ["$sumAmount1", 0] },
+								then: {
+									$cond: {
+										if: { $eq: ["$sumAmount2", 0] },
+										then: 0,
+										else: 100,
+									},
+								},
+								else: {
+									$multiply: [
+										{
+											$divide: [
+												{ $subtract: ["$sumAmount1", "$sumAmount2"] },
+												"$sumAmount1",
+											],
+										},
+										100,
+									],
+								},
+							},
+						},
+					},
+				},
+			];
+
+			const txnAggregate = await this.TxnLog.aggregate(transactionPipeline);
+			console.log("🚀 ~ AdminOverviewService ~ txnAggregate:", txnAggregate);
+			if (txnAggregate.length > 0) {
+				txn_amount = txnAggregate[0]?.sumAmount1 || 0;
+				previous_txn_amount = txnAggregate[0]?.sumAmount2 || 0;
+				txn_percentage = txnAggregate[0]?.percentageDifference || 0;
+			}
+
+			const incomePipeline = [
+				{
+					$facet: {
+						count1: [
+							{
+								$match: {
+									createdAt: {
+										$gte: new Date(start_date),
+										$lte: new Date(end_date),
+									},
+									// status: OrderStatus.DELIVERED
+								},
+							},
+							{
+								$count: "totalCount",
+							},
+						],
+						count2: [
+							{
+								$match: {
+									createdAt: {
+										$gte: new Date(previous_start_date),
+										$lte: new Date(previous_end_date),
+									},
+									// status: OrderStatus.DELIVERED
+								},
+							},
+							{
+								$count: "totalCount",
+							},
+						],
+					},
+				},
+				{
+					$project: {
+						countAmount1: { $arrayElemAt: ["$count1.totalCount", 0] },
+						countAmount2: { $arrayElemAt: ["$count2.totalCount", 0] },
+					},
+				},
+				{
+					$addFields: {
+						percentageDifference: {
+							$cond: {
+								if: { $eq: ["$countAmount1", 0] },
+								then: {
+									$cond: {
+										if: { $eq: ["$countAmount2", 0] },
+										then: 0,
+										else: 100,
+									},
+								},
+								else: {
+									$multiply: [
+										{
+											$divide: [
+												{ $subtract: ["$countAmount1", "$countAmount2"] },
+												"$countAmount1",
+											],
+										},
+										100,
+									],
+								},
+							},
+						},
+					},
+				},
+			];
+
+			const incomeAggregate = await this.TxnLog.aggregate(incomePipeline);
+			if (incomeAggregate.length > 0) {
+				income_amount = incomeAggregate[0]?.countAmount1 || 0;
+				previous_income_amount = incomeAggregate[0]?.countAmount2 || 0;
+				income_percentage = incomeAggregate[0]?.percentageDifference || 0;
+			}
+
+			const withdrawalPipeline = [
+				{
+					$facet: {
+						count1: [
+							{
+								$match: {
+									createdAt: {
+										$gte: new Date(start_date),
+										$lte: new Date(end_date),
+									},
+								},
+							},
+							{
+								$count: "totalCount",
+							},
+						],
+						count2: [
+							{
+								$match: {
+									createdAt: {
+										$gte: new Date(previous_start_date),
+										$lte: new Date(previous_end_date),
+									},
+								},
+							},
+							{
+								$count: "totalCount",
+							},
+						],
+					},
+				},
+				{
+					$project: {
+						countAmount1: { $arrayElemAt: ["$count1.totalCount", 0] },
+						countAmount2: { $arrayElemAt: ["$count2.totalCount", 0] },
+					},
+				},
+				{
+					$addFields: {
+						percentageDifference: {
+							$cond: {
+								if: { $eq: ["$countAmount1", 0] },
+								then: {
+									$cond: {
+										if: { $eq: ["$countAmount2", 0] },
+										then: 0,
+										else: 100,
+									},
+								},
+								else: {
+									$multiply: [
+										{
+											$divide: [
+												{ $subtract: ["$countAmount1", "$countAmount2"] },
+												"$countAmount1",
+											],
+										},
+										100,
+									],
+								},
+							},
+						},
+					},
+				},
+			];
+
+			const withdrawalAggregate =
+				await this.Withdrawal.aggregate(withdrawalPipeline);
+
+			if (withdrawalAggregate.length > 0) {
+				withdrawal_amount = withdrawalAggregate[0]?.countAmount1 || 0;
+				previous_withdrawal_amount = withdrawalAggregate[0]?.countAmount2 || 0;
+				withdrawal_percentage =
+					withdrawalAggregate[0]?.percentageDifference || 0;
+			}
+
+			const remittancePipeline = [
+				{
+					$facet: {
+						count1: [
+							{
+								$match: {
+									createdAt: {
+										$gte: new Date(start_date),
+										$lte: new Date(end_date),
+									},
+								},
+							},
+							{
+								$count: "totalCount",
+							},
+						],
+						count2: [
+							{
+								$match: {
+									createdAt: {
+										$gte: new Date(previous_start_date),
+										$lte: new Date(previous_end_date),
+									},
+								},
+							},
+							{
+								$count: "totalCount",
+							},
+						],
+					},
+				},
+				{
+					$project: {
+						countAmount1: { $arrayElemAt: ["$count1.totalCount", 0] },
+						countAmount2: { $arrayElemAt: ["$count2.totalCount", 0] },
+					},
+				},
+				{
+					$addFields: {
+						percentageDifference: {
+							$cond: {
+								if: { $eq: ["$countAmount1", 0] },
+								then: {
+									$cond: {
+										if: { $eq: ["$countAmount2", 0] },
+										then: 0,
+										else: 100,
+									},
+								},
+								else: {
+									$multiply: [
+										{
+											$divide: [
+												{ $subtract: ["$countAmount1", "$countAmount2"] },
+												"$countAmount1",
+											],
+										},
+										100,
+									],
+								},
+							},
+						},
+					},
+				},
+			];
+
+			const remittanceAggregate =
+				await this.TxnLog.aggregate(remittancePipeline);
+
+			if (remittanceAggregate.length > 0) {
+				remittance_amount = remittanceAggregate[0]?.countAmount1 || 0;
+				previous_remittance_amount = remittanceAggregate[0]?.countAmount2 || 0;
+				remittance_percentage =
+					remittanceAggregate[0]?.percentageDifference || 0;
+			}
+
+			var logRecords = await getPaginatedRecords(this.TxnLog, {
+				limit,
+				page,
+			});
+
+			responseData.data = {
+				transaction: {
+					amount: txn_amount,
+					percentage_change: Number(
+						parseFloat(txn_percentage.toString()).toFixed(1)
+					),
+				},
+				income: {
+					amount: income_amount,
+					percentage_change: Number(
+						parseFloat(income_percentage.toString()).toFixed(1)
+					),
+				},
+				withdrawal: {
+					amount: withdrawal_amount,
+					percentage_change: Number(
+						parseFloat(withdrawal_percentage.toString()).toFixed(1)
+					),
+				},
+				remittance: {
+					amount: remittance_amount,
+					percentage_change: Number(
+						parseFloat(remittance_percentage.toString()).toFixed(1)
+					),
+				},
+				transaction_logs: logRecords,
+			};
+
+			responseData.message = "Wallet Overview retreived successfully";
+			return responseData;
+		} catch (error: any) {
+			console.log("🚀 ~ AdminTransactionService ~ error:", error);
+			responseData = {
+				status: StatusMessages.error,
+				code: HttpCodes.HTTP_SERVER_ERROR,
+				message: error.toString(),
+			};
+			return responseData;
+		}
+	}
 
 	public async getWithdrawalRequests(payload: any): Promise<ResponseData> {
 		let responseData: ResponseData = {
