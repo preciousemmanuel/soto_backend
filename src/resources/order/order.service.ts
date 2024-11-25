@@ -36,17 +36,21 @@ import MailService from "../mail/mail.service";
 import NotificationService from "../notification/notification.service";
 import AssignmentService from "../assignment/assignment.service";
 import customOrderModel from "./customOrder.model";
+import genCouponModel from "../coupon/genCoupon.model";
+import CouponService from "../coupon/coupon.service";
 
 class OrderService {
 	private Order = orderModel;
 	private CustomOrder = customOrderModel;
 	private Cart = cartModel;
+	private GenCoupon = genCouponModel;
 	private OrderDetail = orderDetailsModel;
 	private User = UserModel;
 	private Product = productModel;
 	private mailService = new MailService();
 	private notificationService = new NotificationService();
 	private assignmentService = new AssignmentService();
+	private couponService = new CouponService();
 
 	public async addToCart(
 		payload: AddToCartDto,
@@ -244,6 +248,11 @@ class OrderService {
 				};
 			} else {
 				const tracking_id = await generateUnusedOrderId();
+				const genCoupon = payload?.coupon_code
+					? await this.GenCoupon.findOne({
+							code: String(payload.coupon_code).toUpperCase(),
+						})
+					: undefined;
 				const newOrder = await this.Order.create({
 					items: processedItems?.data?.itemsInOrder,
 					total_amount: processedItems?.data?.total_amount,
@@ -257,15 +266,19 @@ class OrderService {
 					tracking_id,
 					...(payload?.payment_type && { payment_type: payload?.payment_type }),
 				});
-
+				let finalOrder: InstanceType<typeof this.Order> = newOrder;
+				if (genCoupon) {
+					finalOrder = (await this.couponService.useCoupon(newOrder, genCoupon))
+						.data;
+				}
 				responseData = {
 					status: StatusMessages.success,
 					code: HttpCodes.HTTP_CREATED,
 					message: "Order Created Successfully",
-					data: newOrder,
+					data: finalOrder,
 				};
 				this.notificationService.createNotification({
-					receiver: String(newOrder.user),
+					receiver: String(finalOrder.user),
 					title: "Create Order",
 					content: `You just created an order with tracking id : ${newOrder.tracking_id}`,
 				});

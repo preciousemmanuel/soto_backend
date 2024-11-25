@@ -14,6 +14,7 @@ export interface CreateOrderDto {
 	shipping_address?: string;
 	payment_type?: OrderPaymentType;
 	checkout_with_cart: YesOrNo;
+	coupon_code?: string;
 }
 
 export interface CreateCustomOrderDto {

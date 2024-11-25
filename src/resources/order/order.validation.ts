@@ -24,6 +24,7 @@ const createOrderSchema = Joi.object({
 		.valid(YesOrNo.YES, YesOrNo.NO)
 		.default(YesOrNo.YES)
 		.optional(),
+	coupon_code: Joi.string().optional(),
 });
 
 const addToCartSchema = Joi.object({
