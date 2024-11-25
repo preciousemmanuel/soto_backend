@@ -10,6 +10,7 @@ import {
 // import logger from "@/utils/logger";
 import {
 	AddToCartDto,
+	CreateCustomOrderDto,
 	CreateOrderDto,
 	FetchMyOrdersDto,
 	RemoveFromCartDto,
@@ -34,9 +35,11 @@ import cartModel from "./cart.model";
 import MailService from "../mail/mail.service";
 import NotificationService from "../notification/notification.service";
 import AssignmentService from "../assignment/assignment.service";
+import customOrderModel from "./customOrder.model";
 
 class OrderService {
 	private Order = orderModel;
+	private CustomOrder = customOrderModel;
 	private Cart = cartModel;
 	private OrderDetail = orderDetailsModel;
 	private User = UserModel;
@@ -469,13 +472,19 @@ class OrderService {
 							$lte: new Date(myOrdersDto?.filter?.end_date),
 						},
 					}),
-				...(myOrdersDto?.filter?.status && {
-					status: myOrdersDto?.filter?.status,
-				}),
+				...(myOrdersDto?.filter?.status &&
+					myOrdersDto?.filter?.status !== OrderStatus.CUSTOM && {
+						status: myOrdersDto?.filter?.status,
+					}),
 				user: user?._id,
 			};
 
-			var paginatedRecords = await getPaginatedRecords(this.Order, {
+			const model =
+				myOrdersDto?.filter?.status !== OrderStatus.CUSTOM
+					? this.Order
+					: this.CustomOrder;
+
+			var paginatedRecords = await getPaginatedRecords(model, {
 				limit: myOrdersDto?.limit,
 				page: myOrdersDto?.page,
 				data: search,
@@ -712,6 +721,36 @@ class OrderService {
 			return responseData;
 		} catch (error: any) {
 			console.log("🚀 ~ AdminOverviewService ~ viewAnOrder ~ error:", error);
+			responseData = {
+				status: StatusMessages.error,
+				code: HttpCodes.HTTP_SERVER_ERROR,
+				message: error.toString(),
+			};
+			return responseData;
+		}
+	}
+
+	public async createCustomOrder(
+		payload: CreateCustomOrderDto
+	): Promise<ResponseData> {
+		let responseData: ResponseData = {
+			status: StatusMessages.success,
+			code: HttpCodes.HTTP_OK,
+			message: "Custom Order Created Successfully",
+		};
+		try {
+			const tracking_id = await generateUnusedOrderId();
+			const custom_order = await this.CustomOrder.create({
+				...payload,
+				tracking_id,
+			});
+			responseData.data = custom_order;
+			return responseData;
+		} catch (error: any) {
+			console.log(
+				"🚀 ~ AdminOverviewService ~ createCustomOrder ~ error:",
+				error
+			);
 			responseData = {
 				status: StatusMessages.error,
 				code: HttpCodes.HTTP_SERVER_ERROR,

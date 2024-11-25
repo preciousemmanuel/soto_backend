@@ -55,6 +55,7 @@ export enum OrderStatus {
 	FAILED = "FAILED",
 	RETURNED = "RETURNED",
 	PICKED_UP = "PICKED_UP",
+	CUSTOM = "CUSTOM",
 }
 
 export enum OrderPaymentType {
@@ -193,4 +194,9 @@ export enum ReadAndUnread {
 export enum AllowOrDeny {
 	ALLOWED = "ALLOWED",
 	DENIED = "DENIED",
+}
+
+export enum ApproveOrDecline {
+	APPROVED = "APPROVED",
+	DECLINED = "DECLINED",
 }

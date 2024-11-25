@@ -38,12 +38,11 @@ import { getPaginatedRecords } from "@/utils/helpers/paginate";
 import { requestProp } from "../mail/mail.interface";
 import envConfig from "@/utils/config/env.config";
 import { catchBlockResponse } from "@/utils/constants/data";
+import bankModel from "../transaction/bank.model";
+import { bankSeedData } from "@/utils/seeders/bank.data";
 
 class AdminConfigService {
-	private User = UserModel;
-	private Order = orderModel;
-	private Product = productModel;
-	private OrderDetails = orderDetailsModel;
+	private Bank = bankModel;
 	private Admin = adminModel;
 	private Role = roleModel;
 
@@ -113,6 +112,32 @@ class AdminConfigService {
 			return;
 		} catch (error: any) {
 			console.log("🚀 ~ AdminOverviewService ~ seedSuperAdmin ~ error:", error);
+			return;
+		}
+	}
+
+	public async seedBanks(): Promise<any> {
+		try {
+			const banks = await this.Bank.countDocuments();
+			if (banks > 0) {
+				console.log(
+					"🚀 ~ AdminOverviewService ~ seedBanks ~ total banks:",
+					banks
+				);
+				return;
+			}
+			const bankSeed = bankSeedData.map(
+				({ id, createdAt, updatedAt, ...rest }) => rest
+			);
+			const insertBanks = await this.Bank.insertMany(bankSeed);
+			console.log(
+				"🚀 ~ AdminOverviewService ~ seedBanks ~ insertBanks.total:",
+				insertBanks.length
+			);
+
+			return;
+		} catch (error: any) {
+			console.log("🚀 ~ AdminOverviewService ~ seedBanks ~ error:", error);
 			return;
 		}
 	}

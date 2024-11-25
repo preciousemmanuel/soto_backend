@@ -19,6 +19,7 @@ import NotificationController from "./resources/notification/notification.contro
 import AdminConfigController from "./resources/adminConfig/adminConfig.controller";
 import AdminConfigService from "./resources/adminConfig/adminConfig.service";
 import AssignmentController from "./resources/assignment/assignment.controller";
+import AdminTransactionController from "./resources/adminTransaction/adminTransaction.controller";
 
 dotenv.config({ path: `${process.env.NODE_ENV}.env` });
 validateEnv();
@@ -26,6 +27,7 @@ validateEnv();
 const app = new App(
 	[
 		new AdminConfigController(),
+		new AdminTransactionController(),
 		new AdminOverviewController(),
 		new AdminPeopleController(),
 		new BusinessController(),
