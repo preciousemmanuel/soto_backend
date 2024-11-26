@@ -10,6 +10,18 @@ const modelIdSchema = Joi.object({
 	id: Joi.string().required(),
 });
 
+const editSettingsSchema = Joi.object({
+	address: Joi.string().optional(),
+	city: Joi.string().optional(),
+	state: Joi.string().optional(),
+	postal_code: Joi.string().optional(),
+	withdrawals_manual: Joi.string().valid(YesOrNo.NO, YesOrNo.YES).optional(),
+	withdrawals_scheduled: Joi.string().valid(YesOrNo.NO, YesOrNo.YES).optional(),
+	withdrawals_frequency: Joi.number().min(0).optional(),
+	interest_rates_flat: Joi.number().min(0).optional(),
+	interest_rates_special: Joi.number().min(0).optional(),
+});
+
 const updateStaffRoleSchema = Joi.object({
 	role_id: Joi.string().required(),
 });
@@ -135,4 +147,5 @@ export default {
 	adminCreateSchema,
 	updateStaffRoleSchema,
 	editProfileSchema,
+	editSettingsSchema,
 };

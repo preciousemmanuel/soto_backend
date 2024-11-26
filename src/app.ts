@@ -84,6 +84,7 @@ class App {
 		// this.categoryService.seedCategories();
 		// this.adminConfigService.seedSuperAdmin();
 		// this.adminConfigService.seedBanks();
+		// this.adminConfigService.seedConfigSetting();
 	}
 
 	public listen(): void {

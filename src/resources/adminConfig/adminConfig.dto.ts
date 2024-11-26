@@ -10,18 +10,17 @@ import {
 } from "@/utils/interfaces/base.interface";
 import adminModel from "./admin.model";
 
-export interface CreateBusinessDto {
-	business_name: string;
-	email: string;
-	password: string;
-	phone_number: string;
-	adress: string;
-	category?: string;
-	description?: string;
-	business_logo?: Express.Multer.File;
+export interface EditSettingsDto {
+	address?: string;
+	city?: string;
+	state?: string;
+	postal_code?: string;
+	withdrawals_manual?: string;
+	withdrawals_scheduled?: string;
+	withdrawals_frequency?: number;
+	interest_rates_flat?: number;
+	interest_rates_special?: number;
 }
-
-export interface UpdateBusinessDto extends Partial<CreateBusinessDto> {}
 
 export interface VerificationDto {
 	verification_type: IdentificationTypes;

@@ -10,17 +10,12 @@ import authenticatedMiddleware from "@/middleware/authenticated.middleware";
 import {
 	AdminLoginDto,
 	CreateAdminDto,
-	CreateBusinessDto,
 	CreateRoleDto,
-	OverviewDto,
+	EditSettingsDto,
 	UpdateAdminProfileDto,
 	UpdateRoleDto,
-	VerificationDto,
 } from "./adminConfig.dto";
-import { Business } from "./adminConfig.interface";
 import upload from "@/utils/config/multer";
-import { endOfDay, startOfDay } from "date-fns";
-import { backDaterForChart, backTrackToADate } from "@/utils/helpers";
 import {
 	AccessControlOptions,
 	AdminPermissions,
@@ -97,6 +92,19 @@ class AdminConfigController implements Controller {
 			upload.single("profile_image"),
 			validationMiddleware(validate.editProfileSchema),
 			this.editProfile
+		);
+
+		this.router.get(
+			`${this.path}/get-settings`,
+			adminAuthMiddleware(AdminPermissions.CONFIG, AccessControlOptions.READ),
+			this.getConfigSettings
+		);
+
+		this.router.put(
+			`${this.path}/update-settings`,
+			adminAuthMiddleware(AdminPermissions.CONFIG, AccessControlOptions.WRITE),
+			validationMiddleware(validate.editSettingsSchema),
+			this.editConfigSettings
 		);
 	}
 
@@ -246,6 +254,35 @@ class AdminConfigController implements Controller {
 			const role_id = String(req.query.role_id);
 			const { status, code, message, data } =
 				await this.adminOverviewService.updateStaffRole(staff_id, role_id);
+			return responseObject(res, code, status, message, data);
+		} catch (error: any) {
+			next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()));
+		}
+	};
+
+	private getConfigSettings = async (
+		req: Request,
+		res: Response,
+		next: NextFunction
+	): Promise<Response | void> => {
+		try {
+			const { status, code, message, data } =
+				await this.adminOverviewService.getConfigSettings();
+			return responseObject(res, code, status, message, data);
+		} catch (error: any) {
+			next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()));
+		}
+	};
+
+	private editConfigSettings = async (
+		req: Request,
+		res: Response,
+		next: NextFunction
+	): Promise<Response | void> => {
+		try {
+			const payload: EditSettingsDto = req.body;
+			const { status, code, message, data } =
+				await this.adminOverviewService.editConfigSettings(payload);
 			return responseObject(res, code, status, message, data);
 		} catch (error: any) {
 			next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()));
