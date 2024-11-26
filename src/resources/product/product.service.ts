@@ -1,6 +1,10 @@
 import { User, ShippingAddress } from "@/resources/user/user.interface";
 import UserModel from "@/resources/user/user.model";
-import { uniqueCode } from "@/utils/helpers";
+import {
+	generateUnusedProductCode,
+	nearest,
+	uniqueCode,
+} from "@/utils/helpers";
 import {
 	comparePassword,
 	createToken,
@@ -31,6 +35,7 @@ import { getPaginatedRecords } from "@/utils/helpers/paginate";
 import reviewModel from "./review.model";
 import mongoose from "mongoose";
 import favouriteModel from "./favourite.model";
+import settingModel from "../adminConfig/setting.model";
 
 class ProductService {
 	private user = UserModel;
@@ -38,6 +43,7 @@ class ProductService {
 	private category = categoryModel;
 	private Review = reviewModel;
 	private Favourite = favouriteModel;
+	private Settings = settingModel;
 
 	public async addProduct(
 		addProductDto: AddProductDto,
@@ -74,12 +80,18 @@ class ProductService {
 					image_urls.push(url);
 				}
 			}
+			const managed_unit_price = await this.manageInterestOnProduct(
+				Number(addProductDto?.unit_price)
+			);
+			const product_code = await generateUnusedProductCode();
 			const newProduct = await this.product.create({
 				product_name: String(addProductDto.product_name),
 				description: addProductDto?.description,
+				product_code,
 				category: category?._id,
 				vendor: user?._id,
-				unit_price: Number(addProductDto?.unit_price),
+				unit_price: managed_unit_price,
+				raw_price: Number(addProductDto?.unit_price),
 				product_quantity: Number(addProductDto.product_quantity),
 				height: Number(addProductDto.height),
 				width: Number(addProductDto.width),
@@ -350,6 +362,7 @@ class ProductService {
 					}
 				}
 			}
+
 			const updatedProduct = await this.product.findByIdAndUpdate(
 				productExists?._id,
 				{
@@ -363,7 +376,12 @@ class ProductService {
 						category: updateProductDto?.category,
 					}),
 					...(updateProductDto?.unit_price && {
-						unit_price: Number(updateProductDto?.unit_price),
+						unit_price: await this.manageInterestOnProduct(
+							Number(updateProductDto?.unit_price)
+						),
+					}),
+					...(updateProductDto?.unit_price && {
+						raw_price: Number(updateProductDto?.unit_price),
 					}),
 					...(updateProductDto?.product_quantity && {
 						product_quantity: Number(updateProductDto.product_quantity),
@@ -633,6 +651,34 @@ class ProductService {
 				message: error.toString(),
 			};
 			return responseData;
+		}
+	}
+
+	public async manageInterestOnProduct(unit_price: number): Promise<number> {
+		try {
+			let managed_price = unit_price;
+			const configSetting = await this.Settings.findOne({});
+			const flat = configSetting?.interest_rates?.flat || 0;
+			const special = configSetting?.interest_rates?.special || 0;
+			switch (unit_price < 1000000) {
+				case true:
+					managed_price = nearest(
+						unit_price + Math.round(unit_price * (flat / 100)),
+						50
+					);
+					break;
+
+				default:
+					managed_price = nearest(
+						unit_price + Math.round(unit_price * (special / 100)),
+						50
+					);
+					break;
+			}
+
+			return managed_price;
+		} catch (error) {
+			return unit_price;
 		}
 	}
 }

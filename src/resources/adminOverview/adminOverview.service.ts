@@ -996,7 +996,8 @@ class AdminOverviewService {
 						},
 						pickup_date: 1,
 					},
-				});
+				})
+				.populate("general_coupon");
 			if (!order) {
 				return {
 					status: StatusMessages.error,

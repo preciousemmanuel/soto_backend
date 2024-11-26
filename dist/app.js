@@ -63,6 +63,7 @@ class App {
         // this.categoryService.seedCategories();
         // this.adminConfigService.seedSuperAdmin();
         // this.adminConfigService.seedBanks();
+        // this.adminConfigService.seedConfigSetting();
     }
     listen() {
         this.express.listen(this.port, () => {

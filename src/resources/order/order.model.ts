@@ -90,6 +90,14 @@ const OrderSchema = new Schema(
 			type: Number,
 			required: true,
 		},
+		discounted_amount: {
+			type: Number,
+			default: 0,
+		},
+		price_before_discount: {
+			type: Number,
+			required: true,
+		},
 		payment_type: {
 			type: String,
 			enum: OrderPaymentType,

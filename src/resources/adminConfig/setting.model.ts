@@ -25,15 +25,30 @@ const SettingSchema = new Schema(
 				type: String,
 				enum: [YesOrNo.NO, YesOrNo.YES],
 				default: YesOrNo.NO,
+				required: true,
 			},
 			scheduled: {
 				type: String,
 				enum: [YesOrNo.NO, YesOrNo.YES],
 				default: YesOrNo.NO,
+				required: true,
 			},
 			frequency: {
 				type: Number,
 				default: 1,
+				required: true,
+			},
+		},
+		interest_rates: {
+			flat: {
+				type: Number,
+				default: 5,
+				required: true,
+			},
+			special: {
+				type: Number,
+				default: 1,
+				required: true,
 			},
 		},
 	},

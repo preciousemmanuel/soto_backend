@@ -400,6 +400,10 @@ class AdminTransactionService {
 			var logRecords = await getPaginatedRecords(this.TxnLog, {
 				limit,
 				page,
+				populateObj: {
+					path: "user",
+					select: "FirstName LastName Email UserType ProfileImage",
+				},
 			});
 
 			responseData.data = {

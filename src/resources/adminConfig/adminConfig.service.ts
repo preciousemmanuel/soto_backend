@@ -16,6 +16,7 @@ import {
 	AdminLoginDto,
 	CreateAdminDto,
 	CreateRoleDto,
+	EditSettingsDto,
 	UpdateAdminProfileDto,
 	UpdateRoleDto,
 } from "./adminConfig.dto";
@@ -37,14 +38,19 @@ import roleModel from "./role.model";
 import { getPaginatedRecords } from "@/utils/helpers/paginate";
 import { requestProp } from "../mail/mail.interface";
 import envConfig from "@/utils/config/env.config";
-import { catchBlockResponse } from "@/utils/constants/data";
+import {
+	catchBlockResponse,
+	catchBlockResponseFn,
+} from "@/utils/constants/data";
 import bankModel from "../transaction/bank.model";
 import { bankSeedData } from "@/utils/seeders/bank.data";
+import settingModel from "./setting.model";
 
 class AdminConfigService {
 	private Bank = bankModel;
 	private Admin = adminModel;
 	private Role = roleModel;
+	private Setting = settingModel;
 
 	public async adminLogin(payload: AdminLoginDto): Promise<ResponseData> {
 		let responseData: ResponseData = {
@@ -116,6 +122,32 @@ class AdminConfigService {
 		}
 	}
 
+	public async seedConfigSetting(): Promise<any> {
+		try {
+			const configSettings = await this.Setting.countDocuments();
+			if (configSettings > 0) {
+				console.log(
+					"🚀 ~ AdminOverviewService ~ configSettings ~ total configSettings:",
+					configSettings
+				);
+				return;
+			}
+			const configNew = await this.Setting.create({
+				interest_rates: {
+					flat: 5,
+				},
+			});
+			console.log(
+				"🚀 ~ AdminConfigService ~ seedConfigSetting ~ configNew:",
+				configNew
+			);
+
+			return;
+		} catch (error: any) {
+			console.log("🚀 ~ AdminOverviewService ~ seedBanks ~ error:", error);
+			return;
+		}
+	}
 	public async seedBanks(): Promise<any> {
 		try {
 			const banks = await this.Bank.countDocuments();
@@ -628,6 +660,104 @@ class AdminConfigService {
 		} catch (error: any) {
 			console.log("🚀 ~ AdminConfigService ~ editProfile ~ error:", error);
 			return catchBlockResponse;
+		}
+	}
+
+	public async getConfigSettings(): Promise<ResponseData> {
+		let responseData: ResponseData = {
+			status: StatusMessages.success,
+			code: HttpCodesEnum.HTTP_OK,
+			message: "Settngs retreived successfully",
+		};
+		try {
+			const settings = await this.Setting.findOne({});
+			if (!settings) {
+				return {
+					status: StatusMessages.error,
+					code: HttpCodesEnum.HTTP_OK,
+					message: "Settings not found",
+				};
+			}
+
+			responseData.data = settings;
+			return responseData;
+		} catch (error: any) {
+			console.log("🚀 ~ AdminConfigService ~ editProfile ~ error:", error);
+			return catchBlockResponseFn(error);
+		}
+	}
+
+	public async editConfigSettings(
+		payload: EditSettingsDto
+	): Promise<ResponseData> {
+		let responseData: ResponseData = {
+			status: StatusMessages.success,
+			code: HttpCodesEnum.HTTP_OK,
+			message: "Settngs edited successfully",
+		};
+		try {
+			const {
+				address,
+				city,
+				state,
+				postal_code,
+				withdrawals_frequency,
+				withdrawals_manual,
+				withdrawals_scheduled,
+				interest_rates_flat,
+				interest_rates_special,
+			} = payload;
+			const configSettings = await this.Setting.findOne({});
+			if (!configSettings) {
+				return {
+					status: StatusMessages.error,
+					code: HttpCodesEnum.HTTP_OK,
+					message: "Settings not found",
+				};
+			}
+			const shiping_address_update = {
+				address: address ? address : configSettings.ShippingAddress?.address,
+				city: city ? city : configSettings.ShippingAddress?.city,
+				state: state ? state : configSettings.ShippingAddress?.state,
+				postal_code: postal_code
+					? postal_code
+					: configSettings.ShippingAddress?.postal_code,
+			};
+			const editedSettings = await this.Setting.findByIdAndUpdate(
+				configSettings._id,
+				{
+					ShippingAddress: {
+						full_address: `${shiping_address_update.address}, ${shiping_address_update.city}, ${shiping_address_update.state},`,
+						...shiping_address_update,
+					},
+					withdrawals: {
+						manual: withdrawals_manual
+							? withdrawals_manual
+							: configSettings.withdrawals?.manual,
+						scheduled: withdrawals_scheduled
+							? withdrawals_scheduled
+							: configSettings.withdrawals?.scheduled,
+						frequency: withdrawals_frequency
+							? withdrawals_frequency
+							: configSettings.withdrawals?.frequency,
+					},
+					interest_rates: {
+						flat: interest_rates_flat
+							? interest_rates_flat
+							: configSettings.interest_rates?.flat,
+						special: interest_rates_special
+							? interest_rates_special
+							: configSettings.interest_rates?.special,
+					},
+				},
+				{ new: true }
+			);
+
+			responseData.data = editedSettings;
+			return responseData;
+		} catch (error: any) {
+			console.log("🚀 ~ AdminConfigService ~ editProfile ~ error:", error);
+			return catchBlockResponseFn(error);
 		}
 	}
 }

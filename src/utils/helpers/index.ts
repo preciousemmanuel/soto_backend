@@ -19,6 +19,7 @@ import {
 	BackDaterResponse,
 } from "../interfaces/base.interface";
 import genCouponModel from "@/resources/coupon/genCoupon.model";
+import productModel from "@/resources/product/product.model";
 
 export const uniqueCode = (): number => {
 	const code = Math.floor(1000 + Math.random() * 9000);
@@ -57,12 +58,12 @@ export const formatPhoneNumber = (phone_number: string) => {
 	return formated;
 };
 
-export const genAphaNumericCode = () => {
+export const genAphaNumericCode = (length?: number) => {
 	//define a variable consisting alphabets in small and capital letter
 	var characters = "ABCDEFGHIJKLMNOPQRSTUVWXTZ";
 	var number = Math.floor(Math.random() * 10000);
 	//specify the length for the new string
-	var lenString = 3;
+	var lenString = length || 3;
 	var string = "";
 	//loop to select a new character in each iteration
 	for (var i = 0; i < lenString; i++) {
@@ -173,6 +174,33 @@ export const generateUnusedOrderId = async (): Promise<string> => {
 	}
 };
 
+export const generateUnusedProductCode = async (): Promise<string> => {
+	let order_id: string;
+	let existingOrderWithId: any;
+	let generatedOrderId: string;
+	let randString: string;
+	try {
+		randString = String(genAphaNumericCode(2));
+		generatedOrderId = String(`PRD-${randString}`);
+		existingOrderWithId = await orderModel.findOne({
+			tracking_id: generatedOrderId,
+		});
+		order_id = generatedOrderId;
+		while (existingOrderWithId !== null && existingOrderWithId !== undefined) {
+			randString = String(genAphaNumericCode(2));
+			generatedOrderId = String(`PRD-${randString}`);
+			existingOrderWithId = await productModel.findOne({
+				product_code: generatedOrderId,
+			});
+			order_id = generatedOrderId;
+		}
+		return order_id;
+	} catch (error: any) {
+		console.log("🚀 ~ generateUnusedProductCode ~ error:", error);
+		return error.toString();
+	}
+};
+
 export const genCouponCode = () => {
 	//define a variable consisting alphabets in small and capital letter
 	var characters = "ABCDEFGHIJKLMNOPQRSTUVWXTZ";
@@ -268,7 +296,6 @@ export const backDaterForChart = async (
 				end: endOfDay(startDay),
 				day: startDay.toDateString(),
 				raw_date: new Date(startDay),
-
 			};
 			array.push(object3);
 			while (i < 7) {
@@ -488,7 +515,7 @@ export const backDaterForChart = async (
 						end,
 						day: dayd.toDateString(),
 						raw_date: new Date(dayd),
-				};
+					};
 					array2d.unshift(dateObject);
 					thisArrayd.unshift(dateObject);
 					i2d += 7;
@@ -621,4 +648,9 @@ export const backTrackToADate = (format: string) => {
 	} catch (error) {
 		console.log("🚀 ~ backTrackToADate ~ error:", error);
 	}
+};
+
+export const nearest = function (num: number, near: number = 50) {
+	const rounded = Math.round(num / near) * near;
+	return rounded;
 };
