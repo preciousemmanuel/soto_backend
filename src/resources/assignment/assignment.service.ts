@@ -8,7 +8,10 @@ import {
 } from "@/utils/helpers/token";
 
 // import logger from "@/utils/logger";
-import { CreateAssignmentDto } from "./assignment.dto";
+import {
+	CreateAssignmentDto,
+	OrderDetailsForAssignmentDto,
+} from "./assignment.dto";
 import { hashPassword } from "@/utils/helpers/token";
 import {
 	OrderStatus,
@@ -30,6 +33,7 @@ import assignmentModel from "./assignment.model";
 import adminModel from "../adminConfig/admin.model";
 import mongoose from "mongoose";
 import { HttpCodesEnum } from "@/utils/enums/httpCodes.enum";
+import { catchBlockResponseFn } from "@/utils/constants/data";
 
 class AssignmentService {
 	private User = UserModel;
@@ -50,66 +54,46 @@ class AssignmentService {
 		};
 		try {
 			console.log("TIME TO CREATE ASSIGNMENTS FOR PICK UP AGENTS");
-
-			const coordinate = payload.buyer.coordinate;
-			console.log(
-				"🚀 ~ AssignmentService ~ payload.buyer.coordinate:",
-				coordinate
-			);
 			const role_id = new mongoose.Types.ObjectId("673c9cf44e37eeaa3697b8d6");
-			const nearestPurchaser = (
-				await this.Admin.aggregate([
-					{
-						$geoNear: {
-							near: {
-								type: "Point",
-								coordinates: coordinate,
-							},
-							distanceField: "distance",
-							key: "coordinate",
-							spherical: true,
-							query: {
-								Role: role_id,
-							},
-						},
-					},
-					{
-						$sort: { distance: 1 },
-					},
-					{
-						$limit: 1,
-					},
-				])
-			)[0];
-			if (nearestPurchaser) {
-				console.log(
-					"🚀 ~ AssignmentService ~ nearestPurchaser:",
-					nearestPurchaser
-				);
-				const order_details_array: any[] = [];
-				const vendor_id_array: any[] = [];
-				payload.order_details.map((detail) => {
-					order_details_array.push(detail._id);
-					vendor_id_array.push(detail.vendor);
-				});
-
-				const vendors = await this.User.find({
-					_id: { $in: vendor_id_array },
-				});
-				const orderDetails = payload.order_details;
-
-				const assignmentObject = (
-					vendors: InstanceType<typeof this.User>[],
-					orderDetails: InstanceType<typeof this.OrderDetails>[]
-				) => {
-					return orderDetails
-						.map((detail) => {
-							const matchedVendor = vendors.find(
-								(vendor) =>
-									String(vendor._id).toString() ===
-									String(detail.vendor).toString()
-							);
-							if (matchedVendor) {
+			const purchasers: any[] = [];
+			const assignmentObject = (
+				vendors: InstanceType<typeof this.User>[],
+				orderDetails: OrderDetailsForAssignmentDto[]
+			) => {
+				return orderDetails
+					.map(async (detail) => {
+						const matchedVendor = vendors.find(
+							(vendor) =>
+								String(vendor._id).toString() ===
+								String(detail.vendor).toString()
+						);
+						if (matchedVendor) {
+							const nearestPurchaser = (
+								await this.Admin.aggregate([
+									{
+										$geoNear: {
+											near: {
+												type: "Point",
+												coordinates: matchedVendor.coordinate,
+											},
+											distanceField: "distance",
+											key: "coordinate",
+											spherical: true,
+											query: {
+												Role: role_id,
+											},
+										},
+									},
+									{
+										$sort: { distance: 1 },
+									},
+									{
+										$limit: 1,
+									},
+								])
+							)[0];
+							if (nearestPurchaser) {
+								purchasers.push(nearestPurchaser);
 								return {
 									order_details: detail._id,
 									extra_detail: {
@@ -125,26 +109,47 @@ class AssignmentService {
 								};
 							}
 							return null;
-						})
-						.filter((result) => result !== null);
-				};
-				const InsertsAssignment = assignmentObject(vendors, orderDetails);
-				const assignments = await this.Assignment.insertMany(InsertsAssignment);
-				this.mailService.sendAssignmentsToPurchasers({
-					email: nearestPurchaser.Email,
-					first_name: nearestPurchaser.FirstName,
-					assignments: assignments as InstanceType<typeof this.Assignment>[],
+						}
+						return null;
+					})
+					.filter((result) => result !== null);
+			};
+			const order_details_array: any[] = [];
+			const vendor_id_array: any[] = [];
+			payload.order_details.map((detail) => {
+				order_details_array.push(detail._id);
+				vendor_id_array.push(detail.vendor);
+			});
+
+			const vendors = await this.User.find({
+				_id: { $in: vendor_id_array },
+			});
+			const orderDetails = payload.order_details;
+
+			const InsertsAssignment = assignmentObject(vendors, orderDetails);
+			let assignments: any[];
+			await this.Assignment.insertMany(InsertsAssignment)
+				.then((ass) => {
+					assignments = ass;
+					this.sendAssignmentMailsToPurchasers(
+						purchasers as InstanceType<typeof this.Admin>[],
+						assignments as InstanceType<typeof this.Assignment>[]
+					);
+					responseData.data = assignments;
+					responseData.message =
+						"Assignments Created Successfully successfully";
+				})
+				.catch((e: any) => {
+					console.log(
+						"🚀 ~ AssignmentService ~this.Assignment.insertMany(InsertsAssignment) e:",
+						e
+					);
+					responseData = {
+						status: StatusMessages.error,
+						code: HttpCodesEnum.HTTP_BAD_REQUEST,
+						message: e.toString(),
+					};
 				});
-				responseData.data = assignments;
-				responseData.message = "Assignments Created Successfully successfully";
-			} else {
-				return {
-					status: StatusMessages.error,
-					code: HttpCodesEnum.HTTP_BAD_REQUEST,
-					message: "No Pickup agent Found",
-				};
-			}
-			console.log("🚀 ~ AssignmentService ~ responseData:", responseData);
 			return responseData;
 		} catch (error: any) {
 			console.log("🚀 ~ AdminOverviewService ~ error:", error);
@@ -154,6 +159,27 @@ class AssignmentService {
 				message: error.toString(),
 			};
 			return responseData;
+		}
+	}
+
+	public async sendAssignmentMailsToPurchasers(
+		purchasers: InstanceType<typeof this.Admin>[],
+		assignments: InstanceType<typeof this.Assignment>[]
+	) {
+		try {
+			for (const purchaser of purchasers) {
+				this.mailService.sendAssignmentsToPurchasers({
+					email: purchaser.Email,
+					first_name: purchaser.FirstName,
+					assignments: assignments as InstanceType<typeof this.Assignment>[],
+				});
+			}
+		} catch (error: any) {
+			console.log(
+				"🚀 ~ AssignmentService sendAssignmentMailsToPurchasers ~ error:",
+				error
+			);
+			catchBlockResponseFn(error);
 		}
 	}
 

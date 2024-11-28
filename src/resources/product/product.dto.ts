@@ -25,6 +25,7 @@ export interface FetchProductsDto {
 	limit: number;
 	page: number;
 	filter?: FilterProductsDto;
+	fetch_type?: string;
 }
 
 export interface FilterProductsDto {

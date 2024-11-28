@@ -977,7 +977,7 @@ class AdminOverviewService {
 			const order = await this.Order.findById(order_id)
 				.populate({
 					path: "items.vendor",
-					select: "firstName lastName Email ProfileImage PhoneNumber",
+					select: "FirstName LastName Email ProfileImage PhoneNumber",
 				})
 				.populate({
 					path: "user",
