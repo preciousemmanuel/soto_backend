@@ -70,7 +70,7 @@ class OrderController implements Controller {
 
 		this.router.post(
 			`${this.path}/create-custom`,
-			authenticatedMiddleware,
+			// authenticatedMiddleware,
 			validationMiddleware(validate.CustomOrderSchema),
 			this.createCustomOrder
 		);

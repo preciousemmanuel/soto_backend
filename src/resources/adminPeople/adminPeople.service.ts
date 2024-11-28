@@ -96,6 +96,24 @@ class AdminPeopleService {
 				{
 					$addFields: {
 						total_spent: { $sum: "$user_orders.grand_total" },
+						total_orders: { $size: "$user_orders" },
+						total_items_ordered: {
+							$sum: {
+								$map: {
+									input: "$user_orders",
+									as: "order",
+									in: {
+										$sum: {
+											$map: {
+												input: "$$order.items",
+												as: "item",
+												in: "$$item.quantity",
+											},
+										},
+									},
+								},
+							},
+						},
 						last_order_price: {
 							$ifNull: [
 								{
@@ -118,6 +136,8 @@ class AdminPeopleService {
 						ProfileImage: 1,
 						total_spent: 1,
 						last_order_price: 1,
+						total_orders: 1,
+						total_items_ordered: 1,
 						createdAt: 1,
 						Rank: 1,
 					},
@@ -147,6 +167,8 @@ class AdminPeopleService {
 								rank: "$Rank",
 								total_spent: "$total_spent",
 								last_order_price: "$last_order_price",
+								total_orders: "$total_orders",
+								total_items_ordered: "$total_items_ordered",
 							},
 						},
 						total_count: { $sum: 1 },

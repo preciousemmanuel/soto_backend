@@ -200,3 +200,8 @@ export enum ApproveOrDecline {
 	APPROVED = "APPROVED",
 	DECLINED = "DECLINED",
 }
+
+export enum ProductFetchTypes {
+	POPULAR = "POPULAR",
+	BEST_SELLER = "BEST_SELLER",
+}

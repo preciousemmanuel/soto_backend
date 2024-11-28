@@ -23,6 +23,7 @@ import {
 import { hashPassword } from "@/utils/helpers/token";
 import {
 	OtpPurposeOptions,
+	ProductFetchTypes,
 	StatusMessages,
 	YesOrNo,
 } from "@/utils/enums/base.enum";
@@ -33,7 +34,7 @@ import categoryModel from "../category/category.model";
 import cloudUploader from "@/utils/config/cloudUploader";
 import { getPaginatedRecords } from "@/utils/helpers/paginate";
 import reviewModel from "./review.model";
-import mongoose from "mongoose";
+import mongoose, { PipelineStage } from "mongoose";
 import favouriteModel from "./favourite.model";
 import settingModel from "../adminConfig/setting.model";
 
@@ -133,7 +134,9 @@ class ProductService {
 		user?: InstanceType<typeof this.user>
 	): Promise<ResponseData> {
 		let responseData: ResponseData;
+		let message: string;
 		try {
+			const fetch_type = payload?.fetch_type;
 			const search = {
 				...(payload?.filter?.product_name && {
 					product_name: {
@@ -159,78 +162,213 @@ class ProductService {
 			};
 
 			const skip = (Number(payload.page) - 1) * Number(payload.limit);
-			const pipeline = [
-				{
-					$match: search,
-				},
-				{
-					$lookup: {
-						from: "Favourites",
-						localField: "_id",
-						foreignField: "product",
-						as: "favouritesDetails",
+			let pipeline = [];
+			if (fetch_type && fetch_type === ProductFetchTypes.POPULAR) {
+				pipeline = [
+					{
+						$match: search,
 					},
-				},
-				{
-					$addFields: {
-						favourite: {
-							$cond: {
-								if: {
-									$gt: [
-										{
-											$size: {
-												$filter: {
-													input: "$favouritesDetails",
-													cond: { $eq: ["$$this.user", user?._id] },
+					{
+						$lookup: {
+							from: "Favourites",
+							localField: "_id",
+							foreignField: "product",
+							as: "favouritesDetails",
+						},
+					},
+					{
+						$addFields: {
+							favourite: {
+								$cond: {
+									if: {
+										$gt: [
+											{
+												$size: {
+													$filter: {
+														input: "$favouritesDetails",
+														cond: { $eq: ["$$this.user", user?._id] },
+													},
 												},
 											},
-										},
-										0,
-									],
+											0,
+										],
+									},
+									then: true,
+									else: false,
 								},
-								then: true,
-								else: false,
 							},
 						},
 					},
-				},
-				{
-					$lookup: {
-						from: "Categories",
-						localField: "category",
-						foreignField: "_id",
-						as: "categoryDetails",
-					},
-				},
-				{
-					$addFields: {
-						category: {
-							$arrayElemAt: ["$categoryDetails", 0],
+					{
+						$lookup: {
+							from: "Categories",
+							localField: "category",
+							foreignField: "_id",
+							as: "categoryDetails",
 						},
 					},
-				},
-				{
-					$project: {
-						favouritesDetails: 0,
-						categoryDetails: 0,
+					{
+						$addFields: {
+							category: {
+								$arrayElemAt: ["$categoryDetails", 0],
+							},
+						},
 					},
-				},
-				{
-					$sort: { createdAt: -1 as 1 | -1 },
-				},
-				{
-					$skip: skip,
-				},
-				{
-					$limit: Number(payload.limit),
-				},
-				{
-					$facet: {
-						metadata: [{ $count: "total" }],
-						products: [{ $skip: skip }, { $limit: Number(payload.limit) }],
+					{
+						$lookup: {
+							from: "OrderDetails",
+							localField: "_id",
+							foreignField: "product_id",
+							as: "orderDetails",
+						},
 					},
-				},
-			];
+					{
+						$addFields: {
+							total_items_ordered: {
+								$ifNull: [
+									{
+										$sum: {
+											$map: {
+												input: {
+													$filter: {
+														input: "$orderDetails",
+														as: "order",
+														cond: {
+															$and: [
+																{
+																	$eq: [
+																		{ $month: "$$order.createdAt" },
+																		{ $month: new Date() },
+																	],
+																},
+																{
+																	$eq: [
+																		{ $year: "$$order.createdAt" },
+																		{ $year: new Date() },
+																	],
+																},
+															],
+														},
+													},
+												},
+												as: "filteredOrder",
+												in: "$$filteredOrder.quantity",
+											},
+										},
+									},
+									0,
+								],
+							},
+						},
+					},
+					{
+						$project: {
+							favouritesDetails: 0,
+							categoryDetails: 0,
+							orderDetails: 0,
+						},
+					},
+					{
+						$sort: { total_items_ordered: -1 as 1 | -1 },
+					},
+					{
+						$skip: skip,
+					},
+					{
+						$limit: Number(payload.limit),
+					},
+					{
+						$facet: {
+							metadata: [{ $count: "total" }],
+							products: [{ $skip: skip }, { $limit: Number(payload.limit) }],
+						},
+					},
+				];
+				message = "Popular Products Fetched Successfully";
+			} else {
+				pipeline = [
+					{
+						$match: search,
+					},
+					{
+						$lookup: {
+							from: "Favourites",
+							localField: "_id",
+							foreignField: "product",
+							as: "favouritesDetails",
+						},
+					},
+					{
+						$addFields: {
+							favourite: {
+								$cond: {
+									if: {
+										$gt: [
+											{
+												$size: {
+													$filter: {
+														input: "$favouritesDetails",
+														cond: { $eq: ["$$this.user", user?._id] },
+													},
+												},
+											},
+											0,
+										],
+									},
+									then: true,
+									else: false,
+								},
+							},
+						},
+					},
+					{
+						$lookup: {
+							from: "Categories",
+							localField: "category",
+							foreignField: "_id",
+							as: "categoryDetails",
+						},
+					},
+					{
+						$addFields: {
+							category: {
+								$arrayElemAt: ["$categoryDetails", 0],
+							},
+						},
+					},
+					{
+						$lookup: {
+							from: "OrderDetails",
+							localField: "_id",
+							foreignField: "product_id",
+							as: "orderDetails",
+						},
+					},
+					{
+						$project: {
+							favouritesDetails: 0,
+							categoryDetails: 0,
+							orderDetails: 0,
+						},
+					},
+					{
+						$sort: { total_items_ordered: -1 as 1 | -1 },
+					},
+					{
+						$skip: skip,
+					},
+					{
+						$limit: Number(payload.limit),
+					},
+					{
+						$facet: {
+							metadata: [{ $count: "total" }],
+							products: [{ $skip: skip }, { $limit: Number(payload.limit) }],
+						},
+					},
+				];
+				message = "Products Fetched Successfully";
+			}
 
 			const result = await this.product.aggregate(pipeline);
 			const total = result[0]?.metadata[0]?.total || 0;
@@ -249,7 +387,7 @@ class ProductService {
 			responseData = {
 				status: StatusMessages.success,
 				code: HttpCodes.HTTP_OK,
-				message: "Products Fetched Successfully",
+				message,
 				data: pagination,
 			};
 
