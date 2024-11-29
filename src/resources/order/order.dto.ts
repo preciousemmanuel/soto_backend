@@ -31,6 +31,10 @@ export interface CreateCustomOrderDto {
 	user?: InstanceType<typeof userModel>;
 }
 
+export interface CustomOrderArrayDto {
+	orders: CreateCustomOrderDto[];
+}
+
 export interface AddToCartDto {
 	items: orderItems[];
 }

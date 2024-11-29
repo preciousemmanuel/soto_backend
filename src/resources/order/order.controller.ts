@@ -10,6 +10,7 @@ import {
 	AddToCartDto,
 	CreateCustomOrderDto,
 	CreateOrderDto,
+	CustomOrderArrayDto,
 	FetchMyOrdersDto,
 	RemoveFromCartDto,
 } from "./order.dto";
@@ -208,12 +209,10 @@ class OrderController implements Controller {
 		next: NextFunction
 	): Promise<Response | void> => {
 		try {
-			const payload: CreateCustomOrderDto = {
-				user: req.user?._id,
-				...req.body,
-			};
+			const payload: CustomOrderArrayDto = req.body;
+			const user = req.user;
 			const { status, code, message, data } =
-				await this.orderService.createCustomOrder(payload);
+				await this.orderService.createCustomOrder(payload, user);
 			return responseObject(res, code, status, message, data);
 		} catch (error: any) {
 			next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()));

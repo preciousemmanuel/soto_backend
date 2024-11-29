@@ -65,16 +65,20 @@ const fetchMyOrdersSchema = Joi.object({
 });
 
 const CustomOrderSchema = Joi.object({
-	product_name: Joi.string().required(),
-	size: Joi.string().optional(),
-	color: Joi.string().optional(),
-	type: Joi.string().optional(),
-	quantity: Joi.number().min(1).required(),
-	max_price: Joi.number().min(1).required(),
-	min_price: Joi.number().min(1).required(),
-	phone_number: Joi.string().required(),
-	email: Joi.string().required(),
-	note: Joi.string().optional(),
+	orders: Joi.array().items(
+		Joi.object({
+			product_name: Joi.string().required(),
+			size: Joi.string().optional(),
+			color: Joi.string().optional(),
+			type: Joi.string().optional(),
+			quantity: Joi.number().min(1).required(),
+			max_price: Joi.number().min(1).required(),
+			min_price: Joi.number().min(1).required(),
+			phone_number: Joi.string().required(),
+			email: Joi.string().required(),
+			note: Joi.string().optional(),
+		})
+	),
 });
 
 export default {

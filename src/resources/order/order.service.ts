@@ -12,6 +12,7 @@ import {
 	AddToCartDto,
 	CreateCustomOrderDto,
 	CreateOrderDto,
+	CustomOrderArrayDto,
 	FetchMyOrdersDto,
 	RemoveFromCartDto,
 } from "./order.dto";
@@ -744,7 +745,8 @@ class OrderService {
 	}
 
 	public async createCustomOrder(
-		payload: CreateCustomOrderDto
+		payload: CustomOrderArrayDto,
+		user: InstanceType<typeof this.User>
 	): Promise<ResponseData> {
 		let responseData: ResponseData = {
 			status: StatusMessages.success,
@@ -752,11 +754,18 @@ class OrderService {
 			message: "Custom Order Created Successfully",
 		};
 		try {
-			const tracking_id = await generateUnusedOrderId();
-			const custom_order = await this.CustomOrder.create({
-				...payload,
-				tracking_id,
-			});
+			var orders = payload.orders;
+			const fineTuned: any[] = [];
+			for (const order of orders) {
+				const updated = {
+					...order,
+					...(user && { user: user._id }),
+					tracking_id: await generateUnusedOrderId(),
+				};
+				fineTuned.push(updated);
+			}
+
+			const custom_order = await this.CustomOrder.insertMany(fineTuned);
 			responseData.data = custom_order;
 			return responseData;
 		} catch (error: any) {
