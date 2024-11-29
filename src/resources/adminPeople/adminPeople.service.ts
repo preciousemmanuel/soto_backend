@@ -1248,7 +1248,7 @@ class AdminPeopleService {
 					select: "order ",
 					populate: {
 						path: "order",
-						select: "tracking_id",
+						select: "tracking_id _id",
 					},
 				},
 				populateObj1: {
@@ -1259,6 +1259,7 @@ class AdminPeopleService {
 			const pickups = pickupRecords.data.map((pickup) => {
 				return {
 					tracking_id: pickup?.order_details?.order?.tracking_id,
+					order_id: pickup?.order_details?.order?._id,
 					purchaser: {
 						_id: pickup?.purchaser?._id || "",
 						profile_image: pickup?.purchaser?.ProfileImage || "",

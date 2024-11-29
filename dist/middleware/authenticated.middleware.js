@@ -22,13 +22,14 @@ function authenticatedMiddleware(req, res, next) {
             const bearer = req.headers.authorization || "Bearer abcdef";
             console.log("🚀 ~ bearer:", bearer);
             if (!bearer || !bearer.startsWith("Bearer ")) {
-                if (!req.path.includes('/product/fetch')) {
+                if (!req.path.includes("/product/fetch") &&
+                    !req.path.includes("/order/create-custom")) {
                     return next(new http_exception_1.default(401, "Unauthorized"));
                 }
                 return next(); // Allow through for `/product/fetch`
             }
             const accessToken = bearer.split("Bearer ")[1].trim();
-            const productPath = req.path.includes('/product/fetch');
+            const productPath = req.path.includes("/product/fetch");
             console.log("🚀 ~ productPath:", productPath);
             const payload = yield (0, token_1.verifyToken)(accessToken);
             if (payload instanceof jsonwebtoken_1.default.JsonWebTokenError) {
@@ -37,11 +38,12 @@ function authenticatedMiddleware(req, res, next) {
                 }
                 return next(); // Allow through for `/product/fetch`
             }
-            const user = yield user_model_1.default.findById(payload.id)
-                .populate('business')
-                .populate('wallet')
-                .populate('cart')
-                .populate('card');
+            const user = yield user_model_1.default
+                .findById(payload.id)
+                .populate("business")
+                .populate("wallet")
+                .populate("cart")
+                .populate("card");
             if (!user && !productPath) {
                 return next(new http_exception_1.default(401, "Unauthorized"));
             }
@@ -50,7 +52,7 @@ function authenticatedMiddleware(req, res, next) {
         }
         catch (error) {
             console.log("🚀authenticatedMiddleware ~ error:", error);
-            if (!req.path.includes('/product/fetch')) {
+            if (!req.path.includes("/product/fetch")) {
                 return next(new http_exception_1.default(401, "Unauthorized"));
             }
             next(); // Allow through for `/product/fetch` on error

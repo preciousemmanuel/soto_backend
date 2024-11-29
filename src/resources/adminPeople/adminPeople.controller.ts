@@ -74,7 +74,6 @@ class AdminPeopleController implements Controller {
 				validationMiddleware(validate.updateUserSchema),
 				this.updateBuyerOrSeller
 			),
-
 			this.router.get(
 				`${this.path}/purchasers/get-all`,
 				adminAuthMiddleware(AdminPermissions.ADMIN, AccessControlOptions.READ),
@@ -333,7 +332,9 @@ class AdminPeopleController implements Controller {
 				...(req.query?.purchaser &&
 					req?.query?.purchaser !== null &&
 					req?.query?.purchaser !== "" && {
-						purchaser: new mongoose.Types.ObjectId(String(req.query?.status)),
+						purchaser: new mongoose.Types.ObjectId(
+							String(req.query?.purchaser)
+						),
 					}),
 			};
 
