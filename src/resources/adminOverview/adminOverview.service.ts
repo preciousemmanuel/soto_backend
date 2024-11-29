@@ -932,6 +932,7 @@ class AdminOverviewService {
 		try {
 			const { limit, page, start_date, end_date, status, tracking_id } =
 				payload;
+
 			const filter = {
 				...(status && { status }),
 				...(tracking_id && { tracking_id }),
