@@ -19,6 +19,7 @@ export interface CreateOrderDto {
 
 export interface CreateCustomOrderDto {
 	product_name: string;
+	product_brand?: string;
 	size?: string;
 	color?: string;
 	type?: string;

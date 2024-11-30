@@ -68,6 +68,7 @@ const CustomOrderSchema = Joi.object({
 	orders: Joi.array().items(
 		Joi.object({
 			product_name: Joi.string().required(),
+			product_brand: Joi.string().optional(),
 			size: Joi.string().optional(),
 			color: Joi.string().optional(),
 			type: Joi.string().optional(),

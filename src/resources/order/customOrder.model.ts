@@ -7,6 +7,10 @@ const OrderSchema = new Schema(
 			type: String,
 			required: true,
 		},
+		product_brand: {
+			type: String,
+			default: "soto",
+		},
 		size: {
 			type: String,
 		},
