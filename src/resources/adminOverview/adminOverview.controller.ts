@@ -74,6 +74,13 @@ class AdminOverviewController implements Controller {
 			this.viewAnOrder
 		);
 
+		this.router.put(
+			`${this.path}/cancel-order/:id`,
+			adminAuthMiddleware(AdminPermissions.ORDER, AccessControlOptions.READ),
+			validationMiddleware(validate.modelIdSchema, RequestData.params),
+			this.cancelAnOrder
+		);
+
 		this.router.get(
 			`${this.path}/products-mgt`,
 			adminAuthMiddleware(AdminPermissions.PRODUCT, AccessControlOptions.READ),
@@ -368,6 +375,20 @@ class AdminOverviewController implements Controller {
 		}
 	};
 
+	private cancelAnOrder = async (
+		req: Request,
+		res: Response,
+		next: NextFunction
+	): Promise<Response | void> => {
+		try {
+			const { status, code, message, data } =
+				await this.adminOverviewService.cancelAnOrder(String(req.params.id));
+			return responseObject(res, code, status, message, data);
+		} catch (error: any) {
+			next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()));
+		}
+	};
+
 	private getProductsMgt = async (
 		req: Request,
 		res: Response,
@@ -453,7 +474,6 @@ class AdminOverviewController implements Controller {
 			if (req.files) {
 				body.images = req.files as Express.Multer.File[];
 			}
-			console.log("🚀 ~ ProductController ~ body:", body);
 
 			const { status, code, message, data } =
 				await this.adminOverviewService.updateProduct(body);

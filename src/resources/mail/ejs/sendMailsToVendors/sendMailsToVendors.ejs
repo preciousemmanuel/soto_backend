@@ -170,7 +170,8 @@
       <p class="body-text">You Have An Order For Your Product
       </p>
       <% for (const item of items) {%>
-        <p class="body-text"> Product Name: <%= item.product_name %>, | Quantity Ordered: <%= item.quantity %>
+        <p class="body-text"> Product Name: <%= item.product_name %>, | Quantity Ordered: <%= item.quantity %> | 
+            Product Code: <%= item.product_code %>,
         </p>
         <% } %>
 

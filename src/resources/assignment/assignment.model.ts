@@ -13,6 +13,7 @@ const schema = new Schema(
 		purchaser: {
 			type: mongoose.Types.ObjectId,
 			ref: "Admins",
+			required: true,
 		},
 		status: {
 			type: String,

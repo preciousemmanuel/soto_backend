@@ -7,4 +7,8 @@ export const filePaths = {
 		"/src/resources/mail/ejs/sendMailsToVendors/sendMailsToVendors.ejs",
 	sendMailsToPurchasers:
 		"/src/resources/mail/ejs/sendMailsToPurchasers/sendMailsToPurchasers.ejs",
+	sendCancelMailsToVendors:
+		"/src/resources/mail/ejs/sendCancelMailsToVendors/sendCancelMailsToVendors.ejs",
+	sendCancelOrderMailsToPurchasers:
+		"/src/resources/mail/ejs/sendCancelOrderMailsToPurchasers/sendCancelOrderMailsToPurchasers.ejs",
 };

@@ -12,6 +12,7 @@ const ProductSchema = new Schema(
 		},
 		product_code: {
 			type: String,
+			default: "",
 		},
 		category: {
 			type: mongoose.Types.ObjectId,
