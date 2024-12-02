@@ -470,6 +470,10 @@ class OrderService {
 					path: "product_id",
 					select: "product_name images product_quantity",
 				},
+				populateObj2: {
+					path: "order",
+					select: "tracking_id",
+				},
 			});
 
 			responseData = {

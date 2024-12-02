@@ -1076,6 +1076,82 @@ class AdminOverviewService {
 				{
 					$lookup: {
 						from: "Users",
+						// localField: "items.vendor",
+						// foreignField: "_id",
+						let: { vendorIds: "$items.vendor" },
+						pipeline: [
+							{
+								$match: {
+									$expr: {
+										$in: [
+											{ $toString: "$_id" },
+											{
+												$map: {
+													input: "$$vendorIds",
+													as: "id",
+													in: { $toString: "$$id" },
+												},
+											},
+										],
+									},
+								},
+							},
+							{
+								$project: {
+									_id: 1,
+									FirstName: 1,
+									LastName: 1,
+									Email: 1,
+									PhoneNumber: 1,
+									ProfileImage: { $ifNull: ["$ProfileImage", ""] },
+								},
+							},
+						],
+						as: "vendorDetails",
+					},
+				},
+				{
+					$addFields: {
+						items: {
+							$map: {
+								input: "$items",
+								as: "item",
+								in: {
+									$mergeObjects: [
+										"$$item",
+										{
+											vendor: {
+												$ifNull: [
+													{
+														$arrayElemAt: [
+															"$vendorDetails",
+															{
+																$indexOfArray: [
+																	"$vendorDetails._id",
+																	"$$item.vendor",
+																],
+															},
+														],
+													},
+													null,
+												],
+											},
+										},
+									],
+								},
+							},
+						},
+					},
+				},
+				{
+					$project: {
+						vendorDetails: 0,
+					},
+				},
+
+				{
+					$lookup: {
+						from: "Users",
 						localField: "user",
 						foreignField: "_id",
 						as: "userDetails",
@@ -1179,17 +1255,17 @@ class AdminOverviewService {
 									$mergeObjects: [
 										"$$detail",
 										{
-											vendor: {
-												$arrayElemAt: [
-													"$vendorDetails",
-													{
-														$indexOfArray: [
-															"$vendorDetails._id",
-															"$$detail.vendor",
-														],
-													},
-												],
-											},
+											// vendor: {
+											// 	$arrayElemAt: [
+											// 		"$vendorDetails",
+											// 		{
+											// 			$indexOfArray: [
+											// 				"$vendorDetails._id",
+											// 				"$$detail.vendor",
+											// 			],
+											// 		},
+											// 	],
+											// },
 											assignment: {
 												$map: {
 													input: "$assignments",
@@ -1290,8 +1366,77 @@ class AdminOverviewService {
 					message: "Order Not Found",
 				};
 			}
+			const order = result[0];
 
-			responseData.data = result[0];
+			const items: any[] = order?.items || [];
+			const order_details: any[] = order?.orderDetails || [];
+			const full_items_details: any[] = [];
+			for (const item of items) {
+				const matchedDetail = order_details.find(
+					(detail) =>
+						String(item.product_id).toString() ===
+						String(detail.product_id).toString()
+				);
+				if (matchedDetail) {
+					full_items_details.push({
+						...item,
+						assigned: true,
+						assigned_purchaser: {
+							_id: matchedDetail?.assignment?.purchaser?._id || "",
+							FirstName: matchedDetail?.assignment?.purchaser?.FirstName || "",
+							LastName: matchedDetail?.assignment?.purchaser?.LastName || "",
+							Email: matchedDetail?.assignment?.purchaser?.Email || "",
+							ProfileImage:
+								matchedDetail?.assignment?.purchaser?.ProfileImage || "",
+							PhoneNumber:
+								matchedDetail?.assignment?.purchaser?.PhoneNumber || "",
+							status: matchedDetail?.assignment?.status,
+							createdAt: matchedDetail?.assignment?.purchaser?.createdAt,
+							updatedAt: matchedDetail?.assignment?.purchaser?.updatedAt,
+						},
+					});
+				}
+			}
+
+			const joinedDetails = [
+				...full_items_details,
+				...items
+					.filter(
+						(item2) =>
+							!full_items_details.some(
+								(item1) =>
+									String(item1.product_id).toString() ===
+									String(item2.product_id).toString()
+							)
+					)
+					.map((item2) => ({
+						...item2,
+						assigned: false,
+						assigned_purchaser: null,
+					})),
+			];
+
+			const full_details = {
+				_id: order?._id,
+				items: joinedDetails,
+				user: order?.user,
+				status: order?.status,
+				total_amount: order?.total_amount,
+				delivery_amount: order?.delivery_amount,
+				shipping_address: order?.shipping_address,
+				order_itinerary: order?.order_itinerary,
+				tracking_id: order?.tracking_id,
+				grand_total: order?.grand_total,
+				discounted_amount: order?.discounted_amount,
+				is_coupon_applied: order?.is_coupon_applied,
+				shipment_charges: order?.shipment_charges,
+				createdAt: order?.createdAt,
+				updatedAt: order?.updatedAt,
+				general_coupon: order?.general_coupon,
+				payment_details: order?.payment_details,
+			};
+
+			responseData.data = full_details;
 			return responseData;
 		} catch (error: any) {
 			console.log("🚀 ~ AdminOverviewService ~ viewAnOrder ~ error:", error);
