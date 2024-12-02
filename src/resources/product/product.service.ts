@@ -145,7 +145,7 @@ class ProductService {
 					},
 				}),
 				...(payload?.filter?.category && {
-					category: payload?.filter?.category,
+					category: new mongoose.Types.ObjectId(payload?.filter?.category),
 				}),
 				...(payload?.filter?.price_lower &&
 					payload?.filter?.price_upper && {
@@ -272,12 +272,6 @@ class ProductService {
 						$sort: { total_items_ordered: -1 as 1 | -1 },
 					},
 					{
-						$skip: skip,
-					},
-					{
-						$limit: Number(payload.limit),
-					},
-					{
 						$facet: {
 							metadata: [{ $count: "total" }],
 							products: [{ $skip: skip }, { $limit: Number(payload.limit) }],
@@ -353,12 +347,6 @@ class ProductService {
 					},
 					{
 						$sort: { total_items_ordered: -1 as 1 | -1 },
-					},
-					{
-						$skip: skip,
-					},
-					{
-						$limit: Number(payload.limit),
 					},
 					{
 						$facet: {
