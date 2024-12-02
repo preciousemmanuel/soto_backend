@@ -464,7 +464,7 @@ class ProductService {
 		let responseData: ResponseData;
 		try {
 			const productExists = await this.product.findOne({
-				vendor: user?._id,
+				// vendor: user?._id,
 				_id: updateProductDto?.product_id,
 			});
 

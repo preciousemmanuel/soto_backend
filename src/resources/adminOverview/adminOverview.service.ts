@@ -54,10 +54,16 @@ import shipmentModel from "../delivery/shipment.model";
 import userModel from "@/resources/user/user.model";
 import genCouponModel from "../coupon/genCoupon.model";
 import adminModel from "../adminConfig/admin.model";
-import { catchBlockResponse } from "@/utils/constants/data";
+import {
+	catchBlockResponse,
+	catchBlockResponseFn,
+} from "@/utils/constants/data";
 import { AddProductDto, UpdateProductDto } from "../product/product.dto";
 import ProductService from "../product/product.service";
 import transactionLogModel from "../transaction/transactionLog.model";
+import OrderService from "../order/order.service";
+import assignmentModel from "../assignment/assignment.model";
+import mongoose from "mongoose";
 
 class AdminOverviewService {
 	private User = UserModel;
@@ -68,8 +74,10 @@ class AdminOverviewService {
 	private GeneralCoupon = genCouponModel;
 	private TxnLog = transactionLogModel;
 	private Admin = adminModel;
+	private Assignment = assignmentModel;
 	private mailService = new MailService();
 	private productService = new ProductService();
+	private orderService = new OrderService();
 
 	public async getOverview(
 		payload: any,
@@ -968,50 +976,322 @@ class AdminOverviewService {
 		}
 	}
 
+	// public async viewAnOrder(order_id: any): Promise<ResponseData> {
+	// 	let responseData: ResponseData = {
+	// 		status: StatusMessages.success,
+	// 		code: HttpCodes.HTTP_OK,
+	// 		message: "Order Retrieved Successfully",
+	// 	};
+	// 	try {
+	// 		const order = await this.Order.findById(order_id)
+	// 			.populate({
+	// 				path: "items.vendor",
+	// 				select: "FirstName LastName Email ProfileImage PhoneNumber",
+	// 			})
+	// 			.populate({
+	// 				path: "user",
+	// 				select: "FirstName LastName ProfileImage Email PhoneNumber",
+	// 			})
+	// 			.populate({
+	// 				path: "shipment",
+	// 				select: {
+	// 					address_to: {
+	// 						line1: 1,
+	// 						line2: 1,
+	// 						city: 1,
+	// 						state: 1,
+	// 						country: 1,
+	// 						coordinates: 1,
+	// 					},
+	// 					pickup_date: 1,
+	// 				},
+	// 			})
+	// 			.populate("general_coupon");
+	// 		if (!order) {
+	// 			return {
+	// 				status: StatusMessages.error,
+	// 				code: HttpCodesEnum.HTTP_BAD_REQUEST,
+	// 				message: "Order Not Found",
+	// 			};
+	// 		}
+	// 		const log = await this.TxnLog.find({ narration_id: order_id });
+	// 		const order_details = await this.OrderDetails.find({ order });
+	// 		const order_details_ids: mongoose.Types.ObjectId[] = [];
+	// 		for (const order_d of order_details) {
+	// 			order_details_ids.push(order_d._id);
+	// 		}
+	// 		const assignments = await this.Assignment.find({
+	// 			order_details: order_details_ids,
+	// 		})
+	// 			.populate("purchaser")
+	// 			.populate("order_details");
+
+	// 		const subOrders: any[] = [];
+
+	// 		for (const ass of assignments) {
+	// 			const matchedDetail = order_details.find(
+	// 				(detail) =>
+	// 					String(detail._id).toString() ===
+	// 					String(ass.order_details).toString()
+	// 			);
+	// 			if (matchedDetail) {
+	// 				subOrders.push({
+	// 					...matchedDetail.toObject(),
+	// 					assigned: true,
+	// 					pickup_details: ass,
+	// 				});
+	// 			}
+	// 		}
+
+	// 		responseData.data = {
+	// 			...order.toObject(),
+	// 			payment_details: log,
+	// 			subOrders,
+	// 			assignments,
+	// 		};
+	// 		return responseData;
+	// 	} catch (error: any) {
+	// 		console.log("🚀 ~ AdminOverviewService ~ viewAnOrder ~ error:", error);
+	// 		responseData = {
+	// 			status: StatusMessages.error,
+	// 			code: HttpCodes.HTTP_SERVER_ERROR,
+	// 			message: error.toString(),
+	// 		};
+	// 		return responseData;
+	// 	}
+	// }
+
 	public async viewAnOrder(order_id: any): Promise<ResponseData> {
 		let responseData: ResponseData = {
 			status: StatusMessages.success,
 			code: HttpCodes.HTTP_OK,
 			message: "Order Retrieved Successfully",
 		};
+
 		try {
-			const order = await this.Order.findById(order_id)
-				.populate({
-					path: "items.vendor",
-					select: "FirstName LastName Email ProfileImage PhoneNumber",
-				})
-				.populate({
-					path: "user",
-					select: "FirstName LastName ProfileImage Email PhoneNumber",
-				})
-				.populate({
-					path: "shipment",
-					select: {
-						address_to: {
-							line1: 1,
-							line2: 1,
-							city: 1,
-							state: 1,
-							country: 1,
-							coordinates: 1,
-						},
-						pickup_date: 1,
+			const orderPipeline = [
+				{
+					$match: { _id: new mongoose.Types.ObjectId(order_id) },
+				},
+				{
+					$lookup: {
+						from: "Users",
+						localField: "user",
+						foreignField: "_id",
+						as: "userDetails",
 					},
-				})
-				.populate("general_coupon");
-			if (!order) {
+				},
+				{
+					$unwind: {
+						path: "$userDetails",
+						preserveNullAndEmptyArrays: true,
+					},
+				},
+				{
+					$lookup: {
+						from: "Shipments",
+						localField: "shipment",
+						foreignField: "_id",
+						as: "shipmentDetails",
+					},
+				},
+				{
+					$unwind: {
+						path: "$shipmentDetails",
+						preserveNullAndEmptyArrays: true,
+					},
+				},
+				{
+					$lookup: {
+						from: "GeneralCoupons",
+						localField: "general_coupon",
+						foreignField: "_id",
+						as: "generalCouponDetails",
+					},
+				},
+				{
+					$unwind: {
+						path: "$generalCouponDetails",
+						preserveNullAndEmptyArrays: true,
+					},
+				},
+				{
+					$lookup: {
+						from: "TransactionLogs",
+						let: { orderId: { $toString: "$_id" } },
+						pipeline: [
+							{
+								$match: {
+									$expr: {
+										$eq: ["$narration_id", "$$orderId"],
+									},
+								},
+							},
+						],
+						as: "transactionLogs",
+					},
+				},
+				// {
+				// 	$unwind: {
+				// 		path: "$transactionLogs",
+				// 		preserveNullAndEmptyArrays: true,
+				// 	},
+				// },
+				{
+					$lookup: {
+						from: "OrderDetails",
+						localField: "_id",
+						foreignField: "order",
+						as: "orderDetails",
+					},
+				},
+				{
+					$lookup: {
+						from: "Users",
+						localField: "orderDetails.vendor",
+						foreignField: "_id",
+						as: "vendorDetails",
+					},
+				},
+				{
+					$lookup: {
+						from: "Assignments",
+						localField: "orderDetails._id",
+						foreignField: "order_details",
+						as: "assignments",
+					},
+				},
+				{
+					$lookup: {
+						from: "Admins",
+						localField: "assignments.purchaser",
+						foreignField: "_id",
+						as: "purchaserDetails",
+					},
+				},
+				{
+					$addFields: {
+						orderDetails: {
+							$map: {
+								input: "$orderDetails",
+								as: "detail",
+								in: {
+									$mergeObjects: [
+										"$$detail",
+										{
+											vendor: {
+												$arrayElemAt: [
+													"$vendorDetails",
+													{
+														$indexOfArray: [
+															"$vendorDetails._id",
+															"$$detail.vendor",
+														],
+													},
+												],
+											},
+											assignment: {
+												$map: {
+													input: "$assignments",
+													as: "assignment",
+													in: {
+														$cond: {
+															if: {
+																$eq: [
+																	"$$assignment.order_details",
+																	"$$detail._id",
+																],
+															},
+															then: {
+																$mergeObjects: [
+																	"$$assignment",
+																	{
+																		purchaser: {
+																			$arrayElemAt: [
+																				"$purchaserDetails",
+																				{
+																					$indexOfArray: [
+																						"$purchaserDetails._id",
+																						"$$assignment.purchaser",
+																					],
+																				},
+																			],
+																		},
+																	},
+																],
+															},
+															else: null,
+														},
+													},
+												},
+											},
+										},
+									],
+								},
+							},
+						},
+					},
+				},
+				{
+					$project: {
+						_id: 1,
+						status: 1,
+						items: 1,
+						total_amount: 1,
+						delivery_amount: 1,
+						tracking_id: 1,
+						grand_total: 1,
+						discounted_amount: 1,
+						is_coupon_applied: 1,
+						shipment_charges: 1,
+						shipping_address: 1,
+						order_itinerary: 1,
+						createdAt: 1,
+						updatedAt: 1,
+						applied_coupon: 1,
+						user: {
+							_id: "$userDetails._id",
+							FirstName: "$userDetails.FirstName",
+							LastName: "$userDetails.LastName",
+							email: "$userDetails.Email",
+							PhoneNumber: "$userDetails.PhoneNumber",
+							profile_image: "$userDetails.ProfileImage",
+							rank: "$userDetails.Rank",
+						},
+						shipment: "$shipmentDetails",
+						general_coupon: { $ifNull: ["$generalCouponDetails", null] },
+						payment_details: { $ifNull: ["$transactionLogs", []] },
+						orderDetails: {
+							$map: {
+								input: "$orderDetails",
+								as: "detail",
+								in: {
+									$mergeObjects: [
+										"$$detail",
+										{
+											assignment: {
+												$arrayElemAt: ["$$detail.assignment", 0],
+											},
+										},
+									],
+								},
+							},
+						},
+					},
+				},
+			];
+
+			const result = await this.Order.aggregate(orderPipeline);
+
+			if (!result || result.length === 0) {
 				return {
 					status: StatusMessages.error,
-					code: HttpCodesEnum.HTTP_BAD_REQUEST,
+					code: HttpCodes.HTTP_BAD_REQUEST,
 					message: "Order Not Found",
 				};
 			}
-			const log = await this.TxnLog.find({ narration_id: order_id });
 
-			responseData.data = {
-				...order.toObject(),
-				payment_details: log,
-			};
+			responseData.data = result[0];
 			return responseData;
 		} catch (error: any) {
 			console.log("🚀 ~ AdminOverviewService ~ viewAnOrder ~ error:", error);
@@ -1021,6 +1301,15 @@ class AdminOverviewService {
 				message: error.toString(),
 			};
 			return responseData;
+		}
+	}
+
+	public async cancelAnOrder(order_id: any): Promise<ResponseData> {
+		try {
+			return this.orderService.cancelAnOrder(order_id);
+		} catch (error: any) {
+			console.log("🚀 ~ AdminOverviewService ~ viewAnOrder ~ error:", error);
+			return catchBlockResponseFn(error);
 		}
 	}
 

@@ -34,6 +34,7 @@ import adminModel from "../adminConfig/admin.model";
 import mongoose from "mongoose";
 import { HttpCodesEnum } from "@/utils/enums/httpCodes.enum";
 import { catchBlockResponseFn } from "@/utils/constants/data";
+import { AssignmentMailsDto } from "../mail/mail.dto";
 
 class AssignmentService {
 	private User = UserModel;
@@ -56,64 +57,6 @@ class AssignmentService {
 			console.log("TIME TO CREATE ASSIGNMENTS FOR PICK UP AGENTS");
 			const role_id = new mongoose.Types.ObjectId("673c9cf44e37eeaa3697b8d6");
 			const purchasers: any[] = [];
-			const assignmentObject = (
-				vendors: InstanceType<typeof this.User>[],
-				orderDetails: OrderDetailsForAssignmentDto[]
-			) => {
-				return orderDetails
-					.map(async (detail) => {
-						const matchedVendor = vendors.find(
-							(vendor) =>
-								String(vendor._id).toString() ===
-								String(detail.vendor).toString()
-						);
-						if (matchedVendor) {
-							const nearestPurchaser = (
-								await this.Admin.aggregate([
-									{
-										$geoNear: {
-											near: {
-												type: "Point",
-												coordinates: matchedVendor.coordinate,
-											},
-											distanceField: "distance",
-											key: "coordinate",
-											spherical: true,
-											query: {
-												Role: role_id,
-											},
-										},
-									},
-									{
-										$sort: { distance: 1 },
-									},
-									{
-										$limit: 1,
-									},
-								])
-							)[0];
-							if (nearestPurchaser) {
-								purchasers.push(nearestPurchaser);
-								return {
-									order_details: detail._id,
-									extra_detail: {
-										...detail.toObject(),
-									},
-									purchaser: nearestPurchaser._id,
-									vendor_contact: {
-										first_name: matchedVendor.FirstName,
-										last_name: matchedVendor.LastName,
-										phone_number: matchedVendor.PhoneNumber,
-										...matchedVendor?.ShippingAddress,
-									},
-								};
-							}
-							return null;
-						}
-						return null;
-					})
-					.filter((result) => result !== null);
-			};
 			const order_details_array: any[] = [];
 			const vendor_id_array: any[] = [];
 			payload.order_details.map((detail) => {
@@ -126,13 +69,23 @@ class AssignmentService {
 			});
 			const orderDetails = payload.order_details;
 
-			const InsertsAssignment = assignmentObject(vendors, orderDetails);
+			const InsertsAssignment = await this.assignmentObject(
+				vendors,
+				orderDetails,
+				role_id,
+				purchasers
+			);
+			console.log(
+				"🚀 ~ AssignmentService ~ InsertsAssignment:",
+				InsertsAssignment
+			);
+
 			let assignments: any[];
-			await this.Assignment.insertMany(InsertsAssignment)
-				.then((ass) => {
+			await this.Assignment.insertMany(InsertsAssignment.cleanObjects)
+				.then((ass: any[]) => {
 					assignments = ass;
 					this.sendAssignmentMailsToPurchasers(
-						purchasers as InstanceType<typeof this.Admin>[],
+						InsertsAssignment.purchasers as InstanceType<typeof this.Admin>[],
 						assignments as InstanceType<typeof this.Assignment>[]
 					);
 					responseData.data = assignments;
@@ -150,6 +103,7 @@ class AssignmentService {
 						message: e.toString(),
 					};
 				});
+
 			return responseData;
 		} catch (error: any) {
 			console.log("🚀 ~ AdminOverviewService ~ error:", error);
@@ -160,6 +114,75 @@ class AssignmentService {
 			};
 			return responseData;
 		}
+	}
+
+	public async assignmentObject(
+		vendors: InstanceType<typeof this.User>[],
+		orderDetails: OrderDetailsForAssignmentDto[],
+		role_id: mongoose.Types.ObjectId,
+		purchasers: any[]
+	) {
+		const cleanObjects = (
+			await Promise.all(
+				orderDetails.map(async (detail) => {
+					const matchedVendor = vendors.find(
+						(vendor) =>
+							String(vendor._id).toString() === String(detail.vendor).toString()
+					);
+
+					if (matchedVendor) {
+						const nearestPurchaser = (
+							await this.Admin.aggregate([
+								{
+									$geoNear: {
+										near: {
+											type: "Point",
+											coordinates: matchedVendor.coordinate,
+										},
+										distanceField: "distance",
+										key: "coordinate",
+										spherical: true,
+										query: {
+											Role: role_id,
+										},
+									},
+								},
+								{
+									$sort: { distance: 1 },
+								},
+								{
+									$limit: 1,
+								},
+							])
+						)[0];
+
+						if (nearestPurchaser) {
+							purchasers.push(nearestPurchaser);
+
+							return {
+								order_details: detail._id,
+								extra_detail: {
+									...detail.toObject(),
+								},
+								purchaser: nearestPurchaser._id,
+								vendor_contact: {
+									first_name: matchedVendor.FirstName,
+									last_name: matchedVendor.LastName,
+									phone_number: matchedVendor.PhoneNumber,
+									...matchedVendor?.ShippingAddress,
+								},
+							};
+						}
+						return null;
+					}
+					return null;
+				})
+			)
+		).filter((result) => result !== null);
+		return {
+			cleanObjects,
+			purchasers,
+		};
 	}
 
 	public async sendAssignmentMailsToPurchasers(
@@ -402,6 +425,71 @@ class AssignmentService {
 				"🚀 ~ AdminOverviewService ~ getLatestOrders ~ error:",
 				error
 			);
+			responseData = {
+				status: StatusMessages.error,
+				code: HttpCodes.HTTP_SERVER_ERROR,
+				message: error.toString(),
+			};
+			return responseData;
+		}
+	}
+
+	public async cancelAssignments(
+		order_details: InstanceType<typeof this.OrderDetails>[]
+	): Promise<ResponseData> {
+		let responseData: ResponseData = {
+			status: StatusMessages.success,
+			code: HttpCodes.HTTP_OK,
+			message: "Pickups Cancelled Successfully",
+		};
+		try {
+			const ids: mongoose.Types.ObjectId[] = [];
+			order_details.map((detail) => {
+				ids.push(detail._id);
+			});
+			const emailObjects: AssignmentMailsDto[] = [];
+			const assignments = await this.Assignment.find({
+				order_details: { $in: ids },
+			});
+			const purchaser_ids: any[] = [];
+			for (const assignment of assignments) {
+				if (assignment.purchaser) {
+					purchaser_ids.push(assignment?.purchaser);
+				}
+			}
+			const purchasers = await this.Admin.find({
+				_id: { $in: purchaser_ids },
+			});
+			const assignment_ids: mongoose.Types.ObjectId[] = [];
+
+			for (const assignment of assignments) {
+				assignment_ids.push(assignment._id);
+				const matchedPurchaser = purchasers.find(
+					(purchaser) =>
+						String(purchaser._id).toString() ===
+						String(assignment.purchaser).toString()
+				);
+				if (matchedPurchaser) {
+					emailObjects.push({
+						assignments: [assignment],
+						first_name: matchedPurchaser.FirstName,
+						email: matchedPurchaser.Email,
+					});
+				}
+			}
+
+			for (const emailPayload of emailObjects) {
+				this.mailService.sendCancelledAssignmentsToPurchasers(emailPayload);
+			}
+			await this.Assignment.updateMany(
+				{
+					_id: { $in: assignment_ids },
+				},
+				{ $set: { status: OrderStatus.CANCELLED } }
+			);
+			return responseData;
+		} catch (error: any) {
+			console.log("🚀 ~ AssignmentService ~ cancelAssignments ~ error:", error);
 			responseData = {
 				status: StatusMessages.error,
 				code: HttpCodes.HTTP_SERVER_ERROR,

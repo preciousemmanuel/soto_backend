@@ -39,6 +39,7 @@ import AssignmentService from "../assignment/assignment.service";
 import customOrderModel from "./customOrder.model";
 import genCouponModel from "../coupon/genCoupon.model";
 import CouponService from "../coupon/coupon.service";
+import { HttpCodesEnum } from "@/utils/enums/httpCodes.enum";
 
 class OrderService {
 	private Order = orderModel;
@@ -221,6 +222,7 @@ class OrderService {
 				user: user._id,
 				status: OrderStatus.PENDING,
 			});
+
 			if (payload.checkout_with_cart === YesOrNo.YES) {
 				await this.Cart.findOneAndUpdate(
 					{ user: user._id },
@@ -228,24 +230,36 @@ class OrderService {
 						items: null,
 						total_amount: 0,
 						grand_total: 0,
+						price_before_discount: 0,
 					},
 					{ new: true }
 				);
 			}
 			if (openCart) {
-				console.log("🚀 ~ OrderService ~ openCart:", openCart);
 				openCart.items = processedItems?.data?.itemsInOrder;
 				openCart.total_amount = processedItems?.data?.total_amount;
 				openCart.shipping_address =
 					payload.shipping_address || user.ShippingAddress?.full_address || "";
 				openCart.grand_total = processedItems?.data?.total_amount;
+				openCart.price_before_discount = processedItems?.data?.total_amount;
 				openCart.payment_type = payload?.payment_type || openCart?.payment_type;
 				openCart.save();
+				let closedOrder = openCart;
+				if (openCart.general_coupon) {
+					const generalCoupon = await this.GenCoupon.findById(
+						openCart.general_coupon
+					);
+					if (generalCoupon) {
+						closedOrder = (
+							await this.couponService.useCoupon(openCart, generalCoupon)
+						).data;
+					}
+				}
 				responseData = {
 					status: StatusMessages.success,
 					code: HttpCodes.HTTP_OK,
 					message: "Order Created Successfully",
-					data: openCart,
+					data: closedOrder,
 				};
 			} else {
 				const tracking_id = await generateUnusedOrderId();
@@ -264,6 +278,7 @@ class OrderService {
 						user.ShippingAddress?.full_address ||
 						"",
 					grand_total: processedItems?.data?.total_amount,
+					price_before_discount: processedItems?.data?.total_amount,
 					tracking_id,
 					...(payload?.payment_type && { payment_type: payload?.payment_type }),
 				});
@@ -314,6 +329,7 @@ class OrderService {
 				{
 					_id: string;
 					product_name: string;
+					product_code: string;
 					product_quantity: number;
 					description: string;
 					vendor?: string;
@@ -332,6 +348,7 @@ class OrderService {
 					product_quantity: product.product_quantity,
 					unit_price: product.unit_price,
 					product_name: product.product_name,
+					product_code: product.product_code,
 					description: product.description,
 					vendor: String(product.vendor),
 					images: product.images,
@@ -369,6 +386,7 @@ class OrderService {
 						quantity: item.quantity,
 						unit_price: product.unit_price,
 						product_name: product.product_name,
+						product_code: product.product_code,
 						description: product.description,
 						vendor: product.vendor,
 						images: product.images,
@@ -539,7 +557,19 @@ class OrderService {
 					order: Order?._id,
 				});
 			}
-			const inserted = await this.OrderDetail.insertMany(order_details);
+			let inserted: InstanceType<typeof this.OrderDetail>[] = [];
+			await this.OrderDetail.deleteMany({
+				order: Order?._id,
+				buyer: user._id,
+			}).then(async () => {
+				inserted = (await this.OrderDetail.insertMany(
+					order_details
+				)) as InstanceType<typeof this.OrderDetail>[];
+			});
+			console.log(
+				"🚀 ~ await this.OrderDetail.insertMany ~ inserted:",
+				inserted
+			);
 
 			const details_ids = [];
 			for (const item of inserted) {
@@ -617,6 +647,7 @@ class OrderService {
 				return {
 					product_id: String(item.product_id),
 					product_name: item.product_name,
+					product_code: item.product_code,
 					description: item.description,
 					vendor: String(item.vendor),
 					images: item.images,
@@ -773,6 +804,170 @@ class OrderService {
 				"🚀 ~ AdminOverviewService ~ createCustomOrder ~ error:",
 				error
 			);
+			responseData = {
+				status: StatusMessages.error,
+				code: HttpCodes.HTTP_SERVER_ERROR,
+				message: error.toString(),
+			};
+			return responseData;
+		}
+	}
+
+	public async cancelAnOrder(
+		order_id: string,
+		user?: InstanceType<typeof this.User>
+	): Promise<ResponseData> {
+		let responseData: ResponseData = {
+			status: StatusMessages.success,
+			code: HttpCodes.HTTP_OK,
+			message: "Order canceled Successfully",
+		};
+		try {
+			const order = user
+				? await this.Order.findOne({ _id: order_id, user: user._id })
+				: await this.Order.findById(order_id);
+			if (!order) {
+				return {
+					status: StatusMessages.error,
+					code: HttpCodesEnum.HTTP_BAD_REQUEST,
+					message: "Order Not Found",
+				};
+			}
+			const orderStatus = order.status;
+			switch (orderStatus) {
+				case OrderStatus.CANCELLED:
+					responseData = {
+						status: StatusMessages.success,
+						code: HttpCodes.HTTP_OK,
+						message: "Order already cancelled",
+						data: order,
+					};
+					break;
+				case OrderStatus.PENDING:
+					order.status = OrderStatus.CANCELLED;
+					await order.save();
+					responseData = {
+						status: StatusMessages.success,
+						code: HttpCodes.HTTP_OK,
+						message: "Order canceled Successfully",
+						data: order,
+					};
+					break;
+				case OrderStatus.BOOKED:
+					order.status = OrderStatus.CANCELLED;
+					await order.save();
+					this.sendCancelledOrderToVendors(order);
+					responseData = {
+						status: StatusMessages.success,
+						code: HttpCodes.HTTP_OK,
+						message: "Order canceled Successfully",
+						data: order,
+					};
+					break;
+				case OrderStatus.RETURNED:
+					responseData = {
+						status: StatusMessages.error,
+						code: HttpCodes.HTTP_BAD_REQUEST,
+						message: "Order already returned",
+						data: order,
+					};
+					break;
+				case OrderStatus.DELIVERED:
+					responseData = {
+						status: StatusMessages.error,
+						code: HttpCodes.HTTP_BAD_REQUEST,
+						message:
+							"Order already delivered, initiate a return process instead",
+						data: order,
+					};
+					break;
+				case OrderStatus.PICKED_UP:
+					order.status = OrderStatus.CANCELLED;
+					await order.save();
+					this.sendCancelledOrderToVendors(order);
+					responseData = {
+						status: StatusMessages.success,
+						code: HttpCodes.HTTP_OK,
+						message: "Order canceled Successfully",
+						data: order,
+					};
+					break;
+				default:
+					order.status = OrderStatus.CANCELLED;
+					await order.save();
+					this.sendCancelledOrderToVendors(order);
+					responseData = {
+						status: StatusMessages.success,
+						code: HttpCodes.HTTP_OK,
+						message: "Order canceled Successfully",
+						data: order,
+					};
+					break;
+			}
+			return responseData;
+		} catch (error: any) {
+			console.log(
+				"🚀 ~ AdminOverviewService ~ createCustomOrder ~ error:",
+				error
+			);
+			responseData = {
+				status: StatusMessages.error,
+				code: HttpCodes.HTTP_SERVER_ERROR,
+				message: error.toString(),
+			};
+			return responseData;
+		}
+	}
+
+	public async sendCancelledOrderToVendors(
+		order: InstanceType<typeof this.Order>
+	): Promise<ResponseData> {
+		let responseData: ResponseData = {
+			status: StatusMessages.success,
+			code: HttpCodes.HTTP_OK,
+			message: "success",
+			data: null,
+		};
+		try {
+			console.log("TIME TO SEND EMAILS OF CANCELED ORDERS TO VENDORS");
+			const order_details = await this.OrderDetail.find({ order: order._id });
+			this.assignmentService.cancelAssignments(order_details);
+
+			const groupedItems = order_details.reduce(
+				(acc, item) => {
+					const vendorId = String(item?.vendor);
+					if (vendorId) {
+						if (!acc[vendorId]) {
+							acc[vendorId] = [];
+						}
+						acc[vendorId].push(item);
+					}
+					return acc;
+				},
+				{} as { [vendor: string]: any[] }
+			);
+
+			Object.keys(groupedItems).forEach(async (vendor) => {
+				const vendorItems = groupedItems[vendor];
+				if (vendorItems.length > 0) {
+					const user = await this.User.findById(vendor);
+					const emailPayload = {
+						business_name: user?.FirstName,
+						email: user?.Email,
+						items: vendorItems,
+					};
+					this.mailService.sendCancelledOrdersToVendor(emailPayload);
+				}
+			});
+			await this.OrderDetail.updateMany(
+				{
+					order: order._id,
+				},
+				{ $set: { status: OrderStatus.CANCELLED } }
+			);
+			return responseData;
+		} catch (error: any) {
+			console.log("🚀 ~ OrderService ~ error:", error);
 			responseData = {
 				status: StatusMessages.error,
 				code: HttpCodes.HTTP_SERVER_ERROR,

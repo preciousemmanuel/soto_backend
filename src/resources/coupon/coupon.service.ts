@@ -56,9 +56,15 @@ class CouponService {
 						break;
 
 					default:
-						deducted_final = order.grand_total - discount_amount;
-						order.grand_total = deducted_final > 0 ? deducted_final : 0;
-
+						if (
+							genCoupon.usage_limit &&
+							genCoupon.remove_usage_limit === false
+						) {
+							if (genCoupon.total_usage < genCoupon.usage_limit) {
+								deducted_final = order.grand_total - discount_amount;
+								order.grand_total = deducted_final > 0 ? deducted_final : 0;
+							}
+						}
 						break;
 				}
 				if (
@@ -68,20 +74,33 @@ class CouponService {
 				) {
 					console.log("COUPON HAS USAGE LIMIT");
 					await order.save();
-					const userCoupon = await this.Usercoupon.create({
-						coupon: genCoupon._id,
-						activation_date: genCoupon.activation_date,
-						expiry_date: genCoupon.expiry_date,
-						amount_type: genCoupon.amount_type,
-						status: "active",
-						user: order.user,
-					});
+					const userCoupon = await this.Usercoupon.findOneAndUpdate(
+						{
+							user: order.user,
+							coupon: genCoupon._id,
+							order: order._id,
+						},
+						{
+							$setOnInsert: {
+								activation_date: genCoupon.activation_date,
+								expiry_date: genCoupon.expiry_date,
+								amount_type: genCoupon.amount_type,
+								status: "active",
+								order: order._id,
+							},
+						},
+						{
+							new: true,
+							upsert: true,
+						}
+					);
 					await this.Order.findByIdAndUpdate(
 						order._id,
 						{
 							applied_coupon: userCoupon._id,
 							general_coupon: genCoupon._id,
 							is_coupon_applied: true,
+							discounted_amount: discount_amount,
 						},
 						{ new: true }
 					);
@@ -100,20 +119,33 @@ class CouponService {
 				} else if (genCoupon.remove_usage_limit === true) {
 					console.log("COUPON HAS NO USAGE LIMIT");
 					await order.save();
-					const userCoupon = await this.Usercoupon.create({
-						coupon: genCoupon._id,
-						activation_date: genCoupon.activation_date,
-						expiry_date: genCoupon.expiry_date,
-						amount_type: genCoupon.amount_type,
-						status: "active",
-						user: order.user,
-					});
+					const userCoupon = await this.Usercoupon.findOneAndUpdate(
+						{
+							user: order.user,
+							coupon: genCoupon._id,
+							order: order._id,
+						},
+						{
+							$setOnInsert: {
+								activation_date: genCoupon.activation_date,
+								expiry_date: genCoupon.expiry_date,
+								amount_type: genCoupon.amount_type,
+								status: "active",
+								order: order._id,
+							},
+						},
+						{
+							new: true,
+							upsert: true,
+						}
+					);
 					await this.Order.findByIdAndUpdate(
 						order._id,
 						{
 							applied_coupon: userCoupon._id,
 							general_coupon: genCoupon._id,
 							is_coupon_applied: true,
+							discounted_amount: discount_amount,
 						},
 						{ new: true }
 					);

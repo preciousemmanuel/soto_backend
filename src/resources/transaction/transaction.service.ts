@@ -145,8 +145,8 @@ class TransactionService {
 			const { event, data } = payload;
 			const authorization = data?.authorization;
 			const metadata = data?.metadata;
-			const narration = metadata?.narration;
-			const user_id = metadata?.customer_id;
+			// const narration = metadata?.narration;
+			// const user_id = metadata?.customer_id;
 			const save_card: boolean = metadata?.save_card;
 
 			const { reference, txRef, tx_ref } = data;
@@ -162,6 +162,10 @@ class TransactionService {
 				};
 				return responseData;
 			}
+
+			const narration = ongoningTransaction.narration;
+			const user_id = String(ongoningTransaction.user);
+
 			if (
 				ongoningTransaction &&
 				ongoningTransaction.status === TransactionStatus.SUCCESSFUL

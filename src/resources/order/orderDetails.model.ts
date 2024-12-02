@@ -11,6 +11,9 @@ const OrderDetails = new Schema(
 		product_name: {
 			type: String,
 		},
+		product_code: {
+			type: String,
+		},
 		quantity: {
 			type: Number,
 			default: 1,

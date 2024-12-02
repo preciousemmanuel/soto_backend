@@ -69,6 +69,13 @@ class OrderController implements Controller {
 			this.viewAnOrder
 		);
 
+		this.router.put(
+			`${this.path}/cancel-one/:id`,
+			authenticatedMiddleware,
+			validationMiddleware(validate.modelIdSchema, RequestData.params),
+			this.cancelAnOrder
+		);
+
 		this.router.post(
 			`${this.path}/create-custom`,
 			authenticatedMiddleware,
@@ -197,6 +204,22 @@ class OrderController implements Controller {
 			};
 			const { status, code, message, data } =
 				await this.orderService.viewAnOrder(payload);
+			return responseObject(res, code, status, message, data);
+		} catch (error: any) {
+			next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()));
+		}
+	};
+
+	private cancelAnOrder = async (
+		req: Request,
+		res: Response,
+		next: NextFunction
+	): Promise<Response | void> => {
+		try {
+			const user = req.user;
+			const order_id = String(req.params.id);
+			const { status, code, message, data } =
+				await this.orderService.cancelAnOrder(order_id, user);
 			return responseObject(res, code, status, message, data);
 		} catch (error: any) {
 			next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()));

@@ -6,7 +6,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
-  <title>Soto Vendor Pickup</title>
+  <title>Soto Vendor Pickup Cancelled</title>
   <style>
     @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap");
 
@@ -167,7 +167,7 @@
   <main style="width: 100%;padding: 38px 20px;margin-bottom: 66px;">
     <p class="text__name">Hi <%= String(first_name).toUpperCase() %>,</p>
     <div class="body">
-      <p class="body-text">You Have Vendor Pickup Request
+      <p class="body-text">There has been a cancellation On the This Pickup By the Buyer
       </p>
       <% for (const item of assignments) {%>
         <p class="body-text"> Product Name: <%= item.extra_detail.product_name %>, | Quantity Ordered: <%= item.extra_detail.quantity %> | Product Code: <%= item.extra_detail.product_code %>,
