@@ -24,9 +24,9 @@ export interface CreateCustomOrderDto {
 	color?: string;
 	type?: string;
 	quantity: number;
-	max_price: number;
-	min_price: number;
-	phone_number: string;
+	max_price?: number;
+	min_price?: number;
+	phone_number?: string;
 	email: string;
 	note?: string;
 	user?: InstanceType<typeof userModel>;

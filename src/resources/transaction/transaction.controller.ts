@@ -15,7 +15,7 @@ import {
 import { Business } from "./transaction.interface";
 import upload from "@/utils/config/multer";
 import TransactionService from "./transaction.service";
-import { YesOrNo } from "@/utils/enums/base.enum";
+import { Platform, YesOrNo } from "@/utils/enums/base.enum";
 
 class TransactionController implements Controller {
 	public path = "/transaction";
@@ -64,6 +64,9 @@ class TransactionController implements Controller {
 				narration_id: req.body?.narration_id,
 				narration: req.body.narration,
 				save_card: req.body?.save_card === YesOrNo.YES ? true : false,
+				platform: req.body?.platform,
+				...(req?.body?.platform &&
+					req.body?.platform === Platform.WEB && { base_url: req.baseUrl }),
 			};
 
 			const user = req.user;

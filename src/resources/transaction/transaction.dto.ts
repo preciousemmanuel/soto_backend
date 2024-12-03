@@ -1,5 +1,6 @@
 import {
 	IdentificationTypes,
+	Platform,
 	SignupChannels,
 	TransactionNarration,
 	UserTypes,
@@ -12,6 +13,8 @@ export interface GeneratePaymentLinkDto {
 	narration_id?: string;
 	narration: TransactionNarration;
 	save_card?: boolean;
+	platform?: Platform;
+	base_url?: string;
 }
 
 export interface AddCardDto {

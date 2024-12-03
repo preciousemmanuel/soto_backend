@@ -28,9 +28,12 @@ import { getPaginatedRecords } from "@/utils/helpers/paginate";
 import MailService from "../mail/mail.service";
 import envConfig from "@/utils/config/env.config";
 import orderModel from "../order/order.model";
+import { requestProp } from "../mail/mail.interface";
+import settingModel from "../adminConfig/setting.model";
 
 class DeliveryService {
 	private Order = orderModel;
+	private Setting = settingModel;
 	public async getRate(payload: GetDeliveryRateDto): Promise<ResponseData> {
 		let responseData: ResponseData = {
 			status: StatusMessages.error,
@@ -331,6 +334,106 @@ class DeliveryService {
 
 			responseData.data = updatedOrder;
 			return responseData;
+		} catch (error: any) {
+			console.log("🚀 ~ DeliveryService ~ error:", error);
+			responseData = {
+				status: StatusMessages.error,
+				code: HttpCodes.HTTP_SERVER_ERROR,
+				message: error.toString(),
+			};
+			return responseData;
+		}
+	}
+
+	public async loginAgilityLogistics(): Promise<ResponseData> {
+		let responseData: ResponseData = {
+			status: StatusMessages.success,
+			code: HttpCodes.HTTP_OK,
+			message: "Delivery Vendor Selected Successfully",
+		};
+
+		try {
+			const agPayload = {
+				username: "testaccount@yahoo.com",
+				password: "loving",
+				sessionObj: "string",
+			};
+			const axiosConfig: requestProp = {
+				url: envConfig.AGILITY_BASE_URL + "/login",
+				method: "POST",
+				body: agPayload,
+			};
+			const agilityLogin = await axiosRequestFunction(axiosConfig);
+			if (Number(agilityLogin?.code) < 400 && agilityLogin?.data) {
+				const config = await this.Setting.findOneAndUpdate(
+					{},
+					{ agility_token: agilityLogin?.data?.data?.token },
+					{ new: true }
+				);
+				responseData = {
+					status: StatusMessages.success,
+					code: HttpCodes.HTTP_OK,
+					message: agilityLogin.message,
+					data: {
+						agility_data: agilityLogin?.data?.data,
+						config,
+					},
+				};
+				return responseData;
+			} else {
+				return agilityLogin;
+			}
+		} catch (error: any) {
+			console.log("🚀 ~ DeliveryService ~ error:", error);
+			responseData = {
+				status: StatusMessages.error,
+				code: HttpCodes.HTTP_SERVER_ERROR,
+				message: error.toString(),
+			};
+			return responseData;
+		}
+	}
+
+	public async getShippingPriceAgility(): Promise<ResponseData> {
+		let responseData: ResponseData = {
+			status: StatusMessages.success,
+			code: HttpCodes.HTTP_OK,
+			message: "Delivery Vendor Selected Successfully",
+		};
+
+		try {
+			const config = await this.Setting.findOne({});
+
+			const agPayload = {
+				username: "testaccount@yahoo.com",
+				password: "loving",
+				sessionObj: "string",
+			};
+			const axiosConfig: requestProp = {
+				url: envConfig.AGILITY_BASE_URL + "/login",
+				method: "POST",
+				body: agPayload,
+			};
+			const agilityLogin = await axiosRequestFunction(axiosConfig);
+			if (Number(agilityLogin?.code) < 400 && agilityLogin?.data) {
+				const config = await this.Setting.findOneAndUpdate(
+					{},
+					{ agility_token: agilityLogin?.data?.data?.token },
+					{ new: true }
+				);
+				responseData = {
+					status: StatusMessages.success,
+					code: HttpCodes.HTTP_OK,
+					message: agilityLogin.message,
+					data: {
+						agility_data: agilityLogin?.data?.data,
+						config,
+					},
+				};
+				return responseData;
+			} else {
+				return agilityLogin;
+			}
 		} catch (error: any) {
 			console.log("🚀 ~ DeliveryService ~ error:", error);
 			responseData = {

@@ -26,19 +26,15 @@ const OrderSchema = new Schema(
 		},
 		max_price: {
 			type: Number,
-			required: true,
 		},
 		min_price: {
 			type: Number,
-			required: true,
 		},
 		phone_number: {
 			type: String,
-			required: true,
 		},
 		email: {
 			type: String,
-			required: true,
 		},
 		note: {
 			type: String,
