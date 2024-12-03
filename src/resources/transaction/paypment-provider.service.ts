@@ -31,11 +31,19 @@ class PaymentProviderService {
 	): Promise<ResponseData> {
 		let responseData: ResponseData;
 		try {
+			const call_back_url = payload.base_url
+				? !payload.base_url.includes("postman")
+					? `${payload.base_url}/payment-success`
+					: envConfig.PAYSTACK_CALLBACK_URL
+				: undefined;
 			const paystackPayload = {
 				amount: convertNairaToKobo(payload.amount),
 				email: payload.user.Email,
 				currency: "NGN",
 				reference: payload.txnRef,
+				...(call_back_url && {
+					callback_url: call_back_url,
+				}),
 				// callback_url: envConfig.PAYSTACK_CALLBACK_URL,
 				...(payload.authorization_code && {
 					authorization_code: payload.authorization_code,

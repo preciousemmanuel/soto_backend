@@ -1,7 +1,12 @@
 import mongoose, { Schema, model } from "mongoose";
 
 import { User } from "@/resources/user/user.interface";
-import { SignupChannels, UserTypes, YesOrNo } from "@/utils/enums/base.enum";
+import {
+	LogisticsOption,
+	SignupChannels,
+	UserTypes,
+	YesOrNo,
+} from "@/utils/enums/base.enum";
 
 const SettingSchema = new Schema(
 	{
@@ -50,6 +55,14 @@ const SettingSchema = new Schema(
 				default: 1,
 				required: true,
 			},
+		},
+		logistics_option: {
+			type: String,
+			enum: [LogisticsOption.AGILITY, LogisticsOption.TERMINAL_AFRICA],
+			default: LogisticsOption.TERMINAL_AFRICA,
+		},
+		agility_token: {
+			type: String,
 		},
 	},
 	{

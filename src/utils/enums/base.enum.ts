@@ -10,6 +10,11 @@ export enum YesOrNo {
 	NO = "NO",
 }
 
+export enum Platform {
+	WEB = "web",
+	MOBILE = "mobile",
+}
+
 export enum UserTypes {
 	USER = "USER",
 	VENDOR = "VENDOR",
@@ -204,4 +209,9 @@ export enum ApproveOrDecline {
 export enum ProductFetchTypes {
 	POPULAR = "POPULAR",
 	BEST_SELLER = "BEST_SELLER",
+}
+
+export enum LogisticsOption {
+	AGILITY = "AGILITY",
+	TERMINAL_AFRICA = "TERMINAL_AFRICA",
 }
