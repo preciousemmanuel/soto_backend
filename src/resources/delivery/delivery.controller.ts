@@ -57,6 +57,13 @@ class DeliveryController implements Controller {
 			// validationMiddleware(validate.selectDeliveryOptionSchema),
 			this.loginAgilityLogistics
 		);
+
+		this.router.post(
+			`${this.path}/agility-get-price`,
+			// authenticatedMiddleware,
+			// validationMiddleware(validate.selectDeliveryOptionSchema),
+			this.getShippingPriceAgility
+		);
 	}
 
 	private getRates = async (
@@ -140,6 +147,20 @@ class DeliveryController implements Controller {
 		try {
 			const { status, code, message, data } =
 				await this.deliveryService.loginAgilityLogistics();
+			return responseObject(res, code, status, message, data);
+		} catch (error: any) {
+			next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()));
+		}
+	};
+
+	private getShippingPriceAgility = async (
+		req: Request,
+		res: Response,
+		next: NextFunction
+	): Promise<Response | void> => {
+		try {
+			const { status, code, message, data } =
+				await this.deliveryService.getShippingPriceAgility();
 			return responseObject(res, code, status, message, data);
 		} catch (error: any) {
 			next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()));

@@ -1,6 +1,7 @@
 import {
 	IdentificationTypes,
 	ProductMgtOption,
+	ProductStatus,
 	PromoTypes,
 	SignupChannels,
 	Timeline,
@@ -64,6 +65,17 @@ const modelIdSchema = Joi.object().keys({
 	id: Joi.string().required(),
 });
 
+const updateCustomOrderSchema = Joi.object().keys({
+	approve_or_decline: Joi.string()
+		.valid(
+			ProductStatus.PENDING,
+			ProductStatus.APPROVED,
+			ProductStatus.DECLINED
+		)
+		.required(),
+	decline_note: Joi.string().optional(),
+});
+
 const addShippingAddressSchema = Joi.object({
 	address: Joi.string().required(),
 	city: Joi.string().required(),
@@ -119,6 +131,37 @@ const createCouponSchema = Joi.object().keys({
 		then: Joi.number().positive().min(1).required(),
 		otherwise: Joi.number().positive().optional(),
 	}),
+	product_category: Joi.string().optional(),
+});
+
+const createCouponDiscountSchema = Joi.object().keys({
+	quantity: Joi.number().positive().required(),
+	discount: Joi.number().positive().max(100).required(),
+	activation_date: Joi.string()
+		.pattern(/^(0[1-9]|1[0-2])\/(0[1-9]|[12][0-9]|3[01])\/\d{4}$/)
+		.messages({
+			"string.pattern.base": "activation_date must be in the format MM/DD/YYYY",
+			"string.empty": "activation_date is required",
+		})
+		.optional(),
+	expiry_date: Joi.alternatives().conditional("remove_expiry_date", {
+		is: false,
+		then: Joi.string()
+			.pattern(/^(0[1-9]|1[0-2])\/(0[1-9]|[12][0-9]|3[01])\/\d{4}$/)
+			.required()
+			.messages({
+				"string.pattern.base": "expiry_date must be in the format MM/DD/YYYY",
+				"string.empty": "expiry_date is required",
+			}),
+		otherwise: Joi.string()
+			.pattern(/^(0[1-9]|1[0-2])\/(0[1-9]|[12][0-9]|3[01])\/\d{4}$/)
+			.optional()
+			.messages({
+				"string.pattern.base": "expiry_date must be in the format MM/DD/YYYY",
+				"string.empty": "expiry_date is required",
+			}),
+	}),
+	product_category: Joi.string().optional(),
 });
 
 const updateCouponSchema = Joi.object()
@@ -190,6 +233,11 @@ const paginateSchema = Joi.object({
 	search: Joi.string().optional(),
 });
 
+const addCategorySchema = Joi.object({
+	name: Joi.string().required(),
+	image: Joi.object({}).optional(),
+});
+
 const addProductAdminSchema = Joi.object({
 	product_name: Joi.string().required(),
 	description: Joi.string().required(),
@@ -215,6 +263,7 @@ const updateProductSchema = Joi.object({
 	in_stock: Joi.string().valid(YesOrNo.NO, YesOrNo.YES).optional(),
 	is_verified: Joi.string().valid(YesOrNo.NO, YesOrNo.YES).optional(),
 	existing_images: Joi.array().items(Joi.string().optional()).min(1).optional(),
+	decline_product_note: Joi.string().optional(),
 });
 
 export default {
@@ -227,4 +276,7 @@ export default {
 	updateCouponSchema,
 	paginateSchema,
 	updateProductSchema,
+	createCouponDiscountSchema,
+	addCategorySchema,
+	updateCustomOrderSchema,
 };

@@ -1,3 +1,4 @@
+import { orderItems } from "../order/order.interface";
 import userModel from "../user/user.model";
 
 export interface GetDeliveryRateDto {
@@ -54,4 +55,9 @@ export interface GetShippingPriceAgilityDto {
 	DestinationServiceCentreId: any;
 	IsCashOnDelivery: any;
 	CashOnDeliveryAmount: any;
+}
+
+export interface GetPriceViaAgilityDto {
+	items: orderItems[];
+	shipping_address?: string;
 }

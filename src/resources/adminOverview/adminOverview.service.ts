@@ -14,6 +14,8 @@ import {
 
 // import logger from "@/utils/logger";
 import {
+	createCategoryDto,
+	CreateCouponDiscountDto,
 	CreateCouponDto,
 	OverviewDto,
 	paginateDto,
@@ -23,9 +25,11 @@ import {
 import { hashPassword } from "@/utils/helpers/token";
 import {
 	DiscountTypes,
+	LogisticsOption,
 	OrderStatus,
 	OtpPurposeOptions,
 	ProductMgtOption,
+	PromoConditions,
 	PromoTypes,
 	StatusMessages,
 	UserTypes,
@@ -64,20 +68,28 @@ import transactionLogModel from "../transaction/transactionLog.model";
 import OrderService from "../order/order.service";
 import assignmentModel from "../assignment/assignment.model";
 import mongoose from "mongoose";
+import categoryModel from "../category/category.model";
+import settingModel from "../adminConfig/setting.model";
+import DeliveryService from "../delivery/delivery.service";
+import customOrderModel from "../order/customOrder.model";
 
 class AdminOverviewService {
+	private Category = categoryModel;
+	private CustomOrder = customOrderModel;
 	private User = UserModel;
 	private Order = orderModel;
 	private Product = productModel;
 	private OrderDetails = orderDetailsModel;
 	private Shipment = shipmentModel;
 	private GeneralCoupon = genCouponModel;
+	private Setting = settingModel;
 	private TxnLog = transactionLogModel;
 	private Admin = adminModel;
 	private Assignment = assignmentModel;
 	private mailService = new MailService();
 	private productService = new ProductService();
 	private orderService = new OrderService();
+	private deliveryService = new DeliveryService();
 
 	public async getOverview(
 		payload: any,
@@ -940,9 +952,12 @@ class AdminOverviewService {
 		try {
 			const { limit, page, start_date, end_date, status, tracking_id } =
 				payload;
+			console.log("🚀 ~ AdminOverviewService ~ getOrders ~ payload:", payload);
 
+			const Model =
+				status && status === OrderStatus.CUSTOM ? this.CustomOrder : this.Order;
 			const filter = {
-				...(status && { status }),
+				...(status && status !== OrderStatus.CUSTOM && { status }),
 				...(tracking_id && { tracking_id }),
 				...(start_date &&
 					end_date && {
@@ -952,7 +967,7 @@ class AdminOverviewService {
 						},
 					}),
 			};
-			const records = await getPaginatedRecords(this.Order, {
+			const records = await getPaginatedRecords(Model, {
 				limit,
 				page,
 				data: filter,
@@ -967,6 +982,47 @@ class AdminOverviewService {
 			return responseData;
 		} catch (error: any) {
 			console.log("🚀 ~ AdminOverviewService ~ getOrders ~ error:", error);
+			responseData = {
+				status: StatusMessages.error,
+				code: HttpCodes.HTTP_SERVER_ERROR,
+				message: error.toString(),
+			};
+			return responseData;
+		}
+	}
+
+	public async updateCustomOrder(payload: any): Promise<ResponseData> {
+		let responseData: ResponseData = {
+			status: StatusMessages.success,
+			code: HttpCodes.HTTP_OK,
+			message: "Order Updated Successfully",
+		};
+		try {
+			const { order_id, decline_note, approve_or_decline } = payload;
+
+			const customOrder = await this.CustomOrder.findById(order_id);
+			if (!customOrder) {
+				return {
+					status: StatusMessages.error,
+					code: HttpCodes.HTTP_BAD_REQUEST,
+					message: "Order not found",
+				};
+			}
+			const updatedOrder = await this.CustomOrder.findByIdAndUpdate(
+				order_id,
+				{
+					approval_status: approve_or_decline,
+					...(decline_note && { decline_note }),
+				},
+				{ new: true }
+			);
+			responseData.data = updatedOrder;
+			return responseData;
+		} catch (error: any) {
+			console.log(
+				"🚀 ~ AdminOverviewService ~ updateCustomOrder ~ error:",
+				error
+			);
 			responseData = {
 				status: StatusMessages.error,
 				code: HttpCodes.HTTP_SERVER_ERROR,
@@ -1868,42 +1924,52 @@ class AdminOverviewService {
 					message: "Order Not Found",
 				};
 			}
-			const body = {
-				address_from: soto_user.shipping_address_id,
-				address_to: order.delivery_vendor.delivery_address,
-				parcel: order.delivery_vendor.parcel,
-			};
+			const config = await this.Setting.findOne({});
+			const logisticOption = config?.logistics_option;
+			switch (logisticOption) {
+				case LogisticsOption.TERMINAL_AFRICA:
+					const body = {
+						address_from: soto_user.shipping_address_id,
+						address_to: order.delivery_vendor.delivery_address,
+						parcel: order.delivery_vendor.parcel,
+					};
 
-			const axiosConfig: requestProp = {
-				method: "POST",
-				url: envConfig.TERMINAL_AFRICA_BASE_URL + `/shipments`,
-				body,
-				headers: {
-					authorization: `Bearer ${envConfig.TERMINAL_AFRICA_SECRET_KEY}`,
-				},
-			};
-			const createShipmentCall = await axiosRequestFunction(axiosConfig);
-			if (createShipmentCall.status === StatusMessages.error) {
-				return createShipmentCall;
+					const axiosConfig: requestProp = {
+						method: "POST",
+						url: envConfig.TERMINAL_AFRICA_BASE_URL + `/shipments`,
+						body,
+						headers: {
+							authorization: `Bearer ${envConfig.TERMINAL_AFRICA_SECRET_KEY}`,
+						},
+					};
+					const createShipmentCall = await axiosRequestFunction(axiosConfig);
+					if (createShipmentCall.status === StatusMessages.error) {
+						return createShipmentCall;
+					}
+					const shipmentData: any = createShipmentCall.data.data;
+					const createShipmentData = {
+						address_from: shipmentData.address_from,
+						address_return: shipmentData.address_return,
+						address_to: shipmentData.address_to,
+						events: shipmentData.events,
+						created_shipment_id: shipmentData.id,
+						parcel: shipmentData.parcel,
+						shipment_id: shipmentData.shipment_id,
+						status: shipmentData.status,
+						order: order._id,
+					};
+					const newShipment = await this.Shipment.create(createShipmentData);
+					await this.Order.findByIdAndUpdate(order._id, {
+						shipment: newShipment._id,
+					});
+					responseData.data = newShipment;
+					break;
+				default:
+					responseData =
+						await this.deliveryService.captureShipmentByAgility(order);
+					break;
 			}
-			const shipmentData: any = createShipmentCall.data.data;
-			const createShipmentData = {
-				address_from: shipmentData.address_from,
-				address_return: shipmentData.address_return,
-				address_to: shipmentData.address_to,
-				events: shipmentData.events,
-				created_shipment_id: shipmentData.id,
-				parcel: shipmentData.parcel,
-				shipment_id: shipmentData.shipment_id,
-				status: shipmentData.status,
-				order: order._id,
-			};
-			const newShipment = await this.Shipment.create(createShipmentData);
-			await this.Order.findByIdAndUpdate(order._id, {
-				shipment: newShipment._id,
-			});
 
-			responseData.data = newShipment;
 			return responseData;
 		} catch (error: any) {
 			console.log("🚀 ~ AdminOverviewService ~ createShipment ~ error:", error);
@@ -2203,6 +2269,71 @@ class AdminOverviewService {
 		}
 	}
 
+	public async createCouponDiscount(
+		payload: CreateCouponDiscountDto,
+		user: InstanceType<typeof userModel>
+	): Promise<ResponseData> {
+		let responseData: ResponseData = {
+			status: StatusMessages.success,
+			code: HttpCodes.HTTP_OK,
+			message: "Discout Created Successfully",
+		};
+		try {
+			const exsitingCoupon = await this.GeneralCoupon.findOne({
+				coupon_type: PromoTypes.PRICE_DISCOUNT,
+				amount_type: DiscountTypes.PERCENTAGE,
+				active_status: true,
+				expiry_date: {
+					$gte: endOfToday(),
+				},
+			});
+			if (exsitingCoupon) {
+				return {
+					status: StatusMessages.error,
+					code: HttpCodesEnum.HTTP_BAD_REQUEST,
+					message: "An Ongoing Discount Promo is On",
+				};
+			}
+			if (payload.product_category) {
+				const category = await this.Category.findById(payload.product_category);
+				if (!category) {
+					return {
+						status: StatusMessages.error,
+						code: HttpCodesEnum.HTTP_BAD_REQUEST,
+						message: "Product Category Not Found",
+					};
+				}
+			}
+			const code = await generateUnusedCoupon();
+			const newGenCoupon = await this.GeneralCoupon.create({
+				name: code,
+				code,
+				amount: payload.discount,
+				coupon_type: PromoTypes.PRICE_DISCOUNT,
+				amount_type: DiscountTypes.PERCENTAGE,
+				activation_date: startOfDay(new Date(payload.activation_date)),
+				...(payload?.expiry_date && {
+					expiry_date: endOfDay(new Date(payload.expiry_date)),
+				}),
+				condition: PromoConditions.NUMBER_OF_GOODS_PURCHASED,
+				condition_value: payload.quantity,
+				created_by: user?._id,
+				product_category: payload.product_category,
+			});
+
+			responseData.data = newGenCoupon;
+			return responseData;
+		} catch (error: any) {
+			console.log("🚀 ~ AdminOverviewService ~ error:", error);
+			responseData = {
+				status: StatusMessages.error,
+				code: HttpCodes.HTTP_SERVER_ERROR,
+				message: error.toString(),
+			};
+			return responseData;
+		}
+	}
+
 	public async getCoupons(payload: paginateDto): Promise<ResponseData> {
 		let responseData: ResponseData = {
 			status: StatusMessages.success,
@@ -2245,6 +2376,71 @@ class AdminOverviewService {
 				data: dataFilter,
 			});
 			responseData.data = couponRecords;
+
+			return responseData;
+		} catch (error: any) {
+			console.log("🚀 ~ AdminOverviewService ~ getCoupons ~ error:", error);
+			return catchBlockResponse;
+		}
+	}
+
+	public async addCategory(payload: createCategoryDto): Promise<ResponseData> {
+		let responseData: ResponseData = {
+			status: StatusMessages.success,
+			code: HttpCodes.HTTP_OK,
+			message: "Category Added Successfully",
+		};
+		try {
+			const existingCategory = await this.Category.findOne({
+				name: payload.name.toLowerCase(),
+			});
+			if (existingCategory) {
+				return {
+					status: StatusMessages.error,
+					code: HttpCodesEnum.HTTP_BAD_REQUEST,
+					message: "Product Category Already Exists",
+				};
+			}
+			let image_url: string | undefined;
+			if (payload.image) {
+				image_url = await cloudUploader.imageUploader(payload.image);
+			}
+
+			const newCategory = await this.Category.create({
+				name: payload.name.toLowerCase(),
+				...(image_url && { image: image_url }),
+			});
+			responseData.data = newCategory;
+
+			return responseData;
+		} catch (error: any) {
+			console.log("🚀 ~ AdminOverviewService ~ addCategory ~ error:", error);
+			return catchBlockResponseFn(error);
+		}
+	}
+
+	public async getCategories(payload: paginateDto): Promise<ResponseData> {
+		let responseData: ResponseData = {
+			status: StatusMessages.success,
+			code: HttpCodes.HTTP_OK,
+			message: "Categories retreived Successfully",
+		};
+		try {
+			const { limit, page, search } = payload;
+			const dataFilter = search
+				? {
+						...(search && {
+							name: { $regex: search, $options: "i" },
+						}),
+					}
+				: {};
+			const records = await getPaginatedRecords(this.Category, {
+				limit,
+				page,
+				data: dataFilter,
+				sortFilter: [["name", 1]],
+			});
+			responseData.data = records;
 
 			return responseData;
 		} catch (error: any) {

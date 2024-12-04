@@ -19,6 +19,7 @@ export interface UpdateProductDto extends Partial<AddProductDto> {
 	product_id?: string;
 	is_verified?: YesOrNo;
 	existing_images?: string[];
+	decline_product_note?: string;
 }
 
 export interface FetchProductsDto {

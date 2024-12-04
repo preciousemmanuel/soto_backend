@@ -651,6 +651,6 @@ export const backTrackToADate = (format: string) => {
 };
 
 export const nearest = function (num: number, near: number = 50) {
-	const rounded = Math.round(num / near) * near;
+	const rounded = Math.ceil(num / near) * near;
 	return rounded;
 };

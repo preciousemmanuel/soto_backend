@@ -131,6 +131,8 @@ const OrderSchema = new Schema(
 			ref: "Shipments",
 			// required: true
 		},
+		agility_price_payload: {},
+		agility_captured_shipment: {},
 	},
 	{
 		collection: "Orders",

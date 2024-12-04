@@ -9,10 +9,13 @@ import { HttpCodes } from "@/utils/constants/httpcode";
 import authenticatedMiddleware from "@/middleware/authenticated.middleware";
 import {
 	CreateBusinessDto,
+	createCategoryDto,
+	CreateCouponDiscountDto,
 	CreateCouponDto,
 	OverviewDto,
 	paginateDto,
 	UpdateCouponDto,
+	UpdateCustomOrderDto,
 	VerificationDto,
 } from "./adminOverview.dto";
 import upload from "@/utils/config/multer";
@@ -72,6 +75,14 @@ class AdminOverviewController implements Controller {
 			adminAuthMiddleware(AdminPermissions.ORDER, AccessControlOptions.READ),
 			validationMiddleware(validate.modelIdSchema, RequestData.params),
 			this.viewAnOrder
+		);
+
+		this.router.put(
+			`${this.path}/update-custom-order/:id`,
+			adminAuthMiddleware(AdminPermissions.ORDER, AccessControlOptions.WRITE),
+			validationMiddleware(validate.modelIdSchema, RequestData.params),
+			validationMiddleware(validate.updateCustomOrderSchema),
+			this.updateCustomOrder
 		);
 
 		this.router.put(
@@ -146,11 +157,33 @@ class AdminOverviewController implements Controller {
 			this.updateCoupon
 		);
 
+		this.router.post(
+			`${this.path}/create-discount-coupon`,
+			adminAuthMiddleware(AdminPermissions.ORDER, AccessControlOptions.WRITE),
+			validationMiddleware(validate.createCouponDiscountSchema),
+			this.createCouponDiscount
+		);
+
 		this.router.get(
 			`${this.path}/get-coupons`,
 			adminAuthMiddleware(AdminPermissions.CONFIG, AccessControlOptions.READ),
 			validationMiddleware(validate.paginateSchema),
 			this.getCoupons
+		);
+
+		this.router.get(
+			`${this.path}/get-categories`,
+			adminAuthMiddleware(AdminPermissions.PRODUCT, AccessControlOptions.READ),
+			validationMiddleware(validate.paginateSchema),
+			this.getCategories
+		);
+
+		this.router.post(
+			`${this.path}/add-category`,
+			adminAuthMiddleware(AdminPermissions.PRODUCT, AccessControlOptions.WRITE),
+			upload.single("image"),
+			validationMiddleware(validate.addCategorySchema),
+			this.addCategory
 		);
 	}
 
@@ -355,6 +388,27 @@ class AdminOverviewController implements Controller {
 			const user = req.user;
 			const { status, code, message, data } =
 				await this.adminOverviewService.getOrders(payload);
+			return responseObject(res, code, status, message, data);
+		} catch (error: any) {
+			next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()));
+		}
+	};
+
+	private updateCustomOrder = async (
+		req: Request,
+		res: Response,
+		next: NextFunction
+	): Promise<Response | void> => {
+		try {
+			const payload: UpdateCustomOrderDto = {
+				order_id: String(req.params.id),
+				approve_or_decline: req.body.approve_or_decline,
+				decline_note: req?.body?.decline_note,
+			};
+
+			const user = req.user;
+			const { status, code, message, data } =
+				await this.adminOverviewService.updateCustomOrder(payload);
 			return responseObject(res, code, status, message, data);
 		} catch (error: any) {
 			next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()));
@@ -589,6 +643,21 @@ class AdminOverviewController implements Controller {
 		}
 	};
 
+	private createCouponDiscount = async (
+		req: Request,
+		res: Response,
+		next: NextFunction
+	): Promise<Response | void> => {
+		try {
+			const payload: CreateCouponDiscountDto = req.body;
+			const { status, code, message, data } =
+				await this.adminOverviewService.createCouponDiscount(payload, req.user);
+			return responseObject(res, code, status, message, data);
+		} catch (error: any) {
+			next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()));
+		}
+	};
+
 	private getCoupons = async (
 		req: Request,
 		res: Response,
@@ -610,6 +679,45 @@ class AdminOverviewController implements Controller {
 			};
 			const { status, code, message, data } =
 				await this.adminOverviewService.getCoupons(payload);
+			return responseObject(res, code, status, message, data);
+		} catch (error: any) {
+			next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()));
+		}
+	};
+
+	private getCategories = async (
+		req: Request,
+		res: Response,
+		next: NextFunction
+	): Promise<Response | void> => {
+		try {
+			const payload: paginateDto = {
+				limit: req.query?.limit ? Number(req.query.limit) : 10,
+				page: req.query?.page ? Number(req.query.page) : 1,
+				...(req?.query?.search &&
+					req?.query?.search !== null &&
+					req?.query?.search !== "" && { search: String(req.query.search) }),
+			};
+			const { status, code, message, data } =
+				await this.adminOverviewService.getCategories(payload);
+			return responseObject(res, code, status, message, data);
+		} catch (error: any) {
+			next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()));
+		}
+	};
+
+	private addCategory = async (
+		req: Request,
+		res: Response,
+		next: NextFunction
+	): Promise<Response | void> => {
+		try {
+			const payload: createCategoryDto = req.body;
+			if (req.file) {
+				payload.image = req.file as Express.Multer.File;
+			}
+			const { status, code, message, data } =
+				await this.adminOverviewService.addCategory(payload);
 			return responseObject(res, code, status, message, data);
 		} catch (error: any) {
 			next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()));

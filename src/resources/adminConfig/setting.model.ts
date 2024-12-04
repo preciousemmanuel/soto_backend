@@ -21,6 +21,16 @@ const SettingSchema = new Schema(
 				type: String,
 				default: "Nigeria",
 			},
+			coordinates: {
+				lat: {
+					type: Number,
+					default: 6.639438,
+				},
+				lng: {
+					type: Number,
+					default: 3.330983,
+				},
+			},
 		},
 		shipping_address_id: {
 			type: String,
@@ -59,7 +69,7 @@ const SettingSchema = new Schema(
 		logistics_option: {
 			type: String,
 			enum: [LogisticsOption.AGILITY, LogisticsOption.TERMINAL_AFRICA],
-			default: LogisticsOption.TERMINAL_AFRICA,
+			default: LogisticsOption.AGILITY,
 		},
 		agility_token: {
 			type: String,
