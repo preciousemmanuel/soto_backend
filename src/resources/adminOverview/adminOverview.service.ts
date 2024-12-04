@@ -1125,6 +1125,11 @@ class AdminOverviewService {
 		};
 
 		try {
+			const orderCustom = await this.CustomOrder.findById(order_id);
+			if (orderCustom) {
+				responseData.data = orderCustom;
+				return responseData;
+			}
 			const orderPipeline = [
 				{
 					$match: { _id: new mongoose.Types.ObjectId(order_id) },
