@@ -3,6 +3,7 @@ import {
 	axiosRequestFunction,
 	generateUnusedOrderId,
 	getRandomRef,
+	nearest,
 	uniqueCode,
 } from "@/utils/helpers";
 import {
@@ -17,6 +18,7 @@ import {
 	DeliveryOptionDto,
 	GetCitiesDto,
 	GetDeliveryRateDto,
+	GetPriceViaAgilityDto,
 } from "./delivery.dto";
 import { hashPassword } from "@/utils/helpers/token";
 import { OrderStatus, StatusMessages } from "@/utils/enums/base.enum";
@@ -30,10 +32,15 @@ import envConfig from "@/utils/config/env.config";
 import orderModel from "../order/order.model";
 import { requestProp } from "../mail/mail.interface";
 import settingModel from "../adminConfig/setting.model";
+import userModel from "@/resources/user/user.model";
+import shipmentModel from "./shipment.model";
 
 class DeliveryService {
+	private User = userModel;
 	private Order = orderModel;
+	private Product = productModel;
 	private Setting = settingModel;
+	private Shipment = shipmentModel;
 	public async getRate(payload: GetDeliveryRateDto): Promise<ResponseData> {
 		let responseData: ResponseData = {
 			status: StatusMessages.error,
@@ -394,7 +401,11 @@ class DeliveryService {
 		}
 	}
 
-	public async getShippingPriceAgility(): Promise<ResponseData> {
+	public async getShippingPriceAgility(
+		payload?: GetPriceViaAgilityDto,
+		user?: InstanceType<typeof this.User>,
+		order?: InstanceType<typeof this.Order>
+	): Promise<ResponseData> {
 		let responseData: ResponseData = {
 			status: StatusMessages.success,
 			code: HttpCodes.HTTP_OK,
@@ -402,40 +413,323 @@ class DeliveryService {
 		};
 
 		try {
-			const config = await this.Setting.findOne({});
+			// const config = await this.Setting.findOne({});
+			const loginAg = await this.loginAgilityLogistics();
+			if (loginAg.status === StatusMessages.error) {
+				return loginAg;
+			}
+			const config = loginAg.data.config as InstanceType<typeof this.Setting>;
 
 			const agPayload = {
-				username: "testaccount@yahoo.com",
-				password: "loving",
-				sessionObj: "string",
+				PreShipmentMobileId: 0,
+				SenderName: "TEST ECOMMERCE IT",
+				SenderPhoneNumber: "+2347063965528",
+				SenderStationId: 1,
+				InputtedSenderAddress:
+					"21 Emmanuel Olorunfemi St, Ifako Agege, Lagos, Nigeria",
+				SenderLocality: "Ifako Ijaye",
+				ReceiverStationId: 1,
+				SenderAddress: "21 Emmanuel Olorunfemi St, Ifako Agege, Lagos, Nigeria",
+				ReceiverName: "Ehinomen",
+				ReceiverPhoneNumber: "08039322440",
+				ReceiverAddress:
+					"Dominos Pizza Gbagada,1A Idowu Olaitan St, Gbagada, Lagos, Nigeria",
+				InputtedReceiverAddress:
+					"Dominos Pizza Gbagada,1A Idowu Olaitan St, Gbagada, Lagos, Nigeria",
+				SenderLocation: {
+					Latitude: "6.639438",
+					Longitude: "3.330983",
+					FormattedAddress: "",
+					Name: "",
+					LGA: "",
+				},
+				ReceiverLocation: {
+					Latitude: "6.5483775",
+					Longitude: "3.3883414",
+					FormattedAddress: "",
+					Name: "",
+					LGA: "",
+				},
+				PreShipmentItems: [
+					{
+						PreShipmentItemMobileId: 0,
+						Description: "Sample description",
+						Weight: 1,
+						Weight2: 0,
+						ItemType: "Normal",
+						ShipmentType: 1,
+						ItemName: "Shoe Lace",
+						EstimatedPrice: 0,
+						Value: "1000",
+						ImageUrl: "",
+						Quantity: 1,
+						SerialNumber: 0,
+						IsVolumetric: false,
+						Length: null,
+						Width: null,
+						Height: null,
+						PreShipmentMobileId: 0,
+						CalculatedPrice: null,
+						SpecialPackageId: null,
+						IsCancelled: false,
+						PictureName: "",
+						PictureDate: null,
+						WeightRange: "0",
+					},
+				],
+				VehicleType: "BIKE",
+				IsBatchPickUp: false,
+				WaybillImage: "",
+				WaybillImageFormat: "",
+				DestinationServiceCenterId: 0,
+				DestinationServiceCentreId: 0,
+				IsCashOnDelivery: false,
+				CashOnDeliveryAmount: 0.0,
 			};
+
 			const axiosConfig: requestProp = {
-				url: envConfig.AGILITY_BASE_URL + "/login",
+				url: envConfig.AGILITY_BASE_URL + "/price",
 				method: "POST",
 				body: agPayload,
+				headers: {
+					Authorization: `Bearer ${config?.agility_token}`,
+				},
 			};
 			const agilityLogin = await axiosRequestFunction(axiosConfig);
 			if (Number(agilityLogin?.code) < 400 && agilityLogin?.data) {
-				const config = await this.Setting.findOneAndUpdate(
-					{},
-					{ agility_token: agilityLogin?.data?.data?.token },
-					{ new: true }
+				const shipping_cost = nearest(
+					Number(agilityLogin?.data?.object?.grandTotal),
+					50
 				);
+				const shipping_items =
+					agilityLogin?.data?.object?.preshipmentMobile?.preShipmentItems;
 				responseData = {
 					status: StatusMessages.success,
 					code: HttpCodes.HTTP_OK,
 					message: agilityLogin.message,
 					data: {
-						agility_data: agilityLogin?.data?.data,
-						config,
+						shipping_cost,
+						shipping_items,
+						agility_payload: agPayload,
 					},
 				};
+				if (user && order) {
+					order.delivery_amount = shipping_cost;
+					order.agility_price_payload = agPayload;
+					await order.save();
+				}
 				return responseData;
 			} else {
 				return agilityLogin;
 			}
 		} catch (error: any) {
-			console.log("🚀 ~ DeliveryService ~ error:", error);
+			console.log(
+				"🚀 ~ DeliveryService ~ getShippingPriceAgility ~ error:",
+				error
+			);
+			responseData = {
+				status: StatusMessages.error,
+				code: HttpCodes.HTTP_SERVER_ERROR,
+				message: error.toString(),
+			};
+			return responseData;
+		}
+	}
+
+	public async getShippingPriceAgility1(
+		payload: GetPriceViaAgilityDto,
+		user: InstanceType<typeof this.User>,
+		order?: InstanceType<typeof this.Order>
+	): Promise<ResponseData> {
+		let responseData: ResponseData = {
+			status: StatusMessages.success,
+			code: HttpCodes.HTTP_OK,
+			message: "Delivery Vendor Selected Successfully",
+		};
+
+		try {
+			const loginAg = await this.loginAgilityLogistics();
+			if (loginAg.status === StatusMessages.error) {
+				return loginAg;
+			}
+			const config = loginAg.data.config as InstanceType<typeof this.Setting>;
+			const preshipmentItems: any[] = [];
+
+			for (const item of payload.items) {
+				const product = await this.Product.findById(item.product_id);
+				preshipmentItems.push({
+					PreShipmentItemMobileId: 0,
+					Description: product?.description,
+					Weight: product?.weight || 1,
+					Weight2: 0,
+					ItemType: "Normal",
+					ShipmentType: 1,
+					ItemName: product?.product_name,
+					EstimatedPrice: product?.unit_price,
+					Value: "1000",
+					ImageUrl: "",
+					Quantity: item?.quantity,
+					SerialNumber: 0,
+					IsVolumetric: false,
+					Length: null,
+					Width: null,
+					Height: null,
+					PreShipmentMobileId: 0,
+					CalculatedPrice: null,
+					SpecialPackageId: null,
+					IsCancelled: false,
+					PictureName: "",
+					PictureDate: null,
+					WeightRange: "0",
+				});
+			}
+
+			const agPayload = {
+				PreShipmentMobileId: 0,
+				SenderName: "SOTO e commerce",
+				SenderPhoneNumber: "+2347063965528",
+				SenderStationId: 1,
+				InputtedSenderAddress: config.ShippingAddress?.full_address,
+				SenderLocality: config.ShippingAddress?.city,
+				ReceiverStationId: 1,
+				SenderAddress: config.ShippingAddress?.full_address,
+				ReceiverName: user.FirstName + " " + user.LastName,
+				ReceiverPhoneNumber: user.PhoneNumber,
+				ReceiverAddress: user.ShippingAddress?.full_address,
+				InputtedReceiverAddress: user.ShippingAddress?.full_address,
+				SenderLocation: {
+					Latitude: String(config.ShippingAddress?.coordinates?.lat),
+					Longitude: String(config.ShippingAddress?.coordinates?.lng),
+					FormattedAddress: "",
+					Name: "",
+					LGA: "",
+				},
+				ReceiverLocation: {
+					Latitude: String(user.ShippingAddress?.coordinates?.lat),
+					Longitude: String(user.ShippingAddress?.coordinates?.lng),
+					FormattedAddress: "",
+					Name: "",
+					LGA: "",
+				},
+				PreShipmentItems: preshipmentItems,
+				VehicleType: "BIKE",
+				IsBatchPickUp: false,
+				WaybillImage: "",
+				WaybillImageFormat: "",
+				DestinationServiceCenterId: 0,
+				DestinationServiceCentreId: 0,
+				IsCashOnDelivery: false,
+				CashOnDeliveryAmount: 0.0,
+			};
+
+			const axiosConfig: requestProp = {
+				url: envConfig.AGILITY_BASE_URL + "/price",
+				method: "POST",
+				body: agPayload,
+				headers: {
+					Authorization: `Bearer ${config?.agility_token}`,
+				},
+			};
+			const agilityLogin = await axiosRequestFunction(axiosConfig);
+			if (Number(agilityLogin?.code) < 400 && agilityLogin?.data) {
+				const shipping_cost = nearest(
+					Number(agilityLogin?.data?.object?.grandTotal),
+					50
+				);
+				const shipping_items =
+					agilityLogin?.data?.object?.preshipmentMobile?.preShipmentItems;
+				responseData = {
+					status: StatusMessages.success,
+					code: HttpCodes.HTTP_OK,
+					message: agilityLogin.message,
+					data: {
+						shipping_cost,
+						shipping_items,
+					},
+				};
+				if (user && order) {
+					order.delivery_amount = shipping_cost;
+					order.agility_price_payload = agPayload;
+					await order.save();
+				}
+				return responseData;
+			} else {
+				return agilityLogin;
+			}
+		} catch (error: any) {
+			console.log(
+				"🚀 ~ DeliveryService ~ getShippingPriceAgility ~ error:",
+				error
+			);
+			responseData = {
+				status: StatusMessages.error,
+				code: HttpCodes.HTTP_SERVER_ERROR,
+				message: error.toString(),
+			};
+			return responseData;
+		}
+	}
+
+	public async captureShipmentByAgility(
+		order: InstanceType<typeof this.Order>
+	): Promise<ResponseData> {
+		let responseData: ResponseData = {
+			status: StatusMessages.success,
+			code: HttpCodes.HTTP_OK,
+			message: "Shipment Captured Successfully",
+		};
+		if (order.shipment) {
+			responseData.data = order;
+			return responseData;
+		}
+		try {
+			const loginAg = await this.loginAgilityLogistics();
+			if (loginAg.status === StatusMessages.error) {
+				return loginAg;
+			}
+			const config = loginAg.data.config as InstanceType<typeof this.Setting>;
+			const agPayload = order.agility_price_payload;
+			const axiosConfig: requestProp = {
+				url: envConfig.AGILITY_BASE_URL + "/captureshipment",
+				method: "POST",
+				body: agPayload,
+				headers: {
+					Authorization: `Bearer ${config?.agility_token}`,
+				},
+			};
+			const agilityCaptureShipment = await axiosRequestFunction(axiosConfig);
+			if (
+				Number(agilityCaptureShipment?.code) < 400 &&
+				agilityCaptureShipment?.data
+			) {
+				const shipment = await this.Shipment.create({
+					order: order._id,
+					capturedShipMent: agilityCaptureShipment.data?.object,
+				});
+				const shippedOrder = await this.Order.findByIdAndUpdate(
+					order._id,
+					{
+						shipment: shipment._id,
+						agility_captured_shipment: agilityCaptureShipment.data?.object,
+					},
+					{ new: true }
+				);
+
+				responseData = {
+					status: StatusMessages.success,
+					code: HttpCodes.HTTP_OK,
+					message: agilityCaptureShipment.message,
+					data: shippedOrder,
+				};
+				return responseData;
+			} else {
+				return agilityCaptureShipment;
+			}
+		} catch (error: any) {
+			console.log(
+				"🚀 ~ DeliveryService ~ captureShipmentByAgility ~ error:",
+				error
+			);
 			responseData = {
 				status: StatusMessages.error,
 				code: HttpCodes.HTTP_SERVER_ERROR,

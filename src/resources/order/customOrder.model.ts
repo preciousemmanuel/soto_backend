@@ -1,5 +1,9 @@
 import mongoose, { Schema, model } from "mongoose";
-import { OrderPaymentType, OrderStatus } from "@/utils/enums/base.enum";
+import {
+	OrderPaymentType,
+	OrderStatus,
+	ProductStatus,
+} from "@/utils/enums/base.enum";
 
 const OrderSchema = new Schema(
 	{
@@ -13,12 +17,15 @@ const OrderSchema = new Schema(
 		},
 		size: {
 			type: String,
+			default: null,
 		},
 		color: {
 			type: String,
+			default: null,
 		},
 		type: {
 			type: String,
+			default: null,
 		},
 		quantity: {
 			type: Number,
@@ -26,18 +33,23 @@ const OrderSchema = new Schema(
 		},
 		max_price: {
 			type: Number,
+			default: 0,
 		},
 		min_price: {
 			type: Number,
+			default: 0,
 		},
 		phone_number: {
 			type: String,
+			default: null,
 		},
 		email: {
 			type: String,
+			default: null,
 		},
 		note: {
 			type: String,
+			default: null,
 		},
 		user: {
 			type: mongoose.Types.ObjectId,
@@ -51,6 +63,19 @@ const OrderSchema = new Schema(
 			type: String,
 			enum: OrderStatus,
 			default: OrderStatus.PENDING,
+		},
+		approval_status: {
+			type: String,
+			enum: [
+				ProductStatus.PENDING,
+				ProductStatus.APPROVED,
+				ProductStatus.DECLINED,
+			],
+			default: ProductStatus.PENDING,
+		},
+		decline__note: {
+			type: String,
+			default: null,
 		},
 	},
 	{

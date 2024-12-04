@@ -1,3 +1,4 @@
+import { ProductStatus } from "@/utils/enums/base.enum";
 import mongoose, { Schema, model } from "mongoose";
 
 const ProductSchema = new Schema(
@@ -80,6 +81,18 @@ const ProductSchema = new Schema(
 		is_deleted: {
 			type: Boolean,
 			default: false,
+		},
+		status: {
+			type: String,
+			enum: [
+				ProductStatus.PENDING,
+				ProductStatus.APPROVED,
+				ProductStatus.DECLINED,
+			],
+			default: ProductStatus.PENDING,
+		},
+		decline_product_note: {
+			type: String,
 		},
 	},
 	{

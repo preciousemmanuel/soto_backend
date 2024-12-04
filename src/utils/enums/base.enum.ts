@@ -215,3 +215,9 @@ export enum LogisticsOption {
 	AGILITY = "AGILITY",
 	TERMINAL_AFRICA = "TERMINAL_AFRICA",
 }
+
+export enum ProductStatus {
+	PENDING = "PENDING",
+	APPROVED = "APPROVED",
+	DECLINED = "DECLINED",
+}

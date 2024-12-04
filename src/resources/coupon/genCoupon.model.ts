@@ -25,6 +25,10 @@ const schema = new mongoose.Schema(
 		expiry_date: { type: Date },
 		remove_expiry_date: { type: Boolean },
 		total_quantity: { type: Number },
+		product_category: {
+			type: mongoose.Types.ObjectId,
+			ref: "Categories",
+		},
 		amount_type: {
 			type: String,
 			enum: [DiscountTypes.FIXED, DiscountTypes.PERCENTAGE],

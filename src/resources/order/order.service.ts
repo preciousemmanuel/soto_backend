@@ -40,6 +40,7 @@ import customOrderModel from "./customOrder.model";
 import genCouponModel from "../coupon/genCoupon.model";
 import CouponService from "../coupon/coupon.service";
 import { HttpCodesEnum } from "@/utils/enums/httpCodes.enum";
+import DeliveryService from "../delivery/delivery.service";
 
 class OrderService {
 	private Order = orderModel;
@@ -53,6 +54,7 @@ class OrderService {
 	private notificationService = new NotificationService();
 	private assignmentService = new AssignmentService();
 	private couponService = new CouponService();
+	private deliveryService = new DeliveryService();
 
 	public async addToCart(
 		payload: AddToCartDto,
@@ -235,12 +237,24 @@ class OrderService {
 					{ new: true }
 				);
 			}
+			const getShippingCost =
+				await this.deliveryService.getShippingPriceAgility(
+					processedItems?.data?.itemsInOrder
+				);
+			if (getShippingCost.status === StatusMessages.error) {
+				return getShippingCost;
+			}
+			const shippingCost = getShippingCost?.data?.shipping_cost || 0;
+			const agilityPayload = getShippingCost?.data?.agility_payload || 0;
 			if (openCart) {
 				openCart.items = processedItems?.data?.itemsInOrder;
+				openCart.delivery_amount = shippingCost;
+				openCart.agility_price_payload = agilityPayload;
 				openCart.total_amount = processedItems?.data?.total_amount;
 				openCart.shipping_address =
 					payload.shipping_address || user.ShippingAddress?.full_address || "";
-				openCart.grand_total = processedItems?.data?.total_amount;
+				openCart.grand_total =
+					processedItems?.data?.total_amount + shippingCost;
 				openCart.price_before_discount = processedItems?.data?.total_amount;
 				openCart.payment_type = payload?.payment_type || openCart?.payment_type;
 				openCart.save();
@@ -277,7 +291,9 @@ class OrderService {
 						payload.shipping_address ||
 						user.ShippingAddress?.full_address ||
 						"",
-					grand_total: processedItems?.data?.total_amount,
+					grand_total: processedItems?.data?.total_amount + shippingCost,
+					delivery_amount: shippingCost,
+					agility_price_payload: agilityPayload,
 					price_before_discount: processedItems?.data?.total_amount,
 					tracking_id,
 					...(payload?.payment_type && { payment_type: payload?.payment_type }),

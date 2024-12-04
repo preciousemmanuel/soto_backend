@@ -24,6 +24,7 @@ import { hashPassword } from "@/utils/helpers/token";
 import {
 	OtpPurposeOptions,
 	ProductFetchTypes,
+	ProductStatus,
 	StatusMessages,
 	YesOrNo,
 } from "@/utils/enums/base.enum";
@@ -529,6 +530,17 @@ class ProductService {
 					}),
 					...(image_urls.length > 0 && {
 						images: image_urls,
+					}),
+					...(updateProductDto?.is_verified && {
+						status:
+							updateProductDto.is_verified === YesOrNo.YES
+								? ProductStatus.APPROVED
+								: updateProductDto.is_verified === YesOrNo.NO
+									? ProductStatus.DECLINED
+									: ProductStatus.PENDING,
+					}),
+					...(updateProductDto?.decline_product_note && {
+						decline_product_note: updateProductDto?.decline_product_note,
 					}),
 				},
 				{ new: true }
