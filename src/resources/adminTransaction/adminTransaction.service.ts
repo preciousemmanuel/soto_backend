@@ -473,7 +473,7 @@ class AdminTransactionService {
 			if (status) {
 				matchStage.$and.push({ status });
 			}
-			const match_stage = matchStage.$and.length > 0 ? matchStage : {};
+			const match_stage = matchStage.$and.length > 0 ? matchStage : undefined;
 			const pipeline = [
 				{
 					$lookup: {
@@ -483,7 +483,7 @@ class AdminTransactionService {
 						as: "user",
 					},
 				},
-				{ $unwind: "$user" },
+				{ $unwind: { path: "$user", preserveNullAndEmptyArrays: true } },
 				{
 					$lookup: {
 						from: "Businesses",
@@ -492,7 +492,7 @@ class AdminTransactionService {
 						as: "business",
 					},
 				},
-				{ $unwind: "$business" },
+				{ $unwind: { path: "$business", preserveNullAndEmptyArrays: true } },
 				{
 					$lookup: {
 						from: "BankDetails",
@@ -501,7 +501,9 @@ class AdminTransactionService {
 						as: "bank_details",
 					},
 				},
-				{ $unwind: "$bank_details" },
+				{
+					$unwind: { path: "$bank_details", preserveNullAndEmptyArrays: true },
+				},
 				{
 					$lookup: {
 						from: "Banks",
@@ -510,8 +512,8 @@ class AdminTransactionService {
 						as: "bank",
 					},
 				},
-				{ $unwind: "$bank" },
-				{ $match: match_stage },
+				{ $unwind: { path: "$bank", preserveNullAndEmptyArrays: true } },
+				...(match_stage ? [{ $match: match_stage }] : []),
 
 				{
 					$facet: {
@@ -545,6 +547,10 @@ class AdminTransactionService {
 			];
 
 			const aggregateResult = await this.Withdrawal.aggregate(pipeline);
+			console.log(
+				"🚀 ~ AdminTransactionService ~ getWithdrawalRequests ~ aggregateResult:",
+				aggregateResult
+			);
 
 			const data =
 				aggregateResult.length > 0 ? aggregateResult[0]?.withdrawals : [];
