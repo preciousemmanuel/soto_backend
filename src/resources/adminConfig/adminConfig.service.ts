@@ -2,6 +2,9 @@ import UserModel from "@/resources/user/user.model";
 import {
 	axiosRequestFunction,
 	formatPhoneNumber,
+	genAphaNumericCode,
+	generateUnusedAdminId,
+	getFirstSecondAndLastElementsOfAString,
 	uniqueCode,
 } from "@/utils/helpers";
 import {
@@ -189,6 +192,10 @@ class AdminConfigService {
 				responseData.message = "Admin With Same Email already exists";
 				return responseData;
 			}
+			const role = await this.Role.findById("673c9cf44e37eeaa3697b8d6");
+			const uniqueId = role
+				? await generateUnusedAdminId(role)
+				: genAphaNumericCode(5);
 			const sotoAdmin = await this.Admin.create({
 				FirstName: payload.first_name,
 				LastName: payload.last_name,
@@ -198,6 +205,7 @@ class AdminConfigService {
 				}),
 				Password: await hashPassword("Password@123"),
 				Role: payload.role,
+				UniqueId: uniqueId,
 			});
 			const Token = await createToken(sotoAdmin);
 			sotoAdmin.Token = Token;
@@ -252,7 +260,11 @@ class AdminConfigService {
 				const url = await cloudUploader.imageUploader(payload.passport);
 				profileImage = url ? url : "";
 			}
+			const role = await this.Role.findById("673c9cf44e37eeaa3697b8d6");
 			const password = payload.password || "Password@123";
+			const uniqueId = role
+				? await generateUnusedAdminId(role)
+				: genAphaNumericCode(5);
 			const sotoPurchaser = await this.Admin.create({
 				FirstName: payload.first_name.toLowerCase().trim(),
 				LastName: payload.last_name.toLowerCase().trim(),
@@ -265,6 +277,7 @@ class AdminConfigService {
 				ProfileImage: profileImage,
 				id_number: payload.id_number,
 				id_type: payload.id_type,
+				UniqueId: uniqueId,
 			});
 			const Token = await createToken(sotoPurchaser);
 			sotoPurchaser.Token = Token;
@@ -380,8 +393,12 @@ class AdminConfigService {
 				responseData.message = "Role With Same Email already exists";
 				return responseData;
 			}
+			const alias = getFirstSecondAndLastElementsOfAString(
+				payload.name
+			).toUpperCase();
 			const role = await this.Role.create({
 				...payload,
+				alias,
 			});
 
 			return {

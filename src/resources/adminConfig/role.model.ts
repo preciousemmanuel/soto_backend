@@ -1,11 +1,18 @@
 import mongoose, { Schema, model } from "mongoose";
 import { YesOrNo } from "@/utils/enums/base.enum";
+import { required } from "joi";
 
 const schema = new Schema(
 	{
 		name: {
 			type: String,
 			required: true,
+		},
+		alias: {
+			type: String,
+			unique: true,
+			required: true,
+			default: "STO",
 		},
 		admin: {
 			read: {

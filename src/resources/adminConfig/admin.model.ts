@@ -22,6 +22,12 @@ const schema = new Schema(
 			trim: true,
 			required: true,
 		},
+		UniqueId: {
+			type: String,
+			required: true,
+			unique: true,
+			trim: true,
+		},
 		ProfileImage: {
 			type: String,
 		},
