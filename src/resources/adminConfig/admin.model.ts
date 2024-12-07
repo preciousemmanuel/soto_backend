@@ -39,6 +39,12 @@ const schema = new Schema(
 		Token: {
 			type: String,
 		},
+		id_type: {
+			type: String,
+		},
+		id_number: {
+			type: String,
+		},
 		address_details: {
 			full_address: String,
 			address: String,

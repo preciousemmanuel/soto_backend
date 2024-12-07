@@ -15,6 +15,7 @@ import {
 	AddStaffAddressDto,
 	AdminLoginDto,
 	CreateAdminDto,
+	CreatePurchaserDto,
 	CreateRoleDto,
 	EditSettingsDto,
 	UpdateAdminProfileDto,
@@ -223,6 +224,73 @@ class AdminConfigService {
 			};
 		} catch (error: any) {
 			console.log("🚀 ~ AdminOverviewService ~ seedSuperAdmin ~ error:", error);
+			responseData.code = HttpCodesEnum.HTTP_SERVER_ERROR;
+			responseData.message = "Unable to perform request at this time";
+			return responseData;
+		}
+	}
+
+	public async createPurchaser(
+		payload: CreatePurchaserDto
+	): Promise<ResponseData> {
+		let responseData: ResponseData = {
+			status: StatusMessages.error,
+			code: HttpCodesEnum.HTTP_BAD_REQUEST,
+			message: "Error",
+		};
+		try {
+			const existingPurchaser = await this.Admin.findOne({
+				Email: payload.email.toLowerCase(),
+				Role: "673c9cf44e37eeaa3697b8d6",
+			});
+			if (existingPurchaser) {
+				responseData.message = "Purchaser With Same Email already exists";
+				return responseData;
+			}
+			let profileImage = "";
+			if (payload.passport) {
+				const url = await cloudUploader.imageUploader(payload.passport);
+				profileImage = url ? url : "";
+			}
+			const password = payload.password || "Password@123";
+			const sotoPurchaser = await this.Admin.create({
+				FirstName: payload.first_name.toLowerCase().trim(),
+				LastName: payload.last_name.toLowerCase().trim(),
+				Email: payload.email.toLowerCase(),
+				...(payload.phone_number && {
+					PhoneNumber: payload.phone_number,
+				}),
+				Password: await hashPassword(password),
+				Role: "673c9cf44e37eeaa3697b8d6",
+				ProfileImage: profileImage,
+				id_number: payload.id_number,
+				id_type: payload.id_type,
+			});
+			const Token = await createToken(sotoPurchaser);
+			sotoPurchaser.Token = Token;
+			await sotoPurchaser.save();
+			console.log(
+				"🚀 ~ AdminOverviewService ~ seedSuperAdmin ~ sotoAdmin.createdAt:",
+				sotoPurchaser.createdAt
+			);
+			const addressDetails: AddStaffAddressDto = {
+				admin: sotoPurchaser,
+				address: payload.address,
+				city: payload.city,
+				postal_code: "100314",
+				state: payload.state || "Lagos",
+				country: payload.country,
+			};
+			this.addAddressDetails(addressDetails);
+
+			return {
+				status: StatusMessages.success,
+				code: HttpCodesEnum.HTTP_CREATED,
+				message: "Purchaser Created Successfully",
+				data: sotoPurchaser,
+			};
+		} catch (error: any) {
+			console.log("🚀 ~ AdminConfigService ~ error:", error);
 			responseData.code = HttpCodesEnum.HTTP_SERVER_ERROR;
 			responseData.message = "Unable to perform request at this time";
 			return responseData;

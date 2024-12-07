@@ -1,4 +1,4 @@
-import { YesOrNo } from "@/utils/enums/base.enum";
+import { IdentificationTypes, YesOrNo } from "@/utils/enums/base.enum";
 import Joi from "joi";
 
 const adminLoginSchema = Joi.object({
@@ -37,6 +37,30 @@ const adminCreateSchema = Joi.object({
 	postal_code: Joi.string().optional(),
 	state: Joi.string().required(),
 	country: Joi.string().required(),
+});
+
+const adminPurchaserSchema = Joi.object({
+	first_name: Joi.string().required(),
+	last_name: Joi.string().required(),
+	email: Joi.string().email().required(),
+	phone_number: Joi.string().optional(),
+	address: Joi.string().required(),
+	city: Joi.string().required(),
+	state: Joi.string().required(),
+	country: Joi.string().optional(),
+	id_type: Joi.string()
+		.valid(
+			IdentificationTypes.BVN,
+			IdentificationTypes.DRIVERS_LICENSE,
+			IdentificationTypes.INTERNATIONAL_PASSPORT,
+			IdentificationTypes.NIN,
+			IdentificationTypes.VOTERS_CARD
+		)
+		.required(),
+	postal_code: Joi.string().optional(),
+	id_number: Joi.string().required(),
+	passport: Joi.object({}).optional(),
+	password: Joi.string().required(),
 });
 
 const editProfileSchema = Joi.object({
@@ -148,4 +172,5 @@ export default {
 	updateStaffRoleSchema,
 	editProfileSchema,
 	editSettingsSchema,
+	adminPurchaserSchema,
 };
