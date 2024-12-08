@@ -10,6 +10,7 @@ import authenticatedMiddleware from "@/middleware/authenticated.middleware";
 import {
 	AdminLoginDto,
 	CreateAdminDto,
+	CreatePurchaserDto,
 	CreateRoleDto,
 	EditSettingsDto,
 	UpdateAdminProfileDto,
@@ -43,6 +44,14 @@ class AdminConfigController implements Controller {
 			adminAuthMiddleware(AdminPermissions.ADMIN, AccessControlOptions.WRITE),
 			validationMiddleware(validate.adminCreateSchema),
 			this.createAdmin
+		);
+
+		this.router.post(
+			`${this.path}/purchasers/create-new`,
+			adminAuthMiddleware(AdminPermissions.ADMIN, AccessControlOptions.WRITE),
+			upload.single("passport"),
+			validationMiddleware(validate.adminPurchaserSchema),
+			this.createPurchaser
 		);
 
 		this.router.post(
@@ -164,6 +173,24 @@ class AdminConfigController implements Controller {
 			const payload: CreateAdminDto = req.body;
 			const { status, code, message, data } =
 				await this.adminOverviewService.createAdmin(payload);
+			return responseObject(res, code, status, message, data);
+		} catch (error: any) {
+			next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()));
+		}
+	};
+
+	private createPurchaser = async (
+		req: Request,
+		res: Response,
+		next: NextFunction
+	): Promise<Response | void> => {
+		try {
+			const payload: CreatePurchaserDto = req.body;
+			if (req.file) {
+				payload.passport = req.file as Express.Multer.File;
+			}
+			const { status, code, message, data } =
+				await this.adminOverviewService.createPurchaser(payload);
 			return responseObject(res, code, status, message, data);
 		} catch (error: any) {
 			next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()));

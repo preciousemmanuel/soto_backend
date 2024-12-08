@@ -17,6 +17,8 @@ import {
 	AddProductDto,
 	AddProductReviewDto,
 	FetchProductsDto,
+	MultipleOptionsAndDto,
+	MultipleOptionsDto,
 	UpdateProductDto,
 	WriteReviewDto,
 } from "./product.dto";
@@ -138,13 +140,44 @@ class ProductService {
 		let message: string;
 		try {
 			const fetch_type = payload?.fetch_type;
+			const multipleOptions =
+				payload?.filter?.product_name &&
+				payload?.filter?.product_name.includes(",")
+					? payload.filter?.product_name.split(",")
+					: [];
+
+			let searchOptions: MultipleOptionsDto = {
+				$or: [],
+			};
+			if (multipleOptions.length > 0) {
+				for (let i = 0; i < multipleOptions.length; i++) {
+					const element = multipleOptions[i].trim();
+					searchOptions.$or.push({
+						product_name: {
+							$regex: element,
+							$options: "i",
+						},
+					});
+				}
+			}
+			let nameSearch =
+				multipleOptions.length > 0
+					? searchOptions
+					: payload?.filter?.product_name
+						? {
+								product_name: {
+									$regex: payload?.filter?.product_name.trim(),
+									$options: "i",
+								},
+							}
+						: undefined;
 			const search = {
-				...(payload?.filter?.product_name && {
-					product_name: {
-						$regex: payload?.filter?.product_name,
-						$options: "i",
-					},
-				}),
+				// ...(payload?.filter?.product_name && {
+				// 	product_name: {
+				// 		$regex: payload?.filter?.product_name,
+				// 		$options: "i",
+				// 	},
+				// }),
 				...(payload?.filter?.category && {
 					category: new mongoose.Types.ObjectId(payload?.filter?.category),
 				}),
@@ -161,13 +194,21 @@ class ProductService {
 					},
 				}),
 			};
+			const matchAndStage: MultipleOptionsAndDto = {
+				$and: [search],
+			};
+			if (nameSearch) {
+				matchAndStage.$and.push(nameSearch);
+			}
+			console.log("🚀 ~ ProductService ~ matchAndStage:", matchAndStage);
 
 			const skip = (Number(payload.page) - 1) * Number(payload.limit);
 			let pipeline = [];
 			if (fetch_type && fetch_type === ProductFetchTypes.POPULAR) {
 				pipeline = [
 					{
-						$match: search,
+						$match: matchAndStage,
+						// $match: search,
 					},
 					{
 						$lookup: {
@@ -283,7 +324,8 @@ class ProductService {
 			} else {
 				pipeline = [
 					{
-						$match: search,
+						// $match: search,
+						$match: matchAndStage,
 					},
 					{
 						$lookup: {

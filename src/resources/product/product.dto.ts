@@ -49,3 +49,11 @@ export interface AddProductReviewDto {
 	description?: string;
 	rating: number;
 }
+
+export interface MultipleOptionsDto {
+	$or: any[];
+}
+
+export interface MultipleOptionsAndDto {
+	$and: any[];
+}

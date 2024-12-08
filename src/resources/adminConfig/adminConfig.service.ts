@@ -2,6 +2,9 @@ import UserModel from "@/resources/user/user.model";
 import {
 	axiosRequestFunction,
 	formatPhoneNumber,
+	genAphaNumericCode,
+	generateUnusedAdminId,
+	getFirstSecondAndLastElementsOfAString,
 	uniqueCode,
 } from "@/utils/helpers";
 import {
@@ -15,6 +18,7 @@ import {
 	AddStaffAddressDto,
 	AdminLoginDto,
 	CreateAdminDto,
+	CreatePurchaserDto,
 	CreateRoleDto,
 	EditSettingsDto,
 	UpdateAdminProfileDto,
@@ -188,6 +192,10 @@ class AdminConfigService {
 				responseData.message = "Admin With Same Email already exists";
 				return responseData;
 			}
+			const role = await this.Role.findById("673c9cf44e37eeaa3697b8d6");
+			const uniqueId = role
+				? await generateUnusedAdminId(role)
+				: genAphaNumericCode(5);
 			const sotoAdmin = await this.Admin.create({
 				FirstName: payload.first_name,
 				LastName: payload.last_name,
@@ -197,6 +205,7 @@ class AdminConfigService {
 				}),
 				Password: await hashPassword("Password@123"),
 				Role: payload.role,
+				UniqueId: uniqueId,
 			});
 			const Token = await createToken(sotoAdmin);
 			sotoAdmin.Token = Token;
@@ -223,6 +232,78 @@ class AdminConfigService {
 			};
 		} catch (error: any) {
 			console.log("🚀 ~ AdminOverviewService ~ seedSuperAdmin ~ error:", error);
+			responseData.code = HttpCodesEnum.HTTP_SERVER_ERROR;
+			responseData.message = "Unable to perform request at this time";
+			return responseData;
+		}
+	}
+
+	public async createPurchaser(
+		payload: CreatePurchaserDto
+	): Promise<ResponseData> {
+		let responseData: ResponseData = {
+			status: StatusMessages.error,
+			code: HttpCodesEnum.HTTP_BAD_REQUEST,
+			message: "Error",
+		};
+		try {
+			const existingPurchaser = await this.Admin.findOne({
+				Email: payload.email.toLowerCase(),
+				Role: "673c9cf44e37eeaa3697b8d6",
+			});
+			if (existingPurchaser) {
+				responseData.message = "Purchaser With Same Email already exists";
+				return responseData;
+			}
+			let profileImage = "";
+			if (payload.passport) {
+				const url = await cloudUploader.imageUploader(payload.passport);
+				profileImage = url ? url : "";
+			}
+			const role = await this.Role.findById("673c9cf44e37eeaa3697b8d6");
+			const password = payload.password || "Password@123";
+			const uniqueId = role
+				? await generateUnusedAdminId(role)
+				: genAphaNumericCode(5);
+			const sotoPurchaser = await this.Admin.create({
+				FirstName: payload.first_name.toLowerCase().trim(),
+				LastName: payload.last_name.toLowerCase().trim(),
+				Email: payload.email.toLowerCase(),
+				...(payload.phone_number && {
+					PhoneNumber: payload.phone_number,
+				}),
+				Password: await hashPassword(password),
+				Role: "673c9cf44e37eeaa3697b8d6",
+				ProfileImage: profileImage,
+				id_number: payload.id_number,
+				id_type: payload.id_type,
+				UniqueId: uniqueId,
+			});
+			const Token = await createToken(sotoPurchaser);
+			sotoPurchaser.Token = Token;
+			await sotoPurchaser.save();
+			console.log(
+				"🚀 ~ AdminOverviewService ~ seedSuperAdmin ~ sotoAdmin.createdAt:",
+				sotoPurchaser.createdAt
+			);
+			const addressDetails: AddStaffAddressDto = {
+				admin: sotoPurchaser,
+				address: payload.address,
+				city: payload.city,
+				postal_code: "100314",
+				state: payload.state || "Lagos",
+				country: payload.country,
+			};
+			this.addAddressDetails(addressDetails);
+
+			return {
+				status: StatusMessages.success,
+				code: HttpCodesEnum.HTTP_CREATED,
+				message: "Purchaser Created Successfully",
+				data: sotoPurchaser,
+			};
+		} catch (error: any) {
+			console.log("🚀 ~ AdminConfigService ~ error:", error);
 			responseData.code = HttpCodesEnum.HTTP_SERVER_ERROR;
 			responseData.message = "Unable to perform request at this time";
 			return responseData;
@@ -312,8 +393,12 @@ class AdminConfigService {
 				responseData.message = "Role With Same Email already exists";
 				return responseData;
 			}
+			const alias = getFirstSecondAndLastElementsOfAString(
+				payload.name
+			).toUpperCase();
 			const role = await this.Role.create({
 				...payload,
+				alias,
 			});
 
 			return {

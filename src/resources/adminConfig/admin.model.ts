@@ -22,6 +22,12 @@ const schema = new Schema(
 			trim: true,
 			required: true,
 		},
+		UniqueId: {
+			type: String,
+			required: true,
+			unique: true,
+			trim: true,
+		},
 		ProfileImage: {
 			type: String,
 		},
@@ -37,6 +43,12 @@ const schema = new Schema(
 			ref: "Roles",
 		},
 		Token: {
+			type: String,
+		},
+		id_type: {
+			type: String,
+		},
+		id_number: {
 			type: String,
 		},
 		address_details: {

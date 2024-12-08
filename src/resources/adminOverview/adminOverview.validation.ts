@@ -50,6 +50,7 @@ const getOrdersSchema = Joi.object().keys({
 	page: Joi.number().positive().optional(),
 	status: Joi.string().optional(),
 	tracking_id: Joi.string().optional(),
+	category: Joi.string().optional(),
 	product_name: Joi.string().allow(null).allow("").optional(),
 	select_type: Joi.string()
 		.valid(

@@ -20,6 +20,8 @@ import {
 } from "../interfaces/base.interface";
 import genCouponModel from "@/resources/coupon/genCoupon.model";
 import productModel from "@/resources/product/product.model";
+import roleModel from "@/resources/adminConfig/role.model";
+import adminModel from "@/resources/adminConfig/admin.model";
 
 export const uniqueCode = (): number => {
 	const code = Math.floor(1000 + Math.random() * 9000);
@@ -78,6 +80,27 @@ export const genAphaNumericCode = (length?: number) => {
 export const convertNairaToKobo = (amount: number) => {
 	const koboValue = Number(amount) * 100;
 	return koboValue;
+};
+
+export const getFirstSecondAndLastElementsOfAString = (str: string): string => {
+	try {
+		let name: string;
+		if (str.length >= 2) {
+			const firstChar = str[0];
+			const secondChar = str[1];
+			const lastChar = str[str.length - 1];
+			name = firstChar + secondChar + lastChar;
+		} else if (str.length === 1) {
+			name = str[0];
+		} else {
+			name = "";
+		}
+		console.log("🚀 ~ getFirstSecondAndLastElementsOfAString ~ name:", name);
+		return name;
+	} catch (error: any) {
+		console.log("🚀 ~ getFirstSecondAndLastElementsOfAString ~ error:", error);
+		return error.toString();
+	}
 };
 
 export const axiosRequestFunction = async ({
@@ -653,4 +676,36 @@ export const backTrackToADate = (format: string) => {
 export const nearest = function (num: number, near: number = 50) {
 	const rounded = Math.ceil(num / near) * near;
 	return rounded;
+};
+
+export const generateUnusedAdminId = async (
+	role: InstanceType<typeof roleModel>
+): Promise<string> => {
+	let existingAdminWithCode: any;
+	let finalUniqueCode: string;
+	try {
+		var adminCount = await adminModel.countDocuments({ Role: role._id });
+		var rand = genAphaNumericCode(3);
+		var uniqueId = `${role.alias.toUpperCase()}${rand.toUpperCase()}${adminCount}`;
+		existingAdminWithCode = await adminModel.findOne({
+			UniqueId: uniqueId,
+		});
+		finalUniqueCode = uniqueId;
+		while (
+			existingAdminWithCode !== null &&
+			existingAdminWithCode !== undefined
+		) {
+			adminCount = await adminModel.countDocuments({ Role: role._id });
+			rand = genAphaNumericCode(3);
+			uniqueId = `${role.alias.toUpperCase()}${rand.toUpperCase()}${adminCount}`;
+			existingAdminWithCode = await adminModel.findOne({
+				UniqueId: uniqueId,
+			});
+			finalUniqueCode = uniqueId;
+		}
+		return finalUniqueCode;
+	} catch (error: any) {
+		console.log("🚀 ~ generateUnusedAdminId ~ error:", error);
+		return error.toString();
+	}
 };

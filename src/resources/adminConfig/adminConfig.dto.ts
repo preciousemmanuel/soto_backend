@@ -56,6 +56,21 @@ export interface CreateAdminDto {
 	country: string;
 }
 
+export interface CreatePurchaserDto {
+	first_name: string;
+	last_name: string;
+	email: string;
+	phone_number?: string;
+	address: string;
+	city: string;
+	state?: string;
+	country?: string;
+	id_type: string;
+	id_number: string;
+	passport: Express.Multer.File;
+	password: string;
+}
+
 export interface UpdateAdminProfileDto extends Partial<CreateAdminDto> {
 	password?: string;
 	profile_image?: Express.Multer.File;
