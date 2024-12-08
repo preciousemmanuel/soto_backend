@@ -30,6 +30,7 @@ export interface ProductMgtDto {
 	price?: number;
 	discounted_price?: number;
 	is_discounted?: boolean;
+	category?: any;
 }
 
 export interface ReadWriteDto {

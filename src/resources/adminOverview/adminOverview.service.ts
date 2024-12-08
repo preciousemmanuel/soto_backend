@@ -1534,6 +1534,7 @@ class AdminOverviewService {
 				status,
 				product_name,
 				select_type,
+				category,
 			} = payload;
 			let filter: object;
 			let productData: ProductMgtDto;
@@ -1545,6 +1546,9 @@ class AdminOverviewService {
 						...(status && { status }),
 						...(product_name && {
 							product_name: { $regex: product_name, $options: "i" },
+						}),
+						...(category && {
+							category: category,
 						}),
 						...(start_date &&
 							end_date && {
@@ -1559,12 +1563,17 @@ class AdminOverviewService {
 						limit,
 						page,
 						data: filter,
+						populateObj: {
+							path: "category",
+							select: "name _id image",
+						},
 					});
 					paginateRequest.data.map((prod) => {
 						productData = {
 							name: prod.product_name,
 							description: prod.description,
 							images: prod.images,
+							category: prod.category,
 							quantity_sold: prod.total_quantity_sold,
 							quantity: prod.product_quantity,
 							price: prod.unit_price,
@@ -1580,6 +1589,9 @@ class AdminOverviewService {
 						...(product_name && {
 							product_name: { $regex: product_name, $options: "i" },
 						}),
+						...(category && {
+							category: category,
+						}),
 						...(start_date &&
 							end_date && {
 								createdAt: {
@@ -1593,12 +1605,17 @@ class AdminOverviewService {
 						limit,
 						page,
 						data: filter,
+						populateObj: {
+							path: "category",
+							select: "name _id image",
+						},
 					});
 					paginateRequest.data.map((prod) => {
 						productData = {
 							name: prod.product_name,
 							description: prod.description,
 							images: prod.images,
+							category: prod.category,
 							quantity_sold: prod.total_quantity_sold,
 							quantity: prod.product_quantity,
 							price: prod.unit_price,
@@ -1614,6 +1631,9 @@ class AdminOverviewService {
 						...(product_name && {
 							product_name: { $regex: product_name, $options: "i" },
 						}),
+						...(category && {
+							category: category,
+						}),
 						...(start_date &&
 							end_date && {
 								createdAt: {
@@ -1627,12 +1647,17 @@ class AdminOverviewService {
 						limit,
 						page,
 						data: filter,
+						populateObj: {
+							path: "category",
+							select: "name _id image",
+						},
 					});
 					paginateRequest.data.map((prod) => {
 						productData = {
 							name: prod.product_name,
 							description: prod.description,
 							images: prod.images,
+							category: prod.category,
 							quantity_sold: prod.total_quantity_sold,
 							quantity: prod.product_quantity,
 							price: prod.unit_price,
@@ -1663,7 +1688,11 @@ class AdminOverviewService {
 						data: filter,
 						populateObj: {
 							path: "product_id",
-							select: "images total_quantity_sold",
+							select: "images total_quantity_sold category",
+							populate: {
+								path: "category",
+								select: "name _id image",
+							},
 						},
 					});
 					paginateRequest.data.map((prod) => {
@@ -1687,6 +1716,9 @@ class AdminOverviewService {
 						...(product_name && {
 							product_name: { $regex: product_name, $options: "i" },
 						}),
+						...(category && {
+							category: category,
+						}),
 						...(start_date &&
 							end_date && {
 								createdAt: {
@@ -1695,7 +1727,7 @@ class AdminOverviewService {
 								},
 							}),
 
-						// is_verified:true,
+						is_verified: true,
 					};
 					console.log(
 						"🚀 ~ AdminOverviewService ~ getProductMgts ~ filter:",
@@ -1706,12 +1738,17 @@ class AdminOverviewService {
 						limit,
 						page,
 						data: filter,
+						populateObj: {
+							path: "category",
+							select: "name _id image",
+						},
 					});
 					paginateRequest.data.map((prod) => {
 						productData = {
 							name: prod.product_name,
 							description: prod.description,
 							images: prod.images,
+							category: prod.category,
 							quantity_sold: prod.total_quantity_sold,
 							quantity: prod.product_quantity,
 							price: prod.unit_price,

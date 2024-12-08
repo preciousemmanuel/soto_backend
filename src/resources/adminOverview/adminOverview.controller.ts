@@ -484,6 +484,9 @@ class AdminOverviewController implements Controller {
 				...(req.query?.select_type && {
 					select_type: String(req.query.select_type),
 				}),
+				...(req.query?.category && {
+					category: String(req.query.category),
+				}),
 			};
 
 			const user = req.user;
