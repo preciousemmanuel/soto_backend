@@ -1729,11 +1729,6 @@ class AdminOverviewService {
 
 						is_verified: true,
 					};
-					console.log(
-						"🚀 ~ AdminOverviewService ~ getProductMgts ~ filter:",
-						filter
-					);
-
 					paginateRequest = await getPaginatedRecords(this.Product, {
 						limit,
 						page,
