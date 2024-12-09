@@ -193,6 +193,7 @@ class UserService {
 			let start: Date | undefined;
 			let end: Date | undefined;
 			let backDater: BackDaterResponse;
+			let backDaterBackTrack: BackDaterResponse;
 			let input = new Date();
 			const unremitted_aggregate = await this.OrderDetail.aggregate([
 				{
@@ -213,6 +214,7 @@ class UserService {
 					},
 				},
 			]);
+
 			const total_unremitted =
 				unremitted_aggregate.length > 0
 					? unremitted_aggregate[0]?.total_unremitted
@@ -303,10 +305,133 @@ class UserService {
 				.catch((e) => {
 					console.log("🚀 ~ UNABLE TO RUN INCOME STAT AGGREGATE:", e);
 				});
+
+			const unremitted_aggregate_backtrack = await this.OrderDetail.aggregate([
+				{
+					$match: {
+						vendor: user._id,
+						is_remitted: false,
+					},
+				},
+				{
+					$addFields: {
+						total_price: { $multiply: ["$unit_price", "$quantity"] },
+					},
+				},
+				{
+					$group: {
+						_id: null,
+						total_unremitted: { $sum: "$total_price" },
+					},
+				},
+			]);
+
+			const total_unremitted_backtrack =
+				unremitted_aggregate_backtrack.length > 0
+					? unremitted_aggregate_backtrack[0]?.total_unremitted
+					: 0;
+
+			const total_in_stock_aggregate_backtrack = await this.Product.aggregate([
+				{
+					$match: {
+						vendor: user._id,
+						is_verified: true,
+						is_deleted: false,
+					},
+				},
+				{
+					$addFields: {
+						total_price: { $multiply: ["$unit_price", "$product_quantity"] },
+					},
+				},
+				{
+					$group: {
+						_id: null,
+						total_in_stock: { $sum: "$total_price" },
+					},
+				},
+			]);
+			const total_in_stock_backtrack =
+				total_in_stock_aggregate_backtrack.length > 0
+					? total_in_stock_aggregate_backtrack[0]?.total_in_stock
+					: 0;
+			backDater = await backDaterForChart({ input, format: timeFrame });
+			if (timeFrame) {
+				switch (timeFrame) {
+					case Timeline.YESTERDAY:
+						backDater = await backDaterForChart({ input, format: timeFrame });
+						break;
+
+					default:
+						break;
+				}
+			}
+			const arrayFilter_backtrack = backDater.array;
+
+			const pipeline_backtrack: PipelineStage[] = [
+				{
+					$facet: arrayFilter_backtrack.reduce((acc, filter) => {
+						const { start, end, day, month } = filter;
+						const filterStage: Record<string, any> = {
+							is_remitted: true,
+							createdAt: {
+								$gte: start,
+								$lte: end,
+							},
+						};
+						acc[`${day || month || "time_frame"}`] = [
+							{ $match: filterStage },
+							{
+								$addFields: {
+									total_price: { $multiply: ["$unit_price", "$quantity"] },
+								},
+							},
+							{
+								$group: {
+									_id: null,
+									total_price_value: { $sum: "$total_price" },
+								},
+							},
+							{
+								$project: {
+									_id: 0,
+									start,
+									end,
+									day: day || null,
+									month: month || null,
+									total_price_value: "$total_price_value",
+								},
+							},
+						] as PipelineStage[];
+						return acc;
+					}, {} as any),
+				},
+			];
+
+			let income_stat_agg_backtrack: any[] = [];
+			await this.OrderDetail.aggregate(pipeline_backtrack)
+				.then((result) => {
+					income_stat_agg_backtrack = result[0];
+				})
+				.catch((e) => {
+					console.log("🚀 ~ UNABLE TO RUN INCOME STAT AGGREGATE:", e);
+				});
+			const unremitted = total_unremitted || 0;
+			const unremitted_backtrack = total_unremitted_backtrack || 0;
+			const total_unremitted_percentage = Math.ceil(
+				((unremitted - unremitted_backtrack) / unremitted) * 100
+			);
+			const in_stock = total_in_stock || 0;
+			const in_stock_backtrack = total_in_stock_backtrack || 0;
+			const total_in_stock_percentage = Math.ceil(
+				((in_stock - in_stock_backtrack) / in_stock) * 100
+			);
 			const dashboard = {
 				user,
 				total_unremitted,
+				total_unremitted_percentage,
 				total_in_stock,
+				total_in_stock_percentage,
 				income_stat_agg,
 			};
 
