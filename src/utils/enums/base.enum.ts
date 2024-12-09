@@ -221,3 +221,12 @@ export enum ProductStatus {
 	APPROVED = "APPROVED",
 	DECLINED = "DECLINED",
 }
+
+export enum NotificationCategory {
+	GENERAL = "GENERAL",
+	VENDOR = "VENDOR",
+	USER = "USER",
+	ORDER = "ORDER",
+	PRODUCT = "PRODUCT",
+	WITHDRAWAL = "WITHDRAWAL",
+}

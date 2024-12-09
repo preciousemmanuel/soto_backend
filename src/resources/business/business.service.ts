@@ -18,6 +18,7 @@ import {
 } from "./business.dto";
 import { hashPassword } from "@/utils/helpers/token";
 import {
+	NotificationCategory,
 	OtpPurposeOptions,
 	StatusMessages,
 	TransactionNarration,
@@ -39,6 +40,9 @@ import withdrawalModel from "./withdrawal.model";
 import transactionLogModel from "../transaction/transactionLog.model";
 import { catchBlockResponseFn } from "@/utils/constants/data";
 import { HttpCodesEnum } from "@/utils/enums/httpCodes.enum";
+import NotificationService from "../notification/notification.service";
+import { CreateNotificationDto } from "../notification/notification.dto";
+import envConfig from "@/utils/config/env.config";
 
 class BusinessService {
 	private Business = BusinessModel;
@@ -50,6 +54,7 @@ class BusinessService {
 	private Withdrawal = withdrawalModel;
 	private mailService = new MailService();
 	private paymentProviderService = new PaymentProviderService();
+	private notificationService = new NotificationService();
 
 	public async createBusiness(
 		createBusinessDto: CreateBusinessDto
@@ -178,13 +183,22 @@ class BusinessService {
 				);
 				responseData = {
 					status: StatusMessages.success,
-					code: HttpCodes.HTTP_CREATED,
+					code: HttpCodes.HTTP_OK,
 					message: "verification Updated Successfully",
 					data: {
 						...updateBusiness?.toObject(),
 						oneTimePassword,
 					},
 				};
+				const notificationPayload: CreateNotificationDto = {
+					sender: envConfig.SOTO_USER_ID,
+					receiver: envConfig.SOTO_USER_ID,
+					category: NotificationCategory.VENDOR,
+					category_id: String(updateBusiness?.user),
+					title: "NEW VENDOR REGISTRATION",
+					content: "A new Vendor has just completed registration",
+				};
+				this.notificationService.createNotification(notificationPayload);
 			}
 
 			return responseData;
@@ -431,6 +445,16 @@ class BusinessService {
 				reference,
 				type: TransactionType.DEBIT,
 			});
+
+			const notificationPayload: CreateNotificationDto = {
+				sender: envConfig.SOTO_USER_ID,
+				receiver: envConfig.SOTO_USER_ID,
+				category: NotificationCategory.WITHDRAWAL,
+				category_id: String(withdrawalRequest._id),
+				title: "VENDOR WITHDRAWAL REQUEST",
+				content: "A Vendor Just Made A Withdrawal Request",
+			};
+			this.notificationService.createNotification(notificationPayload);
 
 			responseData = {
 				status: StatusMessages.success,

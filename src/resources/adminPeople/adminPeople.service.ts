@@ -39,7 +39,12 @@ import assignmentModel from "../assignment/assignment.model";
 import adminModel from "../adminConfig/admin.model";
 import roleModel from "../adminConfig/role.model";
 import mongoose from "mongoose";
-import { catchBlockResponse } from "@/utils/constants/data";
+import {
+	catchBlockResponse,
+	catchBlockResponseFn,
+} from "@/utils/constants/data";
+import NotificationService from "../notification/notification.service";
+import { FetchNotificationsDto } from "../notification/notification.dto";
 
 class AdminPeopleService {
 	private User = UserModel;
@@ -51,6 +56,7 @@ class AdminPeopleService {
 	private Admin = adminModel;
 	private Role = roleModel;
 	private mailService = new MailService();
+	private notificationService = new NotificationService();
 
 	public async getBuyers(
 		payload: any,
