@@ -70,4 +70,5 @@ export default {
 	FIREBASE_CLIENT_ID:
 		process.env.FIREBASE_CLIENT_ID || PaymentProvider.PAYSTACK,
 	AGILITY_BASE_URL: process.env.AGILITY_BASE_URL || PaymentProvider.PAYSTACK,
+	SOTO_USER_ID: process.env.SOTO_USER_ID || "6731c8ec1302e8d39132c289",
 };
