@@ -18,6 +18,7 @@ import { hashPassword } from "@/utils/helpers/token";
 import {
 	OrderStatus,
 	OtpPurposeOptions,
+	SellerStatus,
 	StatusMessages,
 	UserTypes,
 	YesOrNo,
@@ -505,8 +506,33 @@ class AdminPeopleService {
 			message: "Sellers Retrieved Successfully",
 		};
 		try {
-			const { limit, page, start_date, end_date, search, a } = payload;
+			const { limit, page, start_date, end_date, search, seller_status } =
+				payload;
 			const skip = (page - 1) * limit;
+			let status_value: object = {};
+			if (seller_status) {
+				switch (seller_status) {
+					case SellerStatus.PENDING:
+						status_value = {
+							IsVerified: false,
+						};
+						break;
+					case SellerStatus.APPROVED:
+						status_value = {
+							IsActive: true,
+							IsVerified: true,
+							IsBlocked: false,
+						};
+						break;
+					case SellerStatus.DECLINED:
+						status_value = {
+							IsVerified: false,
+						};
+						break;
+					default:
+						break;
+				}
+			}
 
 			const aggregateResult = await this.User.aggregate([
 				{
@@ -515,14 +541,17 @@ class AdminPeopleService {
 							{
 								...(search && { Email: { $regex: search, $options: "i" } }),
 								UserType: UserTypes.VENDOR,
+								...(seller_status && status_value && status_value),
 							},
 							{
 								...(search && { FirstName: { $regex: search, $options: "i" } }),
 								UserType: UserTypes.VENDOR,
+								...(seller_status && status_value && status_value),
 							},
 							{
 								...(search && { LastName: { $regex: search, $options: "i" } }),
 								UserType: UserTypes.VENDOR,
+								...(seller_status && status_value && status_value),
 							},
 						],
 					},
@@ -549,57 +578,45 @@ class AdminPeopleService {
 					},
 				},
 				{
-					$project: {
-						_id: 1,
-						FirstName: 1,
-						LastName: 1,
-						Email: 1,
-						ProfileImage: 1,
-						IsActive: 1,
-						IsVerified: 1,
-						IsBlocked: 1,
-						total_quantity: 1,
-						product: { $arrayElemAt: ["$user_products.product_name", 0] },
-						category: { $arrayElemAt: ["$user_business.category", 0] },
-						createdAt: 1,
-					},
-				},
-				{
-					$sort: { createdAt: -1 },
-				},
-				{
-					$skip: skip,
-				},
-				{
-					$limit: limit,
-				},
-				{
-					$group: {
-						_id: null,
-						users: {
-							$push: {
-								_id: "$_id",
-								first_name: "$FirstName",
-								last_name: "$LastName",
-								email: "$Email",
-								profile_image: "$ProfileImage",
-								createdAt: "$createdAt",
-								is_active: "$IsActive",
-								is_verified: "$IsVerified",
-								is_blocked: "$IsBlocked",
-								total_quantity: "$total_quantity",
-								product: "$product",
-								category: "$category",
+					$facet: {
+						users: [
+							{
+								$sort: { createdAt: -1 },
 							},
-						},
-						total_count: { $sum: 1 },
+							{
+								$skip: skip,
+							},
+							{
+								$limit: limit,
+							},
+							{
+								$project: {
+									_id: 1,
+									FirstName: 1,
+									LastName: 1,
+									Email: 1,
+									ProfileImage: 1,
+									IsActive: 1,
+									IsVerified: 1,
+									IsBlocked: 1,
+									total_quantity: 1,
+									product: { $arrayElemAt: ["$user_products.product_name", 0] },
+									category: { $arrayElemAt: ["$user_business.category", 0] },
+									createdAt: 1,
+								},
+							},
+						],
+						total_count: [
+							{
+								$count: "count",
+							},
+						],
 					},
 				},
 				{
 					$project: {
-						_id: 0,
 						users: 1,
-						total_count: 1,
+						total_count: { $arrayElemAt: ["$total_count.count", 0] },
 					},
 				},
 			]);

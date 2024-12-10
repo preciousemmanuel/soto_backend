@@ -35,6 +35,7 @@ export interface OverviewDto {
 	page?: string | number;
 	advanced_report_timeline?: backDaterArray[];
 	search?: string;
+	seller_status?: string;
 }
 
 export interface UpdateUserByAdminDto {
@@ -47,4 +48,3 @@ export interface UpdateUserByAdminDto {
 	is_verified?: YesOrNo;
 	is_active?: YesOrNo;
 }
-

@@ -14,6 +14,7 @@ import {
 import upload from "@/utils/config/multer";
 import DeliveryService from "./delivery.service";
 import { RequestData } from "@/utils/enums/base.enum";
+import genAuthenticatedMiddleware from "@/middleware/gendAuth.middleware";
 
 class DeliveryController implements Controller {
 	public path = "/delivery";
@@ -33,13 +34,13 @@ class DeliveryController implements Controller {
 		);
 		this.router.get(
 			`${this.path}/get-states`,
-			authenticatedMiddleware,
+			genAuthenticatedMiddleware,
 			this.getStates
 		);
 
 		this.router.get(
 			`${this.path}/get-cities`,
-			authenticatedMiddleware,
+			genAuthenticatedMiddleware,
 			validationMiddleware(validate.getCitiesSchema, RequestData.query),
 			this.getCities
 		);
