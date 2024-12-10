@@ -1,6 +1,7 @@
 import {
 	IdentificationTypes,
 	OrderStatus,
+	SellerStatus,
 	SignupChannels,
 	Timeline,
 	UserTypes,
@@ -52,6 +53,17 @@ const DashboardOverviewSchema = Joi.object().keys({
 		.allow(null)
 		.allow("")
 		.optional(),
+
+	seller_status: Joi.string()
+		.valid(
+			SellerStatus.PENDING,
+			SellerStatus.APPROVED,
+			SellerStatus.DECLINED,
+			SellerStatus.BLOCKED
+		)
+		.allow(null)
+		.allow("")
+		.optional(),
 });
 
 const updateUserSchema = Joi.object().keys({
@@ -64,10 +76,8 @@ const updateUserSchema = Joi.object().keys({
 	is_active: Joi.string().valid(YesOrNo.YES, YesOrNo.NO).optional(),
 });
 
-
 export default {
 	modelIdSchema,
 	DashboardOverviewSchema,
 	updateUserSchema,
-
 };

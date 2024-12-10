@@ -261,6 +261,11 @@ class AdminPeopleController implements Controller {
 				advanced_report_timeline: customDateRange
 					? customDateRange.array
 					: timeLineRange?.array,
+				...(query?.seller_status &&
+					query?.seller_status !== "" &&
+					query?.seller_status !== null && {
+						seller_status: String(query.seller_status),
+					}),
 			};
 
 			const dateRange: backDaterArray[] = customDateRange

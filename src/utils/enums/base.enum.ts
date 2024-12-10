@@ -133,6 +133,13 @@ export enum Timeline {
 	ALL_TIME = "ALL_TIME",
 }
 
+export enum SellerStatus {
+	PENDING = "PENDING",
+	APPROVED = "APPROVED",
+	BLOCKED = "BLOCKED",
+	DECLINED = "DECLINED",
+}
+
 export enum PaymentProvider {
 	PAYSTACK = "PAYSTACK",
 	FLUTTERWAVE = "FLUTTERWAVE",
