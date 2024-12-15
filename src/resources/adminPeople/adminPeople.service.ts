@@ -1363,6 +1363,8 @@ class AdminPeopleService {
 				{ new: true }
 			);
 
+			let order_detail_update: object;
+
 			return {
 				status: StatusMessages.success,
 				code: HttpCodes.HTTP_OK,

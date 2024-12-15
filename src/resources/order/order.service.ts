@@ -44,6 +44,8 @@ import { HttpCodesEnum } from "@/utils/enums/httpCodes.enum";
 import DeliveryService from "../delivery/delivery.service";
 import envConfig from "@/utils/config/env.config";
 import { CreateNotificationDto } from "../notification/notification.dto";
+import AdminOverviewService from "../adminOverview/adminOverview.service";
+import settingModel from "../adminConfig/setting.model";
 
 class OrderService {
 	private Order = orderModel;
@@ -58,6 +60,7 @@ class OrderService {
 	private assignmentService = new AssignmentService();
 	private couponService = new CouponService();
 	private deliveryService = new DeliveryService();
+	private Setting = settingModel;
 
 	public async addToCart(
 		payload: AddToCartDto,
@@ -794,7 +797,14 @@ class OrderService {
 				};
 			}
 
-			responseData.data = order;
+			const order_itinerary = await this.fetchOrderItineraryInOrderService(
+				order.order_itinerary
+			);
+
+			responseData.data = {
+				...order.toObject(),
+				order_itinerary,
+			};
 			return responseData;
 		} catch (error: any) {
 			console.log("🚀 ~ AdminOverviewService ~ viewAnOrder ~ error:", error);
@@ -805,6 +815,50 @@ class OrderService {
 			};
 			return responseData;
 		}
+	}
+
+	public async fetchOrderItineraryInOrderService(step: number) {
+		const settingModel = await this.Setting.findOne({});
+
+		let order_itinerary: object = {
+			step_1: settingModel?.order_itinerary?.step_1?.description,
+		};
+		if (settingModel) {
+			switch (step) {
+				case 1:
+					order_itinerary = {
+						step_1: settingModel.order_itinerary?.step_1?.description,
+					};
+					break;
+				case 2:
+					order_itinerary = {
+						step_1: settingModel.order_itinerary?.step_1?.description,
+						step_2: settingModel.order_itinerary?.step_2?.description,
+					};
+					break;
+				case 3:
+					order_itinerary = {
+						step_1: settingModel.order_itinerary?.step_1?.description,
+						step_2: settingModel.order_itinerary?.step_2?.description,
+						step_3: settingModel.order_itinerary?.step_3?.description,
+					};
+					break;
+				case 4:
+					order_itinerary = {
+						step_1: settingModel.order_itinerary?.step_1?.description,
+						step_2: settingModel.order_itinerary?.step_2?.description,
+						step_3: settingModel.order_itinerary?.step_3?.description,
+						step_4: settingModel.order_itinerary?.step_4?.description,
+					};
+					break;
+				default:
+					order_itinerary = {
+						step_1: settingModel.order_itinerary?.step_1?.description,
+					};
+					break;
+			}
+		}
+		return order_itinerary;
 	}
 
 	public async createCustomOrder(

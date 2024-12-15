@@ -1,4 +1,9 @@
-import { YesOrNo, UserTypes, ProductFetchTypes } from "@/utils/enums/base.enum";
+import {
+	YesOrNo,
+	UserTypes,
+	ProductFetchTypes,
+	ProductStatus,
+} from "@/utils/enums/base.enum";
 import { email } from "envalid";
 import Joi from "joi";
 
@@ -29,6 +34,15 @@ const fetchProductSchema = Joi.object({
 		.allow(null)
 		.allow("")
 		.optional(),
+	product_status: Joi.string()
+		.valid(
+			ProductStatus.APPROVED,
+			ProductStatus.PENDING,
+			ProductStatus.DECLINED
+		)
+		.optional()
+		.allow(null)
+		.allow(""),
 });
 
 const writeAReviewSchema = Joi.object({

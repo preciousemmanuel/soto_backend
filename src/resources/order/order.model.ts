@@ -83,8 +83,8 @@ const OrderSchema = new Schema(
 			type: Date,
 		},
 		order_itinerary: {
-			type: String,
-			default: "",
+			type: Number,
+			default: 1,
 		},
 		tracking_id: {
 			type: String,

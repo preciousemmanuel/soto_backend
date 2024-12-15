@@ -73,6 +73,7 @@ import categoryModel from "../category/category.model";
 import settingModel from "../adminConfig/setting.model";
 import DeliveryService from "../delivery/delivery.service";
 import customOrderModel from "../order/customOrder.model";
+import NotificationService from "../notification/notification.service";
 
 class AdminOverviewService {
 	private Category = categoryModel;
@@ -91,6 +92,7 @@ class AdminOverviewService {
 	private productService = new ProductService();
 	private orderService = new OrderService();
 	private deliveryService = new DeliveryService();
+	private notificationService = new NotificationService();
 
 	public async getOverview(
 		payload: any,
@@ -1478,6 +1480,10 @@ class AdminOverviewService {
 					})),
 			];
 
+			const order_itinerary = await this.fetchOrderItinerary(
+				order.order_itinerary
+			);
+
 			const full_details = {
 				_id: order?._id,
 				items: joinedDetails,
@@ -1486,7 +1492,7 @@ class AdminOverviewService {
 				total_amount: order?.total_amount,
 				delivery_amount: order?.delivery_amount,
 				shipping_address: order?.shipping_address,
-				order_itinerary: order?.order_itinerary,
+				order_itinerary: order_itinerary,
 				tracking_id: order?.tracking_id,
 				grand_total: order?.grand_total,
 				discounted_amount: order?.discounted_amount,
@@ -1508,6 +1514,94 @@ class AdminOverviewService {
 				message: error.toString(),
 			};
 			return responseData;
+		}
+	}
+
+	public async fetchOrderItinerary(step: number) {
+		const settingModel = await this.Setting.findOne({});
+
+		let order_itinerary: object = {
+			step_1: settingModel?.order_itinerary?.step_1?.description,
+		};
+		if (settingModel) {
+			switch (step) {
+				case 1:
+					order_itinerary = {
+						step_1: settingModel.order_itinerary?.step_1?.description,
+					};
+					break;
+				case 2:
+					order_itinerary = {
+						step_1: settingModel.order_itinerary?.step_1?.description,
+						step_2: settingModel.order_itinerary?.step_2?.description,
+					};
+					break;
+				case 3:
+					order_itinerary = {
+						step_1: settingModel.order_itinerary?.step_1?.description,
+						step_2: settingModel.order_itinerary?.step_2?.description,
+						step_3: settingModel.order_itinerary?.step_3?.description,
+					};
+					break;
+				case 4:
+					order_itinerary = {
+						step_1: settingModel.order_itinerary?.step_1?.description,
+						step_2: settingModel.order_itinerary?.step_2?.description,
+						step_3: settingModel.order_itinerary?.step_3?.description,
+						step_4: settingModel.order_itinerary?.step_4?.description,
+					};
+					break;
+				default:
+					order_itinerary = {
+						step_1: settingModel.order_itinerary?.step_1?.description,
+					};
+					break;
+			}
+		}
+		return order_itinerary;
+	}
+
+	public async trackOrder(
+		order_id: string,
+		step: number
+	): Promise<ResponseData> {
+		try {
+			const order = await this.Order.findById(order_id);
+			if (!order) {
+				return {
+					status: StatusMessages.error,
+					code: HttpCodes.HTTP_BAD_REQUEST,
+					message: "order not found",
+				};
+			}
+
+			const order_itinerary = await this.fetchOrderItinerary(step);
+			if (order.order_itinerary !== step) {
+				this.notificationService.createNotification({
+					receiver: String(order.user),
+					title: "Order Status",
+					content: Object.entries(order_itinerary).at(-1)?.[1],
+				});
+			}
+
+			const trackedOrder = await this.Order.findByIdAndUpdate(
+				order_id,
+				{
+					order_itinerary: step,
+				},
+				{ new: true }
+			);
+			return {
+				status: StatusMessages.success,
+				code: HttpCodes.HTTP_OK,
+				message: "order updated successfully",
+				data: {
+					...trackedOrder?.toObject(),
+					order_itinerary,
+				},
+			};
+		} catch (error: any) {
+			return catchBlockResponseFn(error);
 		}
 	}
 

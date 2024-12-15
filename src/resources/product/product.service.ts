@@ -457,6 +457,9 @@ class ProductService {
 							$lte: payload?.filter?.price_upper,
 						},
 					}),
+				...(payload?.filter?.status && {
+					status: payload?.filter?.status,
+				}),
 				vendor: user._id,
 			};
 

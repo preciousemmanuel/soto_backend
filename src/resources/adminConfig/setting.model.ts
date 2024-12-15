@@ -3,6 +3,7 @@ import mongoose, { Schema, model } from "mongoose";
 import { User } from "@/resources/user/user.interface";
 import {
 	LogisticsOption,
+	OrderStatus,
 	SignupChannels,
 	UserTypes,
 	YesOrNo,
@@ -73,6 +74,52 @@ const SettingSchema = new Schema(
 		},
 		agility_token: {
 			type: String,
+		},
+		remittance_day: {
+			type: Number,
+			default: 7,
+		},
+		order_itinerary: {
+			step_1: {
+				level: {
+					type: Number,
+					default: 1,
+				},
+				description: {
+					type: String,
+					default: "Order Created",
+				},
+			},
+			step_2: {
+				level: {
+					type: Number,
+					default: 2,
+				},
+				description: {
+					type: String,
+					default: "Order Shipped From Vendor To Packaging Warehouse",
+				},
+			},
+			step_3: {
+				level: {
+					type: Number,
+					default: 3,
+				},
+				description: {
+					type: String,
+					default: "Order Picked Up for delivery my delivery agent",
+				},
+			},
+			step_4: {
+				level: {
+					type: Number,
+					default: 4,
+				},
+				description: {
+					type: String,
+					default: "Order Delivered Successfully",
+				},
+			},
 		},
 	},
 	{
