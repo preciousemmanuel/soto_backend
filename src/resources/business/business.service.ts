@@ -140,6 +140,15 @@ class BusinessService {
 				otp: oneTimePassword?.otp,
 			};
 			this.mailService.sendOtpMail(mailPayload);
+			const notificationPayload: CreateNotificationDto = {
+				sender: envConfig.SOTO_USER_ID,
+				receiver: envConfig.SOTO_USER_ID,
+				category: NotificationCategory.VENDOR,
+				category_id: String(user?._id),
+				title: "NEW VENDOR REGISTRATION",
+				content: "A new Vendor has just completed registration",
+			};
+			this.notificationService.createNotification(notificationPayload);
 			return responseData;
 		} catch (error: any) {
 			console.log("🚀 ~ BusinessService ~ error:", error);
@@ -190,15 +199,15 @@ class BusinessService {
 						oneTimePassword,
 					},
 				};
-				const notificationPayload: CreateNotificationDto = {
-					sender: envConfig.SOTO_USER_ID,
-					receiver: envConfig.SOTO_USER_ID,
-					category: NotificationCategory.VENDOR,
-					category_id: String(updateBusiness?.user),
-					title: "NEW VENDOR REGISTRATION",
-					content: "A new Vendor has just completed registration",
-				};
-				this.notificationService.createNotification(notificationPayload);
+				// const notificationPayload: CreateNotificationDto = {
+				// 	sender: envConfig.SOTO_USER_ID,
+				// 	receiver: envConfig.SOTO_USER_ID,
+				// 	category: NotificationCategory.VENDOR,
+				// 	category_id: String(updateBusiness?.user),
+				// 	title: "NEW VENDOR REGISTRATION",
+				// 	content: "A new Vendor has just completed registration",
+				// };
+				// this.notificationService.createNotification(notificationPayload);
 			}
 
 			return responseData;

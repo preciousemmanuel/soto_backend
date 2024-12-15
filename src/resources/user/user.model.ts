@@ -1,7 +1,13 @@
 import mongoose, { Schema, model } from "mongoose";
 
 import { User } from "@/resources/user/user.interface";
-import { SignupChannels, UserRanks, UserTypes } from "@/utils/enums/base.enum";
+import {
+	ProductStatus,
+	SellerStatus,
+	SignupChannels,
+	UserRanks,
+	UserTypes,
+} from "@/utils/enums/base.enum";
 
 const UserSchema = new Schema(
 	{
@@ -118,6 +124,15 @@ const UserSchema = new Schema(
 			type: [Number], // <lng, lat>
 			index: { type: "2dsphere", sparse: false },
 			default: [3.406448, 6.465422],
+		},
+		vendor_status: {
+			type: String,
+			enum: [
+				SellerStatus.PENDING,
+				SellerStatus.APPROVED,
+				SellerStatus.DECLINED,
+			],
+			default: ProductStatus.PENDING,
 		},
 	},
 	{

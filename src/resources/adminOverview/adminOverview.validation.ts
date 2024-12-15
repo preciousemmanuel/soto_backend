@@ -58,7 +58,10 @@ const getOrdersSchema = Joi.object().keys({
 			ProductMgtOption.SOLD,
 			ProductMgtOption.PROMO,
 			ProductMgtOption.OUT_OF_STOCK,
-			ProductMgtOption.RETURNED
+			ProductMgtOption.PENDING,
+			ProductMgtOption.RETURNED,
+			ProductMgtOption.DECLINED,
+			ProductMgtOption.APPROVED
 		)
 		.optional(),
 });
@@ -74,7 +77,7 @@ const updateCustomOrderSchema = Joi.object().keys({
 			ProductStatus.DECLINED
 		)
 		.required(),
-	decline_note: Joi.string().optional(),
+	decline_note: Joi.string().optional().allow(""),
 });
 
 const addShippingAddressSchema = Joi.object({

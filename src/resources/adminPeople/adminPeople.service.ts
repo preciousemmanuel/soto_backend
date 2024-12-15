@@ -409,6 +409,18 @@ class AdminPeopleService {
 				};
 			}
 
+			// if (
+			// 	payload?.is_verified &&
+			// 	payload?.is_verified === YesOrNo.YES &&
+			// 	user.IsVerified !== true
+			// ) {
+			// 	return {
+			// 		status: StatusMessages.error,
+			// 		code: HttpCodesEnum.HTTP_BAD_REQUEST,
+			// 		message: "Vendor Yet To Verify Email",
+			// 	};
+			// }
+
 			const updatedUser = await this.User.findByIdAndUpdate(
 				user_id,
 				{
@@ -430,8 +442,14 @@ class AdminPeopleService {
 					...(payload?.is_verified && {
 						IsVerified: payload.is_verified === YesOrNo.YES ? true : false,
 					}),
-					...(payload?.is_active && {
-						IsActive: payload.is_active === YesOrNo.YES ? true : false,
+					...(payload?.is_verified && {
+						vendor_status:
+							payload.is_verified === YesOrNo.NO
+								? SellerStatus.DECLINED
+								: SellerStatus.APPROVED,
+					}),
+					...(payload?.is_verified && {
+						IsActive: payload.is_verified === YesOrNo.YES ? true : false,
 					}),
 				},
 				{ new: true }
@@ -474,6 +492,7 @@ class AdminPeopleService {
 					update = {
 						is_verified: false,
 						is_deleted: true,
+						vendor_status: SellerStatus.BLOCKED,
 					};
 					break;
 				default:
@@ -515,6 +534,7 @@ class AdminPeopleService {
 					case SellerStatus.PENDING:
 						status_value = {
 							IsVerified: false,
+							vendor_status: SellerStatus.PENDING,
 						};
 						break;
 					case SellerStatus.APPROVED:
@@ -522,11 +542,13 @@ class AdminPeopleService {
 							IsActive: true,
 							IsVerified: true,
 							IsBlocked: false,
+							vendor_status: SellerStatus.APPROVED,
 						};
 						break;
 					case SellerStatus.DECLINED:
 						status_value = {
 							IsVerified: false,
+							vendor_status: SellerStatus.DECLINED,
 						};
 						break;
 					default:
@@ -598,6 +620,7 @@ class AdminPeopleService {
 									ProfileImage: 1,
 									IsActive: 1,
 									IsVerified: 1,
+									vendor_status: 1,
 									IsBlocked: 1,
 									total_quantity: 1,
 									product: { $arrayElemAt: ["$user_products.product_name", 0] },
@@ -1281,6 +1304,7 @@ class AdminPeopleService {
 			});
 			const pickups = pickupRecords.data.map((pickup) => {
 				return {
+					_id: pickup?._id,
 					tracking_id: pickup?.order_details?.order?.tracking_id,
 					order_id: pickup?.order_details?.order?._id,
 					purchaser: {
@@ -1315,6 +1339,38 @@ class AdminPeopleService {
 				message: error.toString(),
 			};
 			return responseData;
+		}
+	}
+
+	public async updatePickup(payload: any): Promise<ResponseData> {
+		try {
+			const { id, status } = payload;
+
+			const assignment = await this.Assignment.findById(id);
+			if (!assignment) {
+				return {
+					status: StatusMessages.error,
+					code: HttpCodes.HTTP_BAD_REQUEST,
+					message: "Pickup Not Found",
+				};
+			}
+
+			const updated = await this.Assignment.findByIdAndUpdate(
+				id,
+				{
+					status,
+				},
+				{ new: true }
+			);
+
+			return {
+				status: StatusMessages.success,
+				code: HttpCodes.HTTP_OK,
+				message: "Pickup updated successfully",
+				data: updated,
+			};
+		} catch (error: any) {
+			return catchBlockResponseFn(error);
 		}
 	}
 }

@@ -102,6 +102,14 @@ class AdminPeopleController implements Controller {
 				this.getPickupAssignments
 			);
 
+		this.router.put(
+			`${this.path}/purchasers/update-one/:id`,
+			adminAuthMiddleware(AdminPermissions.ADMIN, AccessControlOptions.READ),
+			validationMiddleware(validate.modelIdSchema, RequestData.params),
+			validationMiddleware(validate.updatePickupSchema),
+			this.updatePickup
+		);
+
 		this.router.get(
 			`${this.path}/notification/fetch`,
 			adminAuthMiddleware(AdminPermissions.ADMIN, AccessControlOptions.READ),
@@ -370,6 +378,24 @@ class AdminPeopleController implements Controller {
 			const user = req.user;
 			const { status, code, message, data } =
 				await this.adminOverviewService.getPickupAssignments(payload);
+			return responseObject(res, code, status, message, data);
+		} catch (error: any) {
+			next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()));
+		}
+	};
+
+	private updatePickup = async (
+		req: Request,
+		res: Response,
+		next: NextFunction
+	): Promise<Response | void> => {
+		try {
+			const payload = {
+				id: String(req.params.id),
+				status: req.body.status,
+			};
+			const { status, code, message, data } =
+				await this.adminOverviewService.updatePickup(payload);
 			return responseObject(res, code, status, message, data);
 		} catch (error: any) {
 			next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()));

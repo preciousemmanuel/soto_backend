@@ -18,6 +18,7 @@ import {
 } from "./order.dto";
 import { hashPassword } from "@/utils/helpers/token";
 import {
+	NotificationCategory,
 	OrderStatus,
 	OtpPurposeOptions,
 	StatusMessages,
@@ -41,6 +42,8 @@ import genCouponModel from "../coupon/genCoupon.model";
 import CouponService from "../coupon/coupon.service";
 import { HttpCodesEnum } from "@/utils/enums/httpCodes.enum";
 import DeliveryService from "../delivery/delivery.service";
+import envConfig from "@/utils/config/env.config";
+import { CreateNotificationDto } from "../notification/notification.dto";
 
 class OrderService {
 	private Order = orderModel;
@@ -681,6 +684,15 @@ class OrderService {
 				};
 			});
 			this.createOrderDetails(fineTuneItems, user, order);
+			const notificationPayload: CreateNotificationDto = {
+				sender: envConfig.SOTO_USER_ID,
+				receiver: envConfig.SOTO_USER_ID,
+				category: NotificationCategory.VENDOR,
+				category_id: String(order?._id),
+				title: "NEW ORDER PAYMENT",
+				content: "A client just completed an order payment",
+			};
+			this.notificationService.createNotification(notificationPayload);
 
 			responseData = {
 				status: StatusMessages.success,
