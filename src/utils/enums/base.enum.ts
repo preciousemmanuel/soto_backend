@@ -153,10 +153,13 @@ export enum RequestData {
 
 export enum ProductMgtOption {
 	ACTIVE = "ACTIVE",
+	PENDING = "PENDING",
 	SOLD = "SOLD",
 	PROMO = "PROMO",
 	OUT_OF_STOCK = "OUT_OF_STOCK",
 	RETURNED = "RETURNED",
+	APPROVED = "APPROVED",
+	DECLINED = "DECLINED",
 }
 
 export enum PromoTypes {

@@ -136,6 +136,15 @@ const UserSchema = new mongoose_1.Schema({
         index: { type: "2dsphere", sparse: false },
         default: [3.406448, 6.465422],
     },
+    vendor_status: {
+        type: String,
+        enum: [
+            base_enum_1.SellerStatus.PENDING,
+            base_enum_1.SellerStatus.APPROVED,
+            base_enum_1.SellerStatus.DECLINED,
+        ],
+        default: base_enum_1.ProductStatus.PENDING,
+    },
 }, {
     collection: "Users",
     timestamps: true,

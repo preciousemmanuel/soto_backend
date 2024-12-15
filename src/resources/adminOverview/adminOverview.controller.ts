@@ -403,7 +403,11 @@ class AdminOverviewController implements Controller {
 			const payload: UpdateCustomOrderDto = {
 				order_id: String(req.params.id),
 				approve_or_decline: req.body.approve_or_decline,
-				decline_note: req?.body?.decline_note,
+				...(req?.body?.decline_note &&
+					req?.body?.decline_note !== "" &&
+					req?.body?.decline_note !== null && {
+						decline_note: req?.body?.decline_note,
+					}),
 			};
 
 			const user = req.user;

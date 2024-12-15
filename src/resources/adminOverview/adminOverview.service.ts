@@ -29,6 +29,7 @@ import {
 	OrderStatus,
 	OtpPurposeOptions,
 	ProductMgtOption,
+	ProductStatus,
 	PromoConditions,
 	PromoTypes,
 	StatusMessages,
@@ -1541,6 +1542,133 @@ class AdminOverviewService {
 			let paginateRequest;
 			let product_type: string;
 			switch (select_type) {
+				case ProductMgtOption.PENDING:
+					filter = {
+						status: ProductStatus.PENDING,
+						...(product_name && {
+							product_name: { $regex: product_name, $options: "i" },
+						}),
+						...(category && {
+							category: category,
+						}),
+						...(start_date &&
+							end_date && {
+								createdAt: {
+									$gte: start_date,
+									$lte: end_date,
+								},
+							}),
+						is_verified: false,
+					};
+					paginateRequest = await getPaginatedRecords(this.Product, {
+						limit,
+						page,
+						data: filter,
+						populateObj: {
+							path: "category",
+							select: "name _id image",
+						},
+					});
+					paginateRequest.data.map((prod) => {
+						productData = {
+							name: prod.product_name,
+							description: prod.description,
+							images: prod.images,
+							category: prod.category,
+							quantity_sold: prod.total_quantity_sold,
+							quantity: prod.product_quantity,
+							price: prod.unit_price,
+							discounted_price: prod.discount_price || 0,
+							is_discounted: prod.is_discounted,
+						};
+					});
+					product_type = "Pending";
+					break;
+				case ProductMgtOption.DECLINED:
+					filter = {
+						status: ProductStatus.DECLINED,
+						...(product_name && {
+							product_name: { $regex: product_name, $options: "i" },
+						}),
+						...(category && {
+							category: category,
+						}),
+						...(start_date &&
+							end_date && {
+								createdAt: {
+									$gte: start_date,
+									$lte: end_date,
+								},
+							}),
+						is_verified: false,
+					};
+					paginateRequest = await getPaginatedRecords(this.Product, {
+						limit,
+						page,
+						data: filter,
+						populateObj: {
+							path: "category",
+							select: "name _id image",
+						},
+					});
+					paginateRequest.data.map((prod) => {
+						productData = {
+							name: prod.product_name,
+							description: prod.description,
+							images: prod.images,
+							category: prod.category,
+							quantity_sold: prod.total_quantity_sold,
+							quantity: prod.product_quantity,
+							price: prod.unit_price,
+							discounted_price: prod.discount_price || 0,
+							is_discounted: prod.is_discounted,
+						};
+					});
+					product_type = "Declined";
+					break;
+				case ProductMgtOption.APPROVED:
+					filter = {
+						// ...(status && { status }),
+						...(product_name && {
+							product_name: { $regex: product_name, $options: "i" },
+						}),
+						...(category && {
+							category: category,
+						}),
+						...(start_date &&
+							end_date && {
+								createdAt: {
+									$gte: start_date,
+									$lte: end_date,
+								},
+							}),
+						is_verified: true,
+						status: ProductStatus.APPROVED,
+					};
+					paginateRequest = await getPaginatedRecords(this.Product, {
+						limit,
+						page,
+						data: filter,
+						populateObj: {
+							path: "category",
+							select: "name _id image",
+						},
+					});
+					paginateRequest.data.map((prod) => {
+						productData = {
+							name: prod.product_name,
+							description: prod.description,
+							images: prod.images,
+							category: prod.category,
+							quantity_sold: prod.total_quantity_sold,
+							quantity: prod.product_quantity,
+							price: prod.unit_price,
+							discounted_price: prod.discount_price || 0,
+							is_discounted: prod.is_discounted,
+						};
+					});
+					product_type = "Out of Stock";
+					break;
 				case ProductMgtOption.SOLD:
 					filter = {
 						...(status && { status }),
@@ -1558,6 +1686,7 @@ class AdminOverviewService {
 								},
 							}),
 						total_quantity_sold: { $gt: 0 },
+						is_verified: true,
 					};
 					paginateRequest = await getPaginatedRecords(this.Product, {
 						limit,
@@ -1627,7 +1756,7 @@ class AdminOverviewService {
 					break;
 				case ProductMgtOption.OUT_OF_STOCK:
 					filter = {
-						...(status && { status }),
+						// ...(status && { status }),
 						...(product_name && {
 							product_name: { $regex: product_name, $options: "i" },
 						}),
@@ -1712,7 +1841,7 @@ class AdminOverviewService {
 					break;
 				default:
 					filter = {
-						...(status && { status }),
+						// ...(status && { status }),
 						...(product_name && {
 							product_name: { $regex: product_name, $options: "i" },
 						}),
@@ -1727,7 +1856,7 @@ class AdminOverviewService {
 								},
 							}),
 
-						is_verified: true,
+						// is_verified: true,
 					};
 					paginateRequest = await getPaginatedRecords(this.Product, {
 						limit,
@@ -1883,7 +2012,9 @@ class AdminOverviewService {
 						first_name: user.FirstName,
 						last_name: user.LastName,
 						email: user.Email,
-						phone: formatPhoneNumber(user.PhoneNumber),
+						phone: user?.PhoneNumber
+							? formatPhoneNumber(user.PhoneNumber)
+							: formatPhoneNumber("08023208744"),
 						line1: address,
 						city,
 						country: "NG",

@@ -76,8 +76,20 @@ const updateUserSchema = Joi.object().keys({
 	is_active: Joi.string().valid(YesOrNo.YES, YesOrNo.NO).optional(),
 });
 
+const updatePickupSchema = Joi.object().keys({
+	status: Joi.string()
+		.valid(
+			OrderStatus.PENDING,
+			OrderStatus.CANCELLED,
+			OrderStatus.PICKED_UP,
+			OrderStatus.DELIVERED
+		)
+		.required(),
+});
+
 export default {
 	modelIdSchema,
 	DashboardOverviewSchema,
 	updateUserSchema,
+	updatePickupSchema,
 };
