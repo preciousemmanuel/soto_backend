@@ -31,6 +31,7 @@ export interface FetchProductsDto {
 
 export interface FilterProductsDto {
 	product_name?: string;
+	status?: string;
 	category?: string;
 	price_upper?: number;
 	price_lower?: number;

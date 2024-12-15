@@ -270,6 +270,10 @@ const updateProductSchema = Joi.object({
 	decline_product_note: Joi.string().optional(),
 });
 
+const trackOrderSchema = Joi.object({
+	step: Joi.number().min(1).max(4).required(),
+});
+
 export default {
 	addProductAdminSchema,
 	DashboardOverviewSchema,
@@ -283,4 +287,5 @@ export default {
 	createCouponDiscountSchema,
 	addCategorySchema,
 	updateCustomOrderSchema,
+	trackOrderSchema,
 };

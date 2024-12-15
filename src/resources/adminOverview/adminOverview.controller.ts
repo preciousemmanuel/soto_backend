@@ -78,6 +78,14 @@ class AdminOverviewController implements Controller {
 		);
 
 		this.router.put(
+			`${this.path}/track-an-order/:id`,
+			adminAuthMiddleware(AdminPermissions.ORDER, AccessControlOptions.READ),
+			validationMiddleware(validate.modelIdSchema, RequestData.params),
+			validationMiddleware(validate.trackOrderSchema),
+			this.trackOrder
+		);
+
+		this.router.put(
 			`${this.path}/update-custom-order/:id`,
 			adminAuthMiddleware(AdminPermissions.ORDER, AccessControlOptions.WRITE),
 			validationMiddleware(validate.modelIdSchema, RequestData.params),
@@ -427,6 +435,22 @@ class AdminOverviewController implements Controller {
 		try {
 			const { status, code, message, data } =
 				await this.adminOverviewService.viewAnOrder(String(req.params.id));
+			return responseObject(res, code, status, message, data);
+		} catch (error: any) {
+			next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()));
+		}
+	};
+
+	private trackOrder = async (
+		req: Request,
+		res: Response,
+		next: NextFunction
+	): Promise<Response | void> => {
+		try {
+			const order_id = String(req.params.id);
+			const step: number = req.body.step;
+			const { status, code, message, data } =
+				await this.adminOverviewService.trackOrder(order_id, step);
 			return responseObject(res, code, status, message, data);
 		} catch (error: any) {
 			next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()));

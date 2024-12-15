@@ -160,6 +160,10 @@ class ProductController implements Controller {
 					...(req?.query?.price_lower && {
 						price_lower: Number(req?.query?.price_lower),
 					}),
+
+					...(req?.query?.product_status && {
+						status: String(req?.query?.product_status),
+					}),
 				},
 			};
 			const user = req.user;
