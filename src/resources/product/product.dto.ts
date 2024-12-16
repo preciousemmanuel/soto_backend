@@ -7,9 +7,9 @@ export interface AddProductDto {
 	category: string;
 	unit_price: number;
 	product_quantity: number;
-	height: number;
-	width: number;
-	weight: number;
+	height?: number;
+	width?: number;
+	weight?: number;
 	discount_price?: number;
 	in_stock: YesOrNo;
 	images?: Express.Multer.File[];

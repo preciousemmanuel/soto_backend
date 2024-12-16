@@ -53,15 +53,15 @@ const ProductSchema = new Schema(
 		},
 		height: {
 			type: Number,
-			required: true,
+			default: 10,
 		},
 		width: {
 			type: Number,
-			required: true,
+			default: 5,
 		},
 		weight: {
 			type: Number,
-			required: true,
+			default: 50,
 		},
 		discount_price: {
 			type: Number,

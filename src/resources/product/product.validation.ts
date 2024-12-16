@@ -14,9 +14,9 @@ const addProductSchema = Joi.object({
 	images: Joi.array().items(Joi.object({}).optional()).min(2).optional(),
 	unit_price: Joi.number().min(0).required(),
 	product_quantity: Joi.number().min(0).required(),
-	height: Joi.number().min(0).required(),
-	width: Joi.number().min(0).required(),
-	weight: Joi.number().min(0).required(),
+	height: Joi.number().min(0).default(10).optional(),
+	width: Joi.number().min(0).default(1).optional(),
+	weight: Joi.number().min(0).default(50).optional(),
 	discount_price: Joi.number().min(0).optional(),
 	in_stock: Joi.string().valid(YesOrNo.NO, YesOrNo.YES).required(),
 });
