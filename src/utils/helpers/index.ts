@@ -709,3 +709,9 @@ export const generateUnusedAdminId = async (
 		return error.toString();
 	}
 };
+
+export const calculateDateXDaysAgo = (days: number): Date => {
+	const date = new Date();
+	date.setDate(date.getDate() - days);
+	return date;
+};

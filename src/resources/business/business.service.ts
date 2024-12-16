@@ -568,13 +568,16 @@ class BusinessService {
 		amount: number
 	): Promise<ResponseData> {
 		let responseData: ResponseData;
+		const session = await this.Wallet.startSession();
 		try {
 			console.log("wallet debit action initiated");
-
-			const wallet = await this.Wallet.findOne({
-				user: user_id,
+			session.startTransaction();
+			const wallet = await this.Wallet.findOne({ user: user_id }, null, {
+				session,
 			});
 			if (!wallet) {
+				await session.abortTransaction();
+				session.endSession();
 				return {
 					status: StatusMessages.error,
 					code: HttpCodes.HTTP_BAD_REQUEST,
@@ -589,8 +592,15 @@ class BusinessService {
 						previous_balance: wallet.current_balance,
 					},
 				},
-				{ new: true }
+				{ new: true, session }
 			);
+			await session.commitTransaction();
+			session.endSession();
+			this.notificationService.createNotification({
+				receiver: user_id,
+				title: "Wallet Credit",
+				content: "Your wallet has been Debited By NGN" + amount,
+			});
 			responseData = {
 				status: StatusMessages.success,
 				code: HttpCodes.HTTP_OK,
@@ -601,6 +611,8 @@ class BusinessService {
 			return responseData;
 		} catch (error: any) {
 			console.log("🚀 ~ BusinessService ~walletDebit error:", error);
+			await session.abortTransaction();
+			session.endSession();
 			responseData = {
 				status: StatusMessages.error,
 				code: HttpCodes.HTTP_SERVER_ERROR,
@@ -615,13 +627,17 @@ class BusinessService {
 		amount: number
 	): Promise<ResponseData> {
 		let responseData: ResponseData;
+		const session = await this.Wallet.startSession();
 		try {
 			console.log("wallet credit action initiated");
+			session.startTransaction();
 
-			const wallet = await this.Wallet.findOne({
-				user: user_id,
+			const wallet = await this.Wallet.findOne({ user: user_id }, null, {
+				session,
 			});
 			if (!wallet) {
+				await session.abortTransaction();
+				session.endSession();
 				return {
 					status: StatusMessages.error,
 					code: HttpCodes.HTTP_BAD_REQUEST,
@@ -636,8 +652,16 @@ class BusinessService {
 						previous_balance: wallet.current_balance,
 					},
 				},
-				{ new: true }
+				{ new: true, session }
 			);
+			await session.commitTransaction();
+			session.endSession();
+
+			this.notificationService.createNotification({
+				receiver: user_id,
+				title: "Wallet Credit",
+				content: "Your wallet has been credited with NGN" + amount,
+			});
 			responseData = {
 				status: StatusMessages.success,
 				code: HttpCodes.HTTP_OK,
@@ -649,6 +673,8 @@ class BusinessService {
 			return responseData;
 		} catch (error: any) {
 			console.log("🚀 ~ BusinessService ~walletDebit error:", error);
+			await session.abortTransaction();
+			session.endSession();
 			responseData = {
 				status: StatusMessages.error,
 				code: HttpCodes.HTTP_SERVER_ERROR,

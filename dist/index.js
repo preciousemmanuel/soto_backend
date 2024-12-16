@@ -25,6 +25,7 @@ const adminConfig_controller_1 = __importDefault(require("./resources/adminConfi
 const adminConfig_service_1 = __importDefault(require("./resources/adminConfig/adminConfig.service"));
 const assignment_controller_1 = __importDefault(require("./resources/assignment/assignment.controller"));
 const adminTransaction_controller_1 = __importDefault(require("./resources/adminTransaction/adminTransaction.controller"));
+const cronjobs_service_1 = __importDefault(require("./cronjobs/cronjobs.service"));
 dotenv_1.default.config({ path: `${process.env.NODE_ENV}.env` });
 (0, validateEnv_1.default)();
 const app = new app_1.default([
@@ -43,5 +44,5 @@ const app = new app_1.default([
     new coupon_controller_1.default(),
     new notification_controller_1.default(),
     new assignment_controller_1.default(),
-], Number(process.env.PORT), new category_service_1.default(), new adminConfig_service_1.default());
+], Number(process.env.PORT), new category_service_1.default(), new adminConfig_service_1.default(), new cronjobs_service_1.default());
 app.listen();

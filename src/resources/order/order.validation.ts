@@ -68,16 +68,16 @@ const CustomOrderSchema = Joi.object({
 	orders: Joi.array().items(
 		Joi.object({
 			product_name: Joi.string().required(),
-			product_brand: Joi.string().optional(),
-			size: Joi.string().optional(),
-			color: Joi.string().optional(),
-			type: Joi.string().optional(),
-			quantity: Joi.number().min(1).required(),
-			max_price: Joi.number().min(1).optional(),
-			min_price: Joi.number().min(1).optional(),
-			phone_number: Joi.string().optional(),
-			email: Joi.string().optional(),
-			note: Joi.string().optional(),
+			product_brand: Joi.string().allow("").optional(),
+			size: Joi.string().allow("").optional(),
+			color: Joi.string().allow("").optional(),
+			type: Joi.string().allow("").optional(),
+			quantity: Joi.number().min(1).default(1).optional(),
+			max_price: Joi.number().min(1).allow("").optional(),
+			min_price: Joi.number().min(1).allow("").optional(),
+			phone_number: Joi.string().allow("").optional(),
+			email: Joi.string().allow("").optional(),
+			note: Joi.string().allow("").optional(),
 		})
 	),
 });

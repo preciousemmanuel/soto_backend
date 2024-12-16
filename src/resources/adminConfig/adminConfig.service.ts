@@ -53,6 +53,7 @@ import settingModel from "./setting.model";
 class AdminConfigService {
 	private Bank = bankModel;
 	private Admin = adminModel;
+	private Product = productModel;
 	private Role = roleModel;
 	private Setting = settingModel;
 
@@ -838,10 +839,49 @@ class AdminConfigService {
 				{ new: true }
 			);
 
+			if (interest_rates_flat) {
+				this.updateAllProductPrices(interest_rates_flat);
+			}
 			responseData.data = editedSettings;
 			return responseData;
 		} catch (error: any) {
 			console.log("🚀 ~ AdminConfigService ~ editProfile ~ error:", error);
+			return catchBlockResponseFn(error);
+		}
+	}
+
+	public async updateAllProductPrices(rate: number) {
+		try {
+			const multiplier = 1 + rate / 100;
+			const result = await this.Product.updateMany({}, [
+				{
+					$set: {
+						unit_price: {
+							$multiply: [
+								{
+									$round: [
+										{
+											$divide: [{ $multiply: ["$raw_price", multiplier] }, 50],
+										},
+										0,
+									],
+								},
+								50,
+							],
+						},
+					},
+				},
+			]);
+			console.log(
+				"🚀 ~ AdminConfigService ~ updateAllProductPrices ~ result:",
+				result
+			);
+			return result;
+		} catch (error: any) {
+			console.log(
+				"🚀 ~ AdminConfigService ~ updateAllProductPrices ~ error:",
+				error
+			);
 			return catchBlockResponseFn(error);
 		}
 	}

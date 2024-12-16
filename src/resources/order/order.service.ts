@@ -1,5 +1,9 @@
 import UserModel from "@/resources/user/user.model";
-import { generateUnusedOrderId, uniqueCode } from "@/utils/helpers";
+import {
+	calculateDateXDaysAgo,
+	generateUnusedOrderId,
+	uniqueCode,
+} from "@/utils/helpers";
 import {
 	comparePassword,
 	createToken,
@@ -14,6 +18,8 @@ import {
 	CreateOrderDto,
 	CustomOrderArrayDto,
 	FetchMyOrdersDto,
+	MarkAsRemittedDto,
+	RemitVendorSalesDto,
 	RemoveFromCartDto,
 } from "./order.dto";
 import { hashPassword } from "@/utils/helpers/token";
@@ -43,9 +49,14 @@ import CouponService from "../coupon/coupon.service";
 import { HttpCodesEnum } from "@/utils/enums/httpCodes.enum";
 import DeliveryService from "../delivery/delivery.service";
 import envConfig from "@/utils/config/env.config";
-import { CreateNotificationDto } from "../notification/notification.dto";
+import {
+	CreateNotificationDto,
+	SendSmsNotificationDto,
+} from "../notification/notification.dto";
 import AdminOverviewService from "../adminOverview/adminOverview.service";
 import settingModel from "../adminConfig/setting.model";
+import { catchBlockResponseFn } from "@/utils/constants/data";
+import BusinessService from "../business/business.service";
 
 class OrderService {
 	private Order = orderModel;
@@ -55,6 +66,7 @@ class OrderService {
 	private OrderDetail = orderDetailsModel;
 	private User = UserModel;
 	private Product = productModel;
+	private businessService = new BusinessService();
 	private mailService = new MailService();
 	private notificationService = new NotificationService();
 	private assignmentService = new AssignmentService();
@@ -745,19 +757,32 @@ class OrderService {
 				},
 				{} as { [vendor: string]: any[] }
 			);
+			let smsPayloads: SendSmsNotificationDto[] = [];
 
-			Object.keys(groupedItems).forEach(async (vendor) => {
+			for (const vendor of Object.keys(groupedItems)) {
 				const vendorItems = groupedItems[vendor];
 				if (vendorItems.length > 0) {
 					const user = await this.User.findById(vendor);
+
+					if (user?.PhoneNumber) {
+						smsPayloads.push({
+							from: "soto",
+							to: user.PhoneNumber,
+							body: "You have an order for your product on soto, login to see full details",
+						});
+					}
+
 					const emailPayload = {
 						business_name: user?.FirstName,
 						email: user?.Email,
 						items: vendorItems,
 					};
-					this.mailService.sendOrdersToVendor(emailPayload);
+
+					await this.mailService.sendOrdersToVendor(emailPayload);
 				}
-			});
+			}
+			console.log("🚀  ~ smsPayloads: END", smsPayloads);
+			this.notificationService.sendSMsToMany(smsPayloads);
 			return responseData;
 		} catch (error: any) {
 			console.log("🚀 ~ OrderService ~ error:", error);
@@ -871,11 +896,35 @@ class OrderService {
 			message: "Custom Order Created Successfully",
 		};
 		try {
-			var orders = payload.orders;
+			var orders: CreateCustomOrderDto[] = payload.orders;
 			const fineTuned: any[] = [];
 			for (const order of orders) {
 				const updated = {
-					...order,
+					...(order?.product_name &&
+						order.product_name !== "" && { product_name: order.product_name }),
+					...(order?.product_brand &&
+						order.product_brand !== "" && {
+							product_brand: order.product_brand,
+						}),
+					...(order?.size && order.size !== "" && { size: order.size }),
+					...(order?.color && order.color !== "" && { color: order.color }),
+					...(order?.type && order.type !== "" && { type: order.type }),
+					...(order?.quantity &&
+						order.quantity.toLocaleString() !== "" && {
+							quantity: order.quantity,
+						}),
+					...(order?.max_price &&
+						order.max_price.toLocaleString() !== "" && {
+							max_price: order.max_price,
+						}),
+					...(order?.min_price &&
+						order.min_price.toLocaleString() !== "" && {
+							min_price: order.min_price,
+						}),
+					...(order?.phone_number &&
+						order.phone_number !== "" && { phone_number: order.phone_number }),
+					...(order?.email && order.email !== "" && { email: order.email }),
+					...(order?.note && order.note !== "" && { note: order.note }),
 					...(user && { user: user._id }),
 					tracking_id: await generateUnusedOrderId(),
 				};
@@ -1060,6 +1109,115 @@ class OrderService {
 				message: error.toString(),
 			};
 			return responseData;
+		}
+	}
+
+	public async remitVendorSales(): Promise<ResponseData | any> {
+		try {
+			const setting = await this.Setting.findOne({});
+			const days = 1 || setting?.remittance_day;
+			const backDate = calculateDateXDaysAgo(days);
+
+			const pipeline = [
+				{
+					$match: {
+						status: OrderStatus.DELIVERED,
+						is_remitted: false,
+						delivery_date: { $lte: backDate },
+					},
+				},
+				{
+					$addFields: {
+						total: { $multiply: ["$unit_price", "$quantity"] },
+					},
+				},
+				{
+					$group: {
+						_id: "$vendor",
+						orders: { $push: "$$ROOT" },
+						grand_total: { $sum: "$total" },
+						order_ids: { $push: "$_id" },
+					},
+				},
+				{
+					$project: {
+						vendor: "$_id",
+						orders: 1,
+						grand_total: 1,
+						order_ids: 1,
+						_id: 0,
+					},
+				},
+			];
+			const aggregate = (await this.OrderDetail.aggregate(pipeline)) || [];
+			const order_ids: string[] = [];
+			const vendor_details: RemitVendorSalesDto[] = [];
+			let is_remitted: any = {};
+			if (aggregate.length > 0) {
+				for (const agg of aggregate) {
+					order_ids.push(...agg.order_ids);
+					vendor_details.push({
+						grand_total: agg.grand_total,
+						vendor: agg.vendor,
+					});
+				}
+				is_remitted = await this.markAsRemitted({
+					order_details_ids: order_ids,
+					vendor_details,
+				});
+			}
+
+			return {
+				status: StatusMessages.success,
+				code: HttpCodesEnum.HTTP_OK,
+				message: "Success",
+				data: {
+					all_ids: order_ids,
+					vendor_details,
+					is_remitted,
+				},
+			};
+		} catch (error: any) {
+			console.log("🚀 ~ OrderService ~ remitVendorSales ~ error:", error);
+			return catchBlockResponseFn(error);
+		}
+	}
+
+	public async markAsRemitted(payload: MarkAsRemittedDto) {
+		try {
+			console.log("🚀 ~ TIME TO MARK ORDER DETAILS AS REMITTED ");
+			const { order_details_ids, vendor_details } = payload;
+			let is_remitted: any;
+			await this.OrderDetail.updateMany(
+				{
+					_id: { $in: order_details_ids },
+				},
+				{
+					is_remitted: true,
+				}
+			).then((remitted) => {
+				is_remitted = remitted;
+				this.CreditVendors(vendor_details);
+			});
+			return is_remitted;
+		} catch (error: any) {
+			console.log("🚀 ~ OrderService ~ markAsRemitted ~ error:", error);
+			return catchBlockResponseFn(error);
+		}
+	}
+
+	public async CreditVendors(payload: RemitVendorSalesDto[]) {
+		console.log("🚀 ~ TIME TO CREDIT VENDORS");
+		try {
+			for (const vendor_detail of payload) {
+				await this.businessService.walletCredit(
+					vendor_detail.vendor,
+					vendor_detail.grand_total
+				);
+			}
+		} catch (error: any) {
+			console.log("🚀 ~ OrderService ~ CreditVendors ~ error:", error);
+			return catchBlockResponseFn(error);
 		}
 	}
 }

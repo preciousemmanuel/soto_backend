@@ -193,6 +193,7 @@ class ProductService {
 						$gte: payload?.filter?.rating,
 					},
 				}),
+				status: ProductStatus.APPROVED,
 			};
 			const matchAndStage: MultipleOptionsAndDto = {
 				$and: [search],

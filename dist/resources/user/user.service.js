@@ -175,6 +175,7 @@ class UserService {
                     {
                         $match: {
                             vendor: user._id,
+                            status: base_enum_1.OrderStatus.DELIVERED,
                             is_remitted: false,
                         },
                     },
@@ -278,6 +279,7 @@ class UserService {
                     {
                         $match: {
                             vendor: user._id,
+                            status: base_enum_1.OrderStatus.DELIVERED,
                             is_remitted: false,
                         },
                     },
@@ -301,6 +303,7 @@ class UserService {
                         $match: {
                             vendor: user._id,
                             is_verified: true,
+                            status: base_enum_1.ProductMgtOption.APPROVED,
                             is_deleted: false,
                         },
                     },
