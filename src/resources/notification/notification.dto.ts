@@ -73,3 +73,16 @@ export interface FetchNotificationsDto {
 	limit: number;
 	page: number;
 }
+
+export interface SendSmsNotificationDto {
+	from: string;
+	to: string;
+	body: string;
+}
+
+export interface SmsDto extends SendSmsNotificationDto {
+	append_sender?: string;
+	api_token: string;
+	callback_url?: string;
+	customer_reference?: string;
+}

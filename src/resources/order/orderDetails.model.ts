@@ -53,6 +53,7 @@ const OrderDetails = new Schema(
 			type: Boolean,
 			default: false,
 		},
+		delivery_date: Date,
 	},
 	{
 		collection: "OrderDetails",

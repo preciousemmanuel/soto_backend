@@ -23,7 +23,7 @@ export interface CreateCustomOrderDto {
 	size?: string;
 	color?: string;
 	type?: string;
-	quantity: number;
+	quantity?: number;
 	max_price?: number;
 	min_price?: number;
 	phone_number?: string;
@@ -54,4 +54,14 @@ export interface FilterMyOrdersDto {
 	status?: OrderStatus;
 	start_date?: string;
 	end_date?: string;
+}
+
+export interface RemitVendorSalesDto {
+	vendor: string;
+	grand_total: number;
+}
+
+export interface MarkAsRemittedDto {
+	order_details_ids: string[];
+	vendor_details: RemitVendorSalesDto[];
 }

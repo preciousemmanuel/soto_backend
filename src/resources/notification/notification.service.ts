@@ -5,6 +5,8 @@ import {
 	FirebasePushNotificationDto,
 	FetchNotificationsDto,
 	AddFcmTokenOrPlayerIdDto,
+	SendSmsNotificationDto,
+	SmsDto,
 } from "./notification.dto";
 import {
 	NotificationTypes,
@@ -21,10 +23,15 @@ import notificationModel from "./notification.model";
 import * as OneSignal from "onesignal-node";
 import envConfig from "@/utils/config/env.config";
 import { pushNotification } from "@/utils/firebase/message.firebase";
+import { requestProp } from "../mail/mail.interface";
+import { axiosRequestFunction, formatPhoneNumber } from "@/utils/helpers";
+import { catchBlockResponseFn } from "@/utils/constants/data";
+import smsModel from "./sms.model";
 
 class NotificationService {
 	private User = UserModel;
 	private Notification = notificationModel;
+	private Sms = smsModel;
 
 	public async addFcmTokenOrPlayerId(
 		payload: AddFcmTokenOrPlayerIdDto
@@ -370,6 +377,76 @@ class NotificationService {
 			return responseData;
 		}
 	}
+
+	public async sendSMsToMany(payloads: SendSmsNotificationDto[]) {
+		try {
+			for (const payload of payloads) {
+				await this.sendSMSNotification(payload);
+			}
+			return;
+		} catch (error: any) {
+			return catchBlockResponseFn(error);
+		}
+	}
+
+	public async sendSMSNotification(
+		payload: SendSmsNotificationDto
+	): Promise<ResponseData> {
+		console.log("🚀 ~ sendSMSNotification ~ payload:", payload);
+		let responseData: ResponseData;
+		try {
+			const sms = await this.Sms.create({
+				receiver: payload.to,
+				body: payload.body,
+			});
+			const smsPayload: SmsDto = {
+				from: payload.from,
+				to: formatPhoneNumber(payload.to),
+				body: payload.body,
+				api_token: envConfig.BULK_SMS_API_TOKEN,
+				append_sender: envConfig.BULK_SMS_APPEND_SENDER,
+				...(sms && { customer_reference: String(sms._id) }),
+				callback_url: envConfig.BULK_SMS_CALLBACK_URL,
+			};
+
+			let axiosConfig: requestProp = {
+				url: envConfig.BULK_SMS_BASE_URL,
+				method: "POST",
+				body: smsPayload,
+			};
+
+			const sendSmsAction = await axiosRequestFunction(axiosConfig);
+			console.log("🚀 ~ NotificationService ~ sendSmsAction:", sendSmsAction);
+			if (Number(sendSmsAction?.status) < 400 && sendSmsAction?.data) {
+				responseData = {
+					status: StatusMessages.success,
+					code: HttpCodes.HTTP_OK,
+					message: "SMS sent Succcessfully",
+					data: sendSmsAction.data,
+				};
+				return sendSmsAction;
+			} else {
+				return sendSmsAction;
+			}
+		} catch (error: any) {
+			console.log("🚀 ~ NotificationService ~ error:", error);
+			return catchBlockResponseFn(error);
+		}
+	}
+
+	// public async updateSentSmsResponse(
+	// 	payload: any
+	// ): Promise<ResponseData> {
+	// 	let responseData: ResponseData;
+	// 	try {
+	// 		const payload = {
+
+	// 		}
+	// 	} catch (error: any) {
+	// 		console.log("🚀 ~ NotificationService ~ error:", error);
+	// 		return catchBlockResponseFn(error);
+	// 	}
+	// }
 }
 
 export default NotificationService;

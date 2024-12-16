@@ -20,6 +20,7 @@ import AdminConfigController from "./resources/adminConfig/adminConfig.controlle
 import AdminConfigService from "./resources/adminConfig/adminConfig.service";
 import AssignmentController from "./resources/assignment/assignment.controller";
 import AdminTransactionController from "./resources/adminTransaction/adminTransaction.controller";
+import CronJobService from "./cronjobs/cronjobs.service";
 
 dotenv.config({ path: `${process.env.NODE_ENV}.env` });
 validateEnv();
@@ -44,7 +45,8 @@ const app = new App(
 	],
 	Number(process.env.PORT),
 	new CategoryService(),
-	new AdminConfigService()
+	new AdminConfigService(),
+	new CronJobService()
 );
 
 app.listen();

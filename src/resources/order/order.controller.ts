@@ -82,6 +82,12 @@ class OrderController implements Controller {
 			validationMiddleware(validate.CustomOrderSchema),
 			this.createCustomOrder
 		);
+
+		this.router.get(
+			`${this.path}/remit-sales`,
+			authenticatedMiddleware,
+			this.remitVendorSales
+		);
 	}
 
 	private addToCart = async (
@@ -236,6 +242,20 @@ class OrderController implements Controller {
 			const user = req.user;
 			const { status, code, message, data } =
 				await this.orderService.createCustomOrder(payload, user);
+			return responseObject(res, code, status, message, data);
+		} catch (error: any) {
+			next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()));
+		}
+	};
+
+	private remitVendorSales = async (
+		req: Request,
+		res: Response,
+		next: NextFunction
+	): Promise<Response | void> => {
+		try {
+			const { status, code, message, data } =
+				await this.orderService.remitVendorSales();
 			return responseObject(res, code, status, message, data);
 		} catch (error: any) {
 			next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()));

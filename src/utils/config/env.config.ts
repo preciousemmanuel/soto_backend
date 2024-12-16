@@ -71,4 +71,13 @@ export default {
 		process.env.FIREBASE_CLIENT_ID || PaymentProvider.PAYSTACK,
 	AGILITY_BASE_URL: process.env.AGILITY_BASE_URL || PaymentProvider.PAYSTACK,
 	SOTO_USER_ID: process.env.SOTO_USER_ID || "6731c8ec1302e8d39132c289",
+	BULK_SMS_API_TOKEN:
+		process.env.BULK_SMS_API_TOKEN || "6731c8ec1302e8d39132c289",
+	BULK_SMS_APPEND_SENDER: process.env.BULK_SMS_APPEND_SENDER || "soto",
+	BULK_SMS_BASE_URL:
+		process.env.BULK_SMS_BASE_URL ||
+		"https://www.bulksmsnigeria.com/api/v2/sms",
+	BULK_SMS_CALLBACK_URL:
+		process.env.BULK_SMS_CALLBACK_URL ||
+		"https://www.bulksmsnigeria.com/api/v2/sms",
 };

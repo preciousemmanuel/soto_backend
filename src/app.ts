@@ -11,23 +11,27 @@ import snsConnection from "@/utils/sns/sns";
 import CategoryService from "./resources/category/category.service";
 import AdminOverviewService from "./resources/adminOverview/adminOverview.service";
 import AdminConfigService from "./resources/adminConfig/adminConfig.service";
+import CronJobService from "./cronjobs/cronjobs.service";
 
 class App {
 	public express: Application;
 	public port: number;
 	public categoryService!: CategoryService;
 	public adminConfigService!: AdminConfigService;
+	public conjobServices!: CronJobService;
 
 	constructor(
 		controllers: Controller[],
 		port: number,
 		categoryService: CategoryService,
-		adminConfigService: AdminConfigService
+		adminConfigService: AdminConfigService,
+		conjobServices: CronJobService
 	) {
 		this.express = express();
 		this.port = port;
 		this.categoryService = categoryService;
 		this.adminConfigService = adminConfigService;
+		this.conjobServices = conjobServices;
 		this.initializeDB();
 		this.initializeMiddleware();
 		this.initializeControllers(controllers);
@@ -37,6 +41,8 @@ class App {
 		this.connectQueueConsumers();
 		this.connectSNSConsumers();
 		this.initializeSeeders();
+		this.initializeMiddleware;
+		this.initializeJobs();
 	}
 
 	private initializeMiddleware(): void {
@@ -85,6 +91,10 @@ class App {
 		// this.adminConfigService.seedSuperAdmin();
 		// this.adminConfigService.seedBanks();
 		// this.adminConfigService.seedConfigSetting();
+	}
+
+	private initializeJobs() {
+		this.conjobServices.remitVendorSales();
 	}
 
 	public listen(): void {

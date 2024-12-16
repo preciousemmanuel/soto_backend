@@ -11,11 +11,12 @@ const cors_1 = __importDefault(require("cors"));
 const morgan_1 = __importDefault(require("morgan"));
 const error_middleware_1 = __importDefault(require("./middleware/error.middleware"));
 class App {
-    constructor(controllers, port, categoryService, adminConfigService) {
+    constructor(controllers, port, categoryService, adminConfigService, conjobServices) {
         this.express = (0, express_1.default)();
         this.port = port;
         this.categoryService = categoryService;
         this.adminConfigService = adminConfigService;
+        this.conjobServices = conjobServices;
         this.initializeDB();
         this.initializeMiddleware();
         this.initializeControllers(controllers);
@@ -24,6 +25,8 @@ class App {
         this.connectQueueConsumers();
         this.connectSNSConsumers();
         this.initializeSeeders();
+        this.initializeMiddleware;
+        this.initializeJobs();
     }
     initializeMiddleware() {
         this.express.use((0, helmet_1.default)());
@@ -64,6 +67,9 @@ class App {
         // this.adminConfigService.seedSuperAdmin();
         // this.adminConfigService.seedBanks();
         // this.adminConfigService.seedConfigSetting();
+    }
+    initializeJobs() {
+        this.conjobServices.remitVendorSales();
     }
     listen() {
         this.express.listen(this.port, () => {

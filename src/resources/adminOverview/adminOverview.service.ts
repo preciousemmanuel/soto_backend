@@ -1484,9 +1484,32 @@ class AdminOverviewService {
 				order.order_itinerary
 			);
 
+			const fullOrderDetails = await this.fullOrderDetails(order._id);
+			const final_details = fullOrderDetails.map((detail) => {
+				const matched = joinedDetails.find((item) =>
+					String(item.product_id === String(detail.product_id))
+				);
+				if (matched) {
+					return {
+						...matched,
+						assigned_purchaser: {
+							_id: detail.purchaserDetails._id || "",
+							FirstName: detail.purchaserDetails.FirstName || "",
+							LastName: detail.purchaserDetails.LastName || "",
+							Email: detail.purchaserDetails.Email || "",
+							ProfileImage: detail.purchaserDetails.ProfileImage || "",
+							PhoneNumber: detail.purchaserDetails.PhoneNumber || "",
+							status: detail.status || "",
+							createdAt: detail.purchaserDetails.createdAt || "",
+							updatedAt: detail.purchaserDetails.updatedAt || "",
+						},
+					};
+				}
+			});
+
 			const full_details = {
 				_id: order?._id,
-				items: joinedDetails,
+				items: final_details,
 				user: order?.user,
 				status: order?.status,
 				total_amount: order?.total_amount,
@@ -1514,6 +1537,61 @@ class AdminOverviewService {
 				message: error.toString(),
 			};
 			return responseData;
+		}
+	}
+
+	public async fullOrderDetails(order_id: string) {
+		let full_details: any[] = [];
+		try {
+			const order_details = await this.OrderDetails.find({ order: order_id });
+
+			const order_details_id = [];
+			for (const detail of order_details) {
+				order_details_id.push(detail._id);
+			}
+			const assignments = await this.Assignment.find({
+				order_details: { $in: order_details_id },
+			});
+
+			const ass_ids = [];
+			for (const ass of assignments) {
+				ass_ids.push(ass.purchaser);
+			}
+
+			const purchasers = await this.Admin.find({
+				_id: { $in: ass_ids },
+			});
+
+			let combined = order_details
+				.map((detail) => {
+					const matchingInAssignment = assignments.find(
+						(ass) => String(ass.order_details) === String(detail._id)
+					);
+					if (matchingInAssignment) {
+						return {
+							...detail.toObject(),
+							...matchingInAssignment.toObject(),
+						};
+					}
+					return null;
+				})
+				.filter((item) => item !== null);
+
+			let fullDetails = combined
+				.map((item) => {
+					const matchingPurchaser = purchasers.find(
+						(purchaser) => String(purchaser._id) === String(item.purchaser)
+					);
+					if (matchingPurchaser) {
+						return { ...item, purchaserDetails: matchingPurchaser };
+					}
+					return null;
+				})
+				.filter((item) => item !== null);
+
+			return fullDetails;
+		} catch (error: any) {
+			return full_details;
 		}
 	}
 
@@ -1588,9 +1666,13 @@ class AdminOverviewService {
 				order_id,
 				{
 					order_itinerary: step,
+					...(step === 4 && { status: OrderStatus.DELIVERED }),
 				},
 				{ new: true }
 			);
+			if (step === 4) {
+				this.trackSubOrders(order_id);
+			}
 			return {
 				status: StatusMessages.success,
 				code: HttpCodes.HTTP_OK,
@@ -1600,6 +1682,26 @@ class AdminOverviewService {
 					order_itinerary,
 				},
 			};
+		} catch (error: any) {
+			return catchBlockResponseFn(error);
+		}
+	}
+
+	public async trackSubOrders(order_id: string) {
+		try {
+			const updateOrderDetails = await this.OrderDetails.updateMany(
+				{
+					order: order_id,
+				},
+				{
+					status: OrderStatus.DELIVERED,
+				}
+			);
+			console.log(
+				"🚀 ~ trackSubOrders ~ updateOrderDetails:",
+				updateOrderDetails
+			);
+			return;
 		} catch (error: any) {
 			return catchBlockResponseFn(error);
 		}

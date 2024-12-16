@@ -133,6 +133,7 @@ const OrderSchema = new Schema(
 		},
 		agility_price_payload: {},
 		agility_captured_shipment: {},
+		delivery_date: Date,
 	},
 	{
 		collection: "Orders",

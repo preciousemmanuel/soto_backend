@@ -21,6 +21,7 @@ import { hashPassword } from "@/utils/helpers/token";
 import {
 	OrderStatus,
 	OtpPurposeOptions,
+	ProductMgtOption,
 	StatusMessages,
 	Timeline,
 	UserTypes,
@@ -199,6 +200,7 @@ class UserService {
 				{
 					$match: {
 						vendor: user._id,
+						status: OrderStatus.DELIVERED,
 						is_remitted: false,
 					},
 				},
@@ -310,6 +312,7 @@ class UserService {
 				{
 					$match: {
 						vendor: user._id,
+						status: OrderStatus.DELIVERED,
 						is_remitted: false,
 					},
 				},
@@ -336,6 +339,7 @@ class UserService {
 					$match: {
 						vendor: user._id,
 						is_verified: true,
+						status: ProductMgtOption.APPROVED,
 						is_deleted: false,
 					},
 				},
