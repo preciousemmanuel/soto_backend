@@ -23,7 +23,7 @@ function authenticatedMiddleware(req, res, next) {
         try {
             const bearer = req.headers.authorization || "Bearer abcdef";
             if (!bearer || !bearer.startsWith("Bearer ")) {
-                if ((productPath === customOrderPath) === false) {
+                if (productPath === false && customOrderPath === false) {
                     return next(new http_exception_1.default(401, "Unauthorized"));
                 }
                 else {
@@ -33,9 +33,10 @@ function authenticatedMiddleware(req, res, next) {
             const accessToken = bearer.split("Bearer ")[1].trim();
             const payload = accessToken !== "abcdef" ? yield (0, token_1.verifyToken)(accessToken) : undefined;
             if (payload && payload instanceof jsonwebtoken_1.default.JsonWebTokenError) {
-                if ((productPath === customOrderPath) === false) {
+                if (productPath === false && customOrderPath === false) {
                     return next(new http_exception_1.default(401, "Unauthorized"));
                 }
+                console.log("still allow");
                 return next(); // Allow through for `/product/fetch`
             }
             else {
@@ -54,7 +55,7 @@ function authenticatedMiddleware(req, res, next) {
         }
         catch (error) {
             console.log("🚀authenticatedMiddleware ~ error:", error);
-            if ((productPath === customOrderPath) === false) {
+            if (productPath === false && customOrderPath === false) {
                 return next(new http_exception_1.default(401, "Unauthorized"));
             }
             next(); // Allow through for `/product/fetch` on error

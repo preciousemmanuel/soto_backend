@@ -17,7 +17,7 @@ async function authenticatedMiddleware(
 		const bearer = req.headers.authorization || "Bearer abcdef";
 
 		if (!bearer || !bearer.startsWith("Bearer ")) {
-			if ((productPath === customOrderPath) === false) {
+			if (productPath === false && customOrderPath === false) {
 				return next(new HttpException(401, "Unauthorized"));
 			} else {
 				return next();
@@ -29,9 +29,11 @@ async function authenticatedMiddleware(
 		const payload =
 			accessToken !== "abcdef" ? await verifyToken(accessToken) : undefined;
 		if (payload && payload instanceof jwt.JsonWebTokenError) {
-			if ((productPath === customOrderPath) === false) {
+			if (productPath === false && customOrderPath === false) {
 				return next(new HttpException(401, "Unauthorized"));
 			}
+			console.log("still allow");
+
 			return next(); // Allow through for `/product/fetch`
 		} else {
 			const user = await userModel
@@ -50,7 +52,7 @@ async function authenticatedMiddleware(
 		}
 	} catch (error) {
 		console.log("🚀authenticatedMiddleware ~ error:", error);
-		if ((productPath === customOrderPath) === false) {
+		if (productPath === false && customOrderPath === false) {
 			return next(new HttpException(401, "Unauthorized"));
 		}
 		next(); // Allow through for `/product/fetch` on error
