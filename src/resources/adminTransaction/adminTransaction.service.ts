@@ -656,7 +656,7 @@ class AdminTransactionService {
 					responseData = {
 						status: StatusMessages.success,
 						code: HttpCodes.HTTP_OK,
-						message: "Withdrawal Request Declined Successfully",
+						message: "Withdrawal RequestExpDeclined Successfully",
 						data: withdrawal,
 					};
 					break;

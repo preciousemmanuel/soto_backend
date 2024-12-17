@@ -17,7 +17,7 @@ function validationMiddleware(shema, requestOptions) {
         const validationOptions = {
             abortEarly: false,
             allowUnknown: true,
-            stripUnknown: true
+            stripUnknown: true,
         };
         try {
             if (requestOptions) {

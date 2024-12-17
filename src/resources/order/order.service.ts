@@ -528,6 +528,141 @@ class OrderService {
 		}
 	}
 
+	public async getMyOrdersVendorsNew(
+		myOrdersDto: FetchMyOrdersDto,
+		user: InstanceType<typeof this.User>
+	): Promise<ResponseData> {
+		let responseData: ResponseData;
+		try {
+			const search = {
+				...(myOrdersDto?.filter?.start_date &&
+					myOrdersDto?.filter?.end_date && {
+						createdAt: {
+							$gte: new Date(myOrdersDto?.filter?.start_date),
+							$lte: new Date(myOrdersDto?.filter?.end_date),
+						},
+					}),
+				...(myOrdersDto?.filter?.status && {
+					status: myOrdersDto?.filter?.status,
+				}),
+				vendor: user._id,
+			};
+			const page = myOrdersDto?.page || 1;
+			const limit = myOrdersDto?.limit || 10;
+			const skip = (page - 1) * limit;
+
+			const pipeline: any[] = [
+				{
+					$match: search,
+				},
+
+				{
+					$lookup: {
+						from: "Orders",
+						localField: "order",
+						foreignField: "_id",
+						as: "order_info",
+					},
+				},
+				{
+					$unwind: {
+						path: "$order_info",
+						preserveNullAndEmptyArrays: true,
+					},
+				},
+				{
+					$sort: {
+						"order_info.createdAt": -1,
+					},
+				},
+				{
+					$group: {
+						_id: "$order",
+						count: { $sum: 1 },
+						order_info: { $first: "$order_info" },
+					},
+				},
+
+				{
+					$project: {
+						_id: 0,
+						order: "$_id",
+						count: 1,
+						order_info: {
+							_id: 1,
+							user: 1,
+							items: 1,
+							status: 1,
+							total_amount: 1,
+							delivery_amount: 1,
+							grand_total: 1,
+							createdAt: 1,
+							updatedAt: 1,
+						},
+					},
+				},
+
+				{
+					$facet: {
+						orders: [{ $skip: skip }, { $limit: limit }],
+						totalCount: [{ $count: "totalOrders" }],
+					},
+				},
+				{
+					$project: {
+						orders: 1,
+						totalCount: { $arrayElemAt: ["$totalCount.totalOrders", 0] },
+					},
+				},
+			];
+			const orders = await this.OrderDetail.aggregate(pipeline);
+			const orderarray =
+				orders.length > 0
+					? orders[0].orders.map((item: any) => {
+							return {
+								_id: item.order_info._id,
+								items: item.order_info.items,
+								user: item.order_info.user,
+								status: item.order_info.status,
+								total_amount: item.order_info.total_amount,
+								delivery_amount: item.order_info.delivery_amount,
+								grand_total: item.order_info.grand_total,
+								createdAt: item.order_info.createdAt,
+								updatedAt: item.order_info.updatedAt,
+								order: item.order,
+							};
+						})
+					: [];
+			const totalCount = orders.length > 0 ? orders[0].totalCount : 0;
+			const records = {
+				data: orderarray,
+				pagination: {
+					pageSize: limit,
+					totalCount,
+					pageCount: Math.ceil(totalCount / limit),
+					currentPage: +page,
+					hasNext: page * limit < totalCount,
+				},
+			};
+
+			responseData = {
+				status: StatusMessages.success,
+				code: HttpCodes.HTTP_OK,
+				message: "success",
+				data: records,
+			};
+			return responseData;
+		} catch (error: any) {
+			console.log("🚀 ~ OrderService ~ error:", error);
+			responseData = {
+				status: StatusMessages.error,
+				code: HttpCodes.HTTP_SERVER_ERROR,
+				message: error.toString(),
+			};
+			return responseData;
+		}
+	}
+
 	public async getMyOrdersBuyer(
 		myOrdersDto: FetchMyOrdersDto,
 		user: InstanceType<typeof this.User>
@@ -833,6 +968,42 @@ class OrderService {
 			return responseData;
 		} catch (error: any) {
 			console.log("🚀 ~ AdminOverviewService ~ viewAnOrder ~ error:", error);
+			responseData = {
+				status: StatusMessages.error,
+				code: HttpCodes.HTTP_SERVER_ERROR,
+				message: error.toString(),
+			};
+			return responseData;
+		}
+	}
+
+	public async viewAnOrderByVendor(payload: any): Promise<ResponseData> {
+		let responseData: ResponseData = {
+			status: StatusMessages.success,
+			code: HttpCodes.HTTP_OK,
+			message: "Order Retrieved Successfully",
+		};
+		try {
+			const { order_id, user } = payload;
+			const order = await this.Order.findById(order_id);
+
+			if (!order) {
+				return {
+					status: StatusMessages.error,
+					code: HttpCodes.HTTP_BAD_REQUEST,
+					message: "Order Not Found",
+				};
+			}
+
+			const details = await this.OrderDetail.find({
+				order: order_id,
+				vendor: user._id,
+			});
+
+			responseData.data = details;
+			return responseData;
+		} catch (error: any) {
+			console.log("🚀 ~ OrderService ~ viewAnOrderByVendor ~ error:", error);
 			responseData = {
 				status: StatusMessages.error,
 				code: HttpCodes.HTTP_SERVER_ERROR,

@@ -23,6 +23,7 @@ import {
 	RequestData,
 } from "@/utils/enums/base.enum";
 import adminAuthMiddleware from "@/middleware/adminAuth.middleware";
+import { RequestExt } from "@/utils/interfaces/expRequest.interface";
 
 class AdminConfigController implements Controller {
 	public path = "/admin";
@@ -118,7 +119,7 @@ class AdminConfigController implements Controller {
 	}
 
 	private adminLogin = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
@@ -133,7 +134,7 @@ class AdminConfigController implements Controller {
 	};
 
 	private getProfile = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
@@ -147,7 +148,7 @@ class AdminConfigController implements Controller {
 	};
 
 	private editProfile = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
@@ -165,7 +166,7 @@ class AdminConfigController implements Controller {
 	};
 
 	private createAdmin = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
@@ -180,7 +181,7 @@ class AdminConfigController implements Controller {
 	};
 
 	private createPurchaser = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
@@ -198,7 +199,7 @@ class AdminConfigController implements Controller {
 	};
 
 	private createAdminRole = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
@@ -216,7 +217,7 @@ class AdminConfigController implements Controller {
 	};
 
 	private fetchRoles = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
@@ -233,7 +234,7 @@ class AdminConfigController implements Controller {
 	};
 
 	private updateAdminRole = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
@@ -254,7 +255,7 @@ class AdminConfigController implements Controller {
 	};
 
 	private getStaffs = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
@@ -272,7 +273,7 @@ class AdminConfigController implements Controller {
 	};
 
 	private updateStaffRole = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
@@ -288,7 +289,7 @@ class AdminConfigController implements Controller {
 	};
 
 	private getConfigSettings = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
@@ -302,7 +303,7 @@ class AdminConfigController implements Controller {
 	};
 
 	private editConfigSettings = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {

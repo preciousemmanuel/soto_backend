@@ -16,6 +16,8 @@ import { Business } from "./transaction.interface";
 import upload from "@/utils/config/multer";
 import TransactionService from "./transaction.service";
 import { Platform, YesOrNo } from "@/utils/enums/base.enum";
+import { RequestExt } from "@/utils/interfaces/expRequest.interface";
+import userModel from "../user/user.model";
 
 class TransactionController implements Controller {
 	public path = "/transaction";
@@ -53,7 +55,7 @@ class TransactionController implements Controller {
 	}
 
 	private generatePaymentLink = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
@@ -69,7 +71,7 @@ class TransactionController implements Controller {
 					req.body?.platform === Platform.WEB && { base_url: req.baseUrl }),
 			};
 
-			const user = req.user;
+			const user = req._user || new userModel();
 			const { status, code, message, data } =
 				await this.transactionService.initializePayment(payload, user);
 			return responseObject(res, code, status, message, data);
@@ -79,12 +81,12 @@ class TransactionController implements Controller {
 	};
 
 	private addCard = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
 		try {
-			const user = req.user;
+			const user = req._user || new userModel();
 			const { status, code, message, data } =
 				await this.transactionService.addCard(user);
 			return responseObject(res, code, status, message, data);
@@ -94,7 +96,7 @@ class TransactionController implements Controller {
 	};
 
 	private paystackCallbackService = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
@@ -109,13 +111,13 @@ class TransactionController implements Controller {
 	};
 
 	private gettransactionLogs = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
 		try {
 			const payload: GetTransactionsDto = {
-				user: req.user,
+				user: req._user || new userModel(),
 				limit: req?.query?.limit ? Number(req?.query.limit) : 10,
 				page: req?.query?.page ? Number(req?.query.page) : 1,
 				...(req?.query?.narration && {

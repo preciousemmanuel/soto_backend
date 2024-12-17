@@ -21,12 +21,15 @@ const http_response_1 = require("@/utils/helpers/http.response");
 const httpcode_1 = require("@/utils/constants/httpcode");
 const authenticated_middleware_1 = __importDefault(require("@/middleware/authenticated.middleware"));
 const adminOverview_service_1 = __importDefault(require("../adminOverview/adminOverview.service"));
+const user_model_1 = __importDefault(require("./user.model"));
+const passport_config_1 = __importDefault(require("../../utils/config/passport.config"));
 class UserController {
     constructor() {
         this.path = "/user";
         this.router = (0, express_1.Router)();
         this.userService = new user_service_1.default();
         this.adminOverviewService = new adminOverview_service_1.default();
+        this.passportInst = passport_config_1.default;
         this.createUser = (req, res, next) => __awaiter(this, void 0, void 0, function* () {
             try {
                 const body = req.body;
@@ -37,11 +40,29 @@ class UserController {
                 next(new http_exception_1.default(httpcode_1.HttpCodes.HTTP_BAD_REQUEST, error.toString()));
             }
         });
+        this.googleAuthCallback = (req, res, next) => __awaiter(this, void 0, void 0, function* () {
+            try {
+                passport_config_1.default.authenticate("google", { session: false }, (err, user, info) => __awaiter(this, void 0, void 0, function* () {
+                    if (err) {
+                        return next(err);
+                    }
+                    if (!user) {
+                        return res.status(401).json({ message: "Authentication failed" });
+                    }
+                    const gUser = user;
+                    const { status, code, message, data } = yield this.userService.googleAuthCallback(gUser);
+                    return (0, http_response_1.responseObject)(res, code, status, message, data);
+                }))(req, res, next);
+            }
+            catch (error) {
+                next(new http_exception_1.default(httpcode_1.HttpCodes.HTTP_BAD_REQUEST, error.toString()));
+            }
+        });
         this.addShippingAddress = (req, res, next) => __awaiter(this, void 0, void 0, function* () {
             try {
                 const address = req.body;
                 address.is_admin = false;
-                address.user = req.user;
+                address.user = req._user || new user_model_1.default();
                 const { status, code, message, data } = yield this.adminOverviewService.createShippingAddress(address);
                 return (0, http_response_1.responseObject)(res, code, status, message, data);
             }
@@ -51,7 +72,7 @@ class UserController {
         });
         this.getProfile = (req, res, next) => __awaiter(this, void 0, void 0, function* () {
             try {
-                const user = req.user;
+                const user = req._user || new user_model_1.default();
                 const { status, code, message, data } = yield this.userService.getProfile(user);
                 return (0, http_response_1.responseObject)(res, code, status, message, data);
             }
@@ -66,15 +87,20 @@ class UserController {
                     ((_b = req === null || req === void 0 ? void 0 : req.query) === null || _b === void 0 ? void 0 : _b.end_date) !== null &&
                     ((_c = req === null || req === void 0 ? void 0 : req.query) === null || _c === void 0 ? void 0 : _c.start_date) !== undefined &&
                     ((_d = req === null || req === void 0 ? void 0 : req.query) === null || _d === void 0 ? void 0 : _d.end_date) !== undefined;
-                const timeFrame = ((is_custom === false) &&
-                    ((_e = req.query) === null || _e === void 0 ? void 0 : _e.time_frame) && (((_f = req.query) === null || _f === void 0 ? void 0 : _f.time_frame) !== null) && (((_g = req.query) === null || _g === void 0 ? void 0 : _g.time_frame) !== "")) ?
-                    String((_h = req.query) === null || _h === void 0 ? void 0 : _h.time_frame) : undefined;
-                const custom_date = (is_custom === true) ? {
-                    start_date: new Date(String((_j = req === null || req === void 0 ? void 0 : req.query) === null || _j === void 0 ? void 0 : _j.start_date)),
-                    end_date: new Date(String((_k = req === null || req === void 0 ? void 0 : req.query) === null || _k === void 0 ? void 0 : _k.end_date)),
-                } : undefined;
-                const user = req.user;
-                const payload = Object.assign(Object.assign({ user }, (timeFrame && { timeFrame })), ((custom_date) && { custom: custom_date }));
+                const timeFrame = is_custom === false &&
+                    ((_e = req.query) === null || _e === void 0 ? void 0 : _e.time_frame) &&
+                    ((_f = req.query) === null || _f === void 0 ? void 0 : _f.time_frame) !== null &&
+                    ((_g = req.query) === null || _g === void 0 ? void 0 : _g.time_frame) !== ""
+                    ? String((_h = req.query) === null || _h === void 0 ? void 0 : _h.time_frame)
+                    : undefined;
+                const custom_date = is_custom === true
+                    ? {
+                        start_date: new Date(String((_j = req === null || req === void 0 ? void 0 : req.query) === null || _j === void 0 ? void 0 : _j.start_date)),
+                        end_date: new Date(String((_k = req === null || req === void 0 ? void 0 : req.query) === null || _k === void 0 ? void 0 : _k.end_date)),
+                    }
+                    : undefined;
+                const user = req._user || new user_model_1.default();
+                const payload = Object.assign(Object.assign({ user }, (timeFrame && { timeFrame })), (custom_date && { custom: custom_date }));
                 const { status, code, message, data } = yield this.userService.getVendorDashboard(payload);
                 return (0, http_response_1.responseObject)(res, code, status, message, data);
             }
@@ -85,7 +111,7 @@ class UserController {
         this.getVendorInventory = (req, res, next) => __awaiter(this, void 0, void 0, function* () {
             var _a, _b, _c, _d;
             try {
-                const user = req.user;
+                const user = req._user || new user_model_1.default();
                 const payload = {
                     user,
                     limit: ((_a = req === null || req === void 0 ? void 0 : req.query) === null || _a === void 0 ? void 0 : _a.limit) ? Number((_b = req === null || req === void 0 ? void 0 : req.query) === null || _b === void 0 ? void 0 : _b.limit) : 10,
@@ -100,7 +126,7 @@ class UserController {
         });
         this.getSalesAnalytics = (req, res, next) => __awaiter(this, void 0, void 0, function* () {
             try {
-                const user = req.user;
+                const user = req._user || new user_model_1.default();
                 const { status, code, message, data } = yield this.userService.getSalesAnalytics(user);
                 return (0, http_response_1.responseObject)(res, code, status, message, data);
             }
@@ -141,7 +167,7 @@ class UserController {
         this.newPasswordChange = (req, res, next) => __awaiter(this, void 0, void 0, function* () {
             try {
                 const new_password = req.body.new_password;
-                const user = req.user;
+                const user = req._user || new user_model_1.default();
                 const { status, code, message, data } = yield this.userService.newPasswordChange(new_password, user);
                 return (0, http_response_1.responseObject)(res, code, status, message, data);
             }
@@ -174,8 +200,10 @@ class UserController {
         this.initializeRoute();
     }
     initializeRoute() {
-        this.router.post(`${this.path}/fcm`, authenticated_middleware_1.default, (0, validation_middleware_1.default)(user_validation_1.default.updateFcm), this.updateFcmToken),
-            this.router.post(`${this.path}/signup`, (0, validation_middleware_1.default)(user_validation_1.default.signupSchema), this.createUser);
+        this.router.post(`${this.path}/fcm`, authenticated_middleware_1.default, (0, validation_middleware_1.default)(user_validation_1.default.updateFcm), this.updateFcmToken);
+        this.router.post(`${this.path}/signup`, (0, validation_middleware_1.default)(user_validation_1.default.signupSchema), this.createUser);
+        this.router.get(`${this.path}/google-signup`, this.passportInst.authenticate("google", { scope: ["profile", "email"] }));
+        this.router.get(`${this.path}/google-callback`, this.googleAuthCallback);
         this.router.put(`${this.path}/add-shipping-address`, authenticated_middleware_1.default, (0, validation_middleware_1.default)(user_validation_1.default.addShippingAddressSchema), this.addShippingAddress);
         this.router.get(`${this.path}/profile`, authenticated_middleware_1.default, this.getProfile);
         this.router.get(`${this.path}/vendor-overview`, authenticated_middleware_1.default, this.getVendorDashboard);

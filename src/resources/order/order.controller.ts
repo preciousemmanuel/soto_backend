@@ -17,6 +17,8 @@ import {
 import upload from "@/utils/config/multer";
 import OrderService from "./order.service";
 import { RequestData } from "@/utils/enums/base.enum";
+import { RequestExt } from "@/utils/interfaces/expRequest.interface";
+import userModel from "../user/user.model";
 
 class OrderController implements Controller {
 	public path = "/order";
@@ -55,6 +57,13 @@ class OrderController implements Controller {
 			validationMiddleware(validate.fetchMyOrdersSchema),
 			this.fetchMyOrders
 		);
+
+		this.router.get(
+			`${this.path}/fetch/by-vendor-new`,
+			authenticatedMiddleware,
+			validationMiddleware(validate.fetchMyOrdersSchema),
+			this.fetchMyOrdersVendorNew
+		);
 		this.router.get(
 			`${this.path}/fetch/by-buyer`,
 			authenticatedMiddleware,
@@ -67,6 +76,13 @@ class OrderController implements Controller {
 			authenticatedMiddleware,
 			validationMiddleware(validate.modelIdSchema, RequestData.params),
 			this.viewAnOrder
+		);
+
+		this.router.get(
+			`${this.path}/view-one-by-vendor/:id`,
+			authenticatedMiddleware,
+			validationMiddleware(validate.modelIdSchema, RequestData.params),
+			this.viewAnOrderByVendor
 		);
 
 		this.router.put(
@@ -91,13 +107,13 @@ class OrderController implements Controller {
 	}
 
 	private addToCart = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
 		try {
 			const body: AddToCartDto = req.body;
-			const user = req.user;
+			const user = req._user || new userModel();
 			const { status, code, message, data } = await this.orderService.addToCart(
 				body,
 				user
@@ -109,13 +125,13 @@ class OrderController implements Controller {
 	};
 
 	private removeFromCart = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
 		try {
 			const body: RemoveFromCartDto = req.body;
-			const user = req.user;
+			const user = req._user || new userModel();
 			const { status, code, message, data } =
 				await this.orderService.removeFromCart(body, user);
 			return responseObject(res, code, status, message, data);
@@ -125,13 +141,13 @@ class OrderController implements Controller {
 	};
 
 	private createOrder = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
 		try {
 			const body: CreateOrderDto = req.body;
-			const user = req.user;
+			const user = req._user || new userModel();
 			const { status, code, message, data } =
 				await this.orderService.createOrder(body, user);
 			return responseObject(res, code, status, message, data);
@@ -141,12 +157,12 @@ class OrderController implements Controller {
 	};
 
 	private fetchMyOrders = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
 		try {
-			const user = req.user;
+			const user = req._user || new userModel();
 			const payload: FetchMyOrdersDto = {
 				limit: Number(req?.query?.limit),
 				page: Number(req?.query?.page),
@@ -169,13 +185,42 @@ class OrderController implements Controller {
 		}
 	};
 
-	private fetchMyOrdersBuyer = async (
-		req: Request,
+	private fetchMyOrdersVendorNew = async (
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
 		try {
-			const user = req.user;
+			const user = req._user || new userModel();
+			const payload: FetchMyOrdersDto = {
+				limit: Number(req?.query?.limit),
+				page: Number(req?.query?.page),
+				filter: {
+					...(req?.query?.status && { status: String(req?.query?.status) }),
+					...(req?.query?.start_date && {
+						start_date: String(req?.query?.start_date),
+					}),
+					...(req?.query?.end_date && {
+						end_date: String(req?.query?.end_date),
+					}),
+				},
+			};
+
+			const { status, code, message, data } =
+				await this.orderService.getMyOrdersVendorsNew(payload, user);
+			return responseObject(res, code, status, message, data);
+		} catch (error: any) {
+			next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()));
+		}
+	};
+
+	private fetchMyOrdersBuyer = async (
+		req: RequestExt,
+		res: Response,
+		next: NextFunction
+	): Promise<Response | void> => {
+		try {
+			const user = req._user || new userModel();
 			const payload: FetchMyOrdersDto = {
 				limit: Number(req?.query?.limit),
 				page: Number(req?.query?.page),
@@ -199,13 +244,13 @@ class OrderController implements Controller {
 	};
 
 	private viewAnOrder = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
 		try {
 			const payload = {
-				user: req.user,
+				user: req._user || new userModel(),
 				order_id: String(req.params.id),
 			};
 			const { status, code, message, data } =
@@ -216,13 +261,31 @@ class OrderController implements Controller {
 		}
 	};
 
-	private cancelAnOrder = async (
-		req: Request,
+	private viewAnOrderByVendor = async (
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
 		try {
-			const user = req.user;
+			const payload = {
+				user: req._user || new userModel(),
+				order_id: String(req.params.id),
+			};
+			const { status, code, message, data } =
+				await this.orderService.viewAnOrderByVendor(payload);
+			return responseObject(res, code, status, message, data);
+		} catch (error: any) {
+			next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()));
+		}
+	};
+
+	private cancelAnOrder = async (
+		req: RequestExt,
+		res: Response,
+		next: NextFunction
+	): Promise<Response | void> => {
+		try {
+			const user = req._user || new userModel();
 			const order_id = String(req.params.id);
 			const { status, code, message, data } =
 				await this.orderService.cancelAnOrder(order_id, user);
@@ -233,13 +296,13 @@ class OrderController implements Controller {
 	};
 
 	private createCustomOrder = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
 		try {
 			const payload: CustomOrderArrayDto = req.body;
-			const user = req.user;
+			const user = req._user || new userModel();
 			const { status, code, message, data } =
 				await this.orderService.createCustomOrder(payload, user);
 			return responseObject(res, code, status, message, data);
@@ -249,7 +312,7 @@ class OrderController implements Controller {
 	};
 
 	private remitVendorSales = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {

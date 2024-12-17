@@ -2,18 +2,17 @@ import { Request, Response, NextFunction } from "express";
 import HttpException from "@/utils/exceptions/http.exception";
 import { responseObject } from "@/utils/helpers/http.response";
 
-
 function errorMiddleware(
-    error: HttpException,
-    req: Request,
-    res: Response,
-    next: NextFunction
+	error: HttpException,
+	req: Request,
+	res: Response,
+	next: NextFunction
 ): void {
-    const status = error.status || 500;
-    const message = error.message || "Something went wrong";
+	const status = error.status || 500;
+	const message = error.message || "Something went wrong";
 
-    responseObject(res, status, "error", message);
-    // res.status(status).send(message);
+	responseObject(res, status, "error", message);
+	// res.status(status).send(message);
 }
 
 export default errorMiddleware;

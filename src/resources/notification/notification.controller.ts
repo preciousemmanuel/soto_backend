@@ -12,6 +12,7 @@ import {
 } from "./notification.dto";
 import NotificationService from "./notification.service";
 import { RequestData } from "@/utils/enums/base.enum";
+import { RequestExt } from "@/utils/interfaces/expRequest.interface";
 
 class NotificationController implements Controller {
 	public path = "/notification";
@@ -45,10 +46,16 @@ class NotificationController implements Controller {
 			validationMiddleware(validate.modelIdSchema, RequestData.params),
 			this.markNotificationAsRead
 		);
+
+		this.router.put(
+			`${this.path}/clear-all`,
+			authenticatedMiddleware,
+			this.clearNotifications
+		);
 	}
 
 	private addFcmTokenOrPlayerId = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
@@ -63,13 +70,13 @@ class NotificationController implements Controller {
 	};
 
 	private fetchNotifications = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
 		try {
 			const payload: FetchNotificationsDto = {
-				user: req.user,
+				user: req._user,
 				...(req?.query?.type && {
 					type: String(req?.query.type),
 				}),
@@ -90,18 +97,33 @@ class NotificationController implements Controller {
 	};
 
 	private markNotificationAsRead = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
 		try {
 			const notification_id = String(req.params.id);
-			const user = req.user;
+			const user = req._user;
 			const { status, code, message, data } =
 				await this.notificationService.markNotificationAsRead(
 					notification_id,
 					user
 				);
+			return responseObject(res, code, status, message, data);
+		} catch (error: any) {
+			next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()));
+		}
+	};
+
+	private clearNotifications = async (
+		req: RequestExt,
+		res: Response,
+		next: NextFunction
+	): Promise<Response | void> => {
+		try {
+			const user = req._user;
+			const { status, code, message, data } =
+				await this.notificationService.clearNotifications(user);
 			return responseObject(res, code, status, message, data);
 		} catch (error: any) {
 			next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()));

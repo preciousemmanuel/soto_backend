@@ -91,7 +91,7 @@ class AdminConfigService {
 		} catch (error: any) {
 			console.log("🚀 ~ AdminOverviewService ~ seedSuperAdmin ~ error:", error);
 			(responseData.code = HttpCodesEnum.HTTP_SERVER_ERROR),
-				(responseData.message = "Unable To Treat Request At This Time");
+				(responseData.message = "Unable To Treat RequestExpAt This Time");
 			return responseData;
 		}
 	}

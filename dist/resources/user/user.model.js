@@ -26,11 +26,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
 const base_enum_1 = require("@/utils/enums/base.enum");
 const UserSchema = new mongoose_1.Schema({
-    // userId: {
-    //     type: Number,
-    //     required: true,
-    //     unique: true,
-    //   },
     FirstName: {
         type: String,
         required: true,
@@ -42,7 +37,6 @@ const UserSchema = new mongoose_1.Schema({
     Email: {
         type: String,
         required: true,
-        unique: true,
         trim: true,
     },
     ProfileImage: {
@@ -149,6 +143,7 @@ const UserSchema = new mongoose_1.Schema({
     collection: "Users",
     timestamps: true,
 });
+UserSchema.index({ Email: 1, UserType: 1 }, { unique: true });
 // UserSchema.pre<User>("save",async function (next) {
 //     if(!this.isModified) return next();
 //     const hash=await bycrpt.hash(this.password,10);

@@ -149,6 +149,13 @@ class BusinessService {
 				content: "A new Vendor has just completed registration",
 			};
 			this.notificationService.createNotification(notificationPayload);
+			if (createBusinessDto.phone_number) {
+				this.notificationService.sendSMSNotification({
+					from: "soto",
+					to: createBusinessDto.phone_number,
+					body: `Hi, your OTP is: ${oneTimePassword?.otp}`,
+				});
+			}
 			return responseData;
 		} catch (error: any) {
 			console.log("🚀 ~ BusinessService ~ error:", error);
@@ -403,7 +410,7 @@ class BusinessService {
 				return {
 					status: StatusMessages.error,
 					code: HttpCodes.HTTP_BAD_REQUEST,
-					message: "A Pending Withdrawal Request Exists",
+					message: "A Pending Withdrawal RequestExpExists",
 				};
 			}
 			const bankDetails = await this.BankDetails.findById(bank_details_id);
@@ -468,7 +475,7 @@ class BusinessService {
 			responseData = {
 				status: StatusMessages.success,
 				code: HttpCodes.HTTP_OK,
-				message: "Withdrawal Request Made Successfully",
+				message: "Withdrawal RequestExpMade Successfully",
 				data: withdrawalRequest,
 			};
 
@@ -554,7 +561,7 @@ class BusinessService {
 			return {
 				status: StatusMessages.success,
 				code: HttpCodesEnum.HTTP_OK,
-				message: "Withdrawal Request Process Finished",
+				message: "Withdrawal RequestExpProcess Finished",
 				data: withdrawal,
 			};
 		} catch (error: any) {

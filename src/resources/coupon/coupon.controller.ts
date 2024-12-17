@@ -9,6 +9,8 @@ import { HttpCodes } from "@/utils/constants/httpcode";
 import authenticatedMiddleware from "@/middleware/authenticated.middleware";
 import { FetchCategoriesDto } from "./coupon.dto";
 import { Business } from "./coupon.interface";
+import { RequestExt } from "@/utils/interfaces/expRequest.interface";
+import userModel from "../user/user.model";
 
 class CouponController implements Controller {
 	public path = "/coupon";
@@ -34,14 +36,14 @@ class CouponController implements Controller {
 	}
 
 	private getMyAppliedCoupons = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
 		try {
 			const limit = req?.query?.limit ? Number(req?.query?.limit) : 10;
 			const page = req?.query?.page ? Number(req?.query?.page) : 1;
-			const user = req.user;
+			const user = req._user || new userModel();
 
 			const { status, code, message, data } =
 				await this.couponService.getMyAppliedCoupons(limit, page, user);
@@ -52,14 +54,14 @@ class CouponController implements Controller {
 	};
 
 	private getAvailableCoupons = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
 		try {
 			const limit = req?.query?.limit ? Number(req?.query?.limit) : 10;
 			const page = req?.query?.page ? Number(req?.query?.page) : 1;
-			const user = req.user;
+			const user = req._user || new userModel();
 
 			const { status, code, message, data } =
 				await this.couponService.getAvailableCoupons(limit, page, user);

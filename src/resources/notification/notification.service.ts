@@ -378,6 +378,36 @@ class NotificationService {
 		}
 	}
 
+	public async clearNotifications(
+		user?: InstanceType<typeof this.User> | undefined | null
+	): Promise<ResponseData> {
+		let responseData: ResponseData = {
+			status: StatusMessages.success,
+			code: HttpCodes.HTTP_OK,
+			message: "Notifications cleared Successfully",
+		};
+		try {
+			if (user) {
+				await this.Notification.updateMany(
+					{ receiver: user._id },
+					{ is_read: true }
+				);
+			}
+			return responseData;
+		} catch (error: any) {
+			console.log(
+				"🚀 ~ NotificationService markNotificationAsRead~ error:",
+				error
+			);
+			responseData = {
+				status: StatusMessages.error,
+				code: HttpCodes.HTTP_SERVER_ERROR,
+				message: error.toString(),
+			};
+			return responseData;
+		}
+	}
+
 	public async sendSMsToMany(payloads: SendSmsNotificationDto[]) {
 		try {
 			for (const payload of payloads) {

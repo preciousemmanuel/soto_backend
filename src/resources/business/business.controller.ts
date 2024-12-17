@@ -18,6 +18,8 @@ import {
 import { Business } from "./business.interface";
 import upload from "@/utils/config/multer";
 import { RequestData } from "@/utils/enums/base.enum";
+import { RequestExt } from "@/utils/interfaces/expRequest.interface";
+import userModel from "../user/user.model";
 
 class BusinessController implements Controller {
 	public path = "/business";
@@ -80,7 +82,7 @@ class BusinessController implements Controller {
 	}
 
 	private createCreateBusiness = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
@@ -89,7 +91,7 @@ class BusinessController implements Controller {
 			if (req.file) {
 				body.business_logo = req.file;
 			}
-			const user = req.user;
+			const user = req._user;
 			const { status, code, message, data } =
 				await this.businessService.createBusiness(body);
 			return responseObject(res, code, status, message, data);
@@ -99,13 +101,13 @@ class BusinessController implements Controller {
 	};
 
 	private verifyBusiness = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
 		try {
 			const body: VerificationDto = req.body;
-			const user = req.user;
+			const user = req._user || new userModel();
 			const { status, code, message, data } =
 				await this.businessService.verifyBusiness(body, user);
 			return responseObject(res, code, status, message, data);
@@ -115,7 +117,7 @@ class BusinessController implements Controller {
 	};
 
 	private fethBanks = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
@@ -138,14 +140,14 @@ class BusinessController implements Controller {
 	};
 
 	private addBankDetails = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
 		try {
 			const body = req.body;
 			const payload: AddBankDetailsDto = {
-				user: req.user,
+				user: req._user || new userModel(),
 				account_number: body.account_number,
 				bank_id: body.bank_id,
 			};
@@ -159,13 +161,14 @@ class BusinessController implements Controller {
 	};
 
 	private fetchMyBankDetails = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
 		try {
+			const user = req._user || new userModel();
 			const { status, code, message, data } =
-				await this.businessService.fetchMyBankDetails(req.user);
+				await this.businessService.fetchMyBankDetails(user);
 			return responseObject(res, code, status, message, data);
 		} catch (error: any) {
 			next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()));
@@ -173,14 +176,15 @@ class BusinessController implements Controller {
 	};
 
 	private makeWithdrawalRequest = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
 		try {
+			const user = req._user || new userModel();
 			const body = req.body;
 			const payload: MakeWithdrawalDto = {
-				user: req.user,
+				user,
 				amount: body.amount,
 				bank_details_id: body.bank_details_id,
 			};
@@ -194,14 +198,16 @@ class BusinessController implements Controller {
 	};
 
 	private fethMyWithdrawals = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
 		try {
 			const queryStatus = req?.query?.status;
+			const user = req._user || new userModel();
+
 			const payload: FetchWithdrawalsDto = {
-				user: req.user,
+				user,
 				limit: req?.query?.limit ? Number(req?.query.limit) : 10,
 				page: req?.query?.page ? Number(req?.query.page) : 1,
 				...(queryStatus &&

@@ -80,4 +80,7 @@ export default {
 	BULK_SMS_CALLBACK_URL:
 		process.env.BULK_SMS_CALLBACK_URL ||
 		"https://www.bulksmsnigeria.com/api/v2/sms",
+	GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
+	GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
+	NODE_SERVER_URL: process.env.NODE_SERVER_URL,
 };
