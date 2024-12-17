@@ -12,6 +12,7 @@ import CategoryService from "./resources/category/category.service";
 import AdminOverviewService from "./resources/adminOverview/adminOverview.service";
 import AdminConfigService from "./resources/adminConfig/adminConfig.service";
 import CronJobService from "./cronjobs/cronjobs.service";
+import passport from "./utils/config/passport.config";
 
 class App {
 	public express: Application;
@@ -43,6 +44,7 @@ class App {
 		this.initializeSeeders();
 		this.initializeMiddleware;
 		this.initializeJobs();
+		this.initializePassport();
 	}
 
 	private initializeMiddleware(): void {
@@ -58,6 +60,10 @@ class App {
 		controllers.forEach((controller: Controller) => {
 			this.express.use("/api", controller.router);
 		});
+	}
+
+	private initializePassport(): void {
+		this.express.use(passport.initialize());
 	}
 
 	private initializeErrorHandling(): void {

@@ -96,7 +96,7 @@ class MailService {
 			const html = ejs.render(template, payload);
 			const mailData = {
 				email,
-				subject: "Cancelled Order Request On Your Product",
+				subject: "Cancelled Order RequestExpOn Your Product",
 				html,
 			};
 			const sendEmailViaEJS =

@@ -34,6 +34,7 @@ import { FetchNotificationsDto } from "../notification/notification.dto";
 import userModel from "../user/user.model";
 import envConfig from "@/utils/config/env.config";
 import notificationValidation from "../notification/notification.validation";
+import { RequestExt } from "@/utils/interfaces/expRequest.interface";
 
 class AdminPeopleController implements Controller {
 	public path = "/admin";
@@ -129,7 +130,7 @@ class AdminPeopleController implements Controller {
 	}
 
 	private getBuyers = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
@@ -175,7 +176,7 @@ class AdminPeopleController implements Controller {
 			const dateRange: backDaterArray[] = customDateRange
 				? customDateRange.array
 				: timeLineRange?.array || [];
-			const user = req.user;
+			const user = req._user;
 			const { status, code, message, data } =
 				await this.adminOverviewService.getBuyers(payload, dateRange);
 			return responseObject(res, code, status, message, data);
@@ -185,7 +186,7 @@ class AdminPeopleController implements Controller {
 	};
 
 	private viewOneBuyer = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
@@ -197,7 +198,7 @@ class AdminPeopleController implements Controller {
 				user_id: String(req.params.id),
 			};
 
-			const user = req.user;
+			const user = req._user;
 			const { status, code, message, data } =
 				await this.adminOverviewService.viewOneBuyer(payload);
 			return responseObject(res, code, status, message, data);
@@ -207,7 +208,7 @@ class AdminPeopleController implements Controller {
 	};
 
 	private updateBuyerOrSeller = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
@@ -228,7 +229,7 @@ class AdminPeopleController implements Controller {
 	};
 
 	private getSellers = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
@@ -280,7 +281,7 @@ class AdminPeopleController implements Controller {
 				? customDateRange.array
 				: timeLineRange?.array || [];
 
-			const user = req.user;
+			const user = req._user;
 			const { status, code, message, data } =
 				await this.adminOverviewService.getSellers(payload, dateRange);
 			return responseObject(res, code, status, message, data);
@@ -290,7 +291,7 @@ class AdminPeopleController implements Controller {
 	};
 
 	private viewOneSeller = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
@@ -302,7 +303,7 @@ class AdminPeopleController implements Controller {
 				user_id: String(req.params.id),
 			};
 
-			const user = req.user;
+			const user = req._user;
 			const { status, code, message, data } =
 				await this.adminOverviewService.viewOneSeller(payload);
 			return responseObject(res, code, status, message, data);
@@ -312,7 +313,7 @@ class AdminPeopleController implements Controller {
 	};
 
 	private getPurchasers = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
@@ -326,7 +327,7 @@ class AdminPeopleController implements Controller {
 					req?.query?.search !== "" && { search: String(req.query?.search) }),
 			};
 
-			const user = req.user;
+			const user = req._user;
 			const { status, code, message, data } =
 				await this.adminOverviewService.getPurchasers(payload);
 			return responseObject(res, code, status, message, data);
@@ -336,7 +337,7 @@ class AdminPeopleController implements Controller {
 	};
 
 	private viewAPurchaser = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
@@ -351,7 +352,7 @@ class AdminPeopleController implements Controller {
 	};
 
 	private getPickupAssignments = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
@@ -375,7 +376,7 @@ class AdminPeopleController implements Controller {
 					}),
 			};
 
-			const user = req.user;
+			const user = req._user;
 			const { status, code, message, data } =
 				await this.adminOverviewService.getPickupAssignments(payload);
 			return responseObject(res, code, status, message, data);
@@ -385,7 +386,7 @@ class AdminPeopleController implements Controller {
 	};
 
 	private updatePickup = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
@@ -403,7 +404,7 @@ class AdminPeopleController implements Controller {
 	};
 
 	private fetchNotifications = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
@@ -431,7 +432,7 @@ class AdminPeopleController implements Controller {
 	};
 
 	private markNotificationAsRead = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {

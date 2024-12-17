@@ -27,6 +27,8 @@ const product_model_1 = __importDefault(require("../product/product.model"));
 const paginate_1 = require("@/utils/helpers/paginate");
 const otp_model_1 = __importDefault(require("./otp.model"));
 const date_fns_1 = require("date-fns");
+const notification_service_1 = __importDefault(require("../notification/notification.service"));
+const data_1 = require("@/utils/constants/data");
 class UserService {
     constructor() {
         this.user = user_model_1.default;
@@ -37,6 +39,7 @@ class UserService {
         this.OrderDetail = orderDetails_model_1.default;
         this.Product = product_model_1.default;
         this.mailService = new mail_service_1.default();
+        this.notificationService = new notification_service_1.default();
     }
     createUser(createUser) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -100,6 +103,66 @@ class UserService {
                     message: error.toString(),
                 };
                 return responseData;
+            }
+        });
+    }
+    googleAuthCallback(gUser) {
+        return __awaiter(this, void 0, void 0, function* () {
+            let responseData;
+            try {
+                const userExist = yield this.user.findOne({
+                    Email: gUser.email.toLowerCase(),
+                    UserType: base_enum_1.UserTypes.USER,
+                });
+                if (userExist) {
+                    const token = (0, token_1.createToken)(userExist);
+                    userExist.Token = token;
+                    yield userExist.save();
+                    responseData = {
+                        status: base_enum_1.StatusMessages.success,
+                        code: httpcode_1.HttpCodes.HTTP_OK,
+                        message: "User Signed In Successfully",
+                        data: userExist,
+                    };
+                }
+                else {
+                    const createdUser = yield this.user.create({
+                        FirstName: gUser.firstName,
+                        LastName: gUser.lastName,
+                        Email: gUser.email.toLowerCase(),
+                        Password: yield (0, token_2.hashPassword)(gUser.email.toLowerCase()),
+                        PhoneNumber: gUser.phoneNumber,
+                        SignupChannel: base_enum_1.SignupChannels.GOOGLE,
+                        UserType: base_enum_1.UserTypes.USER,
+                        ProfileImage: gUser.picture,
+                    });
+                    const token = (0, token_1.createToken)(createdUser);
+                    const wallet = (yield this.wallet.findOne({ user: createdUser._id })) ||
+                        (yield this.wallet.create({
+                            user: createdUser._id,
+                        }));
+                    const cart = (yield this.Cart.findOne({ user: createdUser._id })) ||
+                        (yield this.Cart.create({
+                            user: createdUser._id,
+                            grand_total: 0,
+                            total_amount: 0,
+                        }));
+                    createdUser.Token = token;
+                    createdUser.wallet = wallet._id;
+                    createdUser.cart = cart._id;
+                    yield createdUser.save();
+                    responseData = {
+                        status: base_enum_1.StatusMessages.success,
+                        code: httpcode_1.HttpCodes.HTTP_CREATED,
+                        message: "User Created Successfully",
+                        data: createdUser,
+                    };
+                }
+                return responseData;
+            }
+            catch (error) {
+                console.log("🚀 ~ UserService ~ googleAuth ~ error:", error);
+                return (0, data_1.catchBlockResponseFn)(error);
             }
         });
     }
@@ -685,11 +748,20 @@ class UserService {
                     return responseData;
                 }
                 const oneTimePassword = yield (0, token_1.generateOtpModel)(base_enum_1.OtpPurposeOptions.CHANGE_PASSWORD, user, user === null || user === void 0 ? void 0 : user.Email);
-                this.mailService.sendOtpMail({
-                    email: user.Email,
-                    otp: oneTimePassword.otp,
-                    first_name: user.FirstName,
-                });
+                if (changePasswordDto.email_or_phone_number.includes("@")) {
+                    this.mailService.sendOtpMail({
+                        email: user.Email,
+                        otp: oneTimePassword.otp,
+                        first_name: user.FirstName,
+                    });
+                }
+                else {
+                    this.notificationService.sendSMSNotification({
+                        from: "soto",
+                        to: changePasswordDto.email_or_phone_number,
+                        body: `Hi, your OTP is: ${oneTimePassword === null || oneTimePassword === void 0 ? void 0 : oneTimePassword.otp}`,
+                    });
+                }
                 responseData = {
                     status: base_enum_1.StatusMessages.success,
                     code: httpcode_1.HttpCodes.HTTP_OK,

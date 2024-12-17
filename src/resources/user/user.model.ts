@@ -11,11 +11,6 @@ import {
 
 const UserSchema = new Schema(
 	{
-		// userId: {
-		//     type: Number,
-		//     required: true,
-		//     unique: true,
-		//   },
 		FirstName: {
 			type: String,
 			required: true,
@@ -27,7 +22,6 @@ const UserSchema = new Schema(
 		Email: {
 			type: String,
 			required: true,
-			unique: true,
 			trim: true,
 		},
 
@@ -140,6 +134,8 @@ const UserSchema = new Schema(
 		timestamps: true,
 	}
 );
+
+UserSchema.index({ Email: 1, UserType: 1 }, { unique: true });
 
 // UserSchema.pre<User>("save",async function (next) {
 //     if(!this.isModified) return next();

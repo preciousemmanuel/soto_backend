@@ -49,7 +49,7 @@ function authenticatedMiddleware(req, res, next) {
                 if (!user && !productPath && !customOrderPath) {
                     return next(new http_exception_1.default(401, "Unauthorized"));
                 }
-                req.user = user;
+                req._user = user || new user_model_1.default();
                 next();
             }
         }

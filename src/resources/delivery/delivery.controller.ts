@@ -15,6 +15,8 @@ import upload from "@/utils/config/multer";
 import DeliveryService from "./delivery.service";
 import { RequestData } from "@/utils/enums/base.enum";
 import genAuthenticatedMiddleware from "@/middleware/gendAuth.middleware";
+import { RequestExt } from "@/utils/interfaces/expRequest.interface";
+import userModel from "../user/user.model";
 
 class DeliveryController implements Controller {
 	public path = "/delivery";
@@ -68,7 +70,7 @@ class DeliveryController implements Controller {
 	}
 
 	private getRates = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
@@ -86,7 +88,7 @@ class DeliveryController implements Controller {
 	};
 
 	private getStates = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
@@ -100,7 +102,7 @@ class DeliveryController implements Controller {
 	};
 
 	private getCities = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
@@ -121,13 +123,13 @@ class DeliveryController implements Controller {
 	};
 
 	private selectDeliveryOption = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
 		try {
 			const payload: DeliveryOptionDto = {
-				user: req.user,
+				user: req._user || new userModel(),
 				order_id: String(req.params.id),
 				delivery_details: req.body,
 			};
@@ -141,7 +143,7 @@ class DeliveryController implements Controller {
 	};
 
 	private loginAgilityLogistics = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
@@ -155,7 +157,7 @@ class DeliveryController implements Controller {
 	};
 
 	private getShippingPriceAgility = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {

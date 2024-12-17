@@ -14,6 +14,8 @@ import {
 } from "./product.dto";
 import ProductService from "./product.service";
 import upload from "@/utils/config/multer";
+import { RequestExt } from "@/utils/interfaces/expRequest.interface";
+import userModel from "../user/user.model";
 
 class ProductController implements Controller {
 	public path = "/product";
@@ -79,13 +81,13 @@ class ProductController implements Controller {
 	}
 
 	private addProduct = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
 		try {
 			const body: AddProductDto = req.body;
-			const user = req.user;
+			const user = req._user || new userModel();
 			if (req.files) {
 				body.images = req.files as Express.Multer.File[];
 			}
@@ -100,7 +102,7 @@ class ProductController implements Controller {
 	};
 
 	private fetchProducts = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
@@ -131,7 +133,10 @@ class ProductController implements Controller {
 			};
 
 			const { status, code, message, data } =
-				await this.productService.fetchProducts(payload, req?.user);
+				await this.productService.fetchProducts(
+					payload,
+					req?._user || new userModel()
+				);
 			return responseObject(res, code, status, message, data);
 		} catch (error: any) {
 			next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()));
@@ -139,7 +144,7 @@ class ProductController implements Controller {
 	};
 
 	private fetchVendorProducts = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
@@ -166,7 +171,7 @@ class ProductController implements Controller {
 					}),
 				},
 			};
-			const user = req.user;
+			const user = req._user || new userModel();
 			const { status, code, message, data } =
 				await this.productService.fetchVendorProducts(payload, user);
 			return responseObject(res, code, status, message, data);
@@ -176,7 +181,7 @@ class ProductController implements Controller {
 	};
 
 	private updateProduct = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
@@ -185,7 +190,7 @@ class ProductController implements Controller {
 				product_id: req.params.id,
 				...req.body,
 			};
-			const user = req.user;
+			const user = req._user || new userModel();
 			if (req.files) {
 				payload.images = req.files as Express.Multer.File[];
 			}
@@ -200,7 +205,7 @@ class ProductController implements Controller {
 	};
 
 	private viewAProduct = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
@@ -215,13 +220,13 @@ class ProductController implements Controller {
 	};
 
 	private addProductToWihlist = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
 		try {
 			const payload: string = req.params.id;
-			const user = req.user;
+			const user = req._user || new userModel();
 			const { status, code, message, data } =
 				await this.productService.addProductToWishlist(payload, user);
 			return responseObject(res, code, status, message, data);
@@ -231,7 +236,7 @@ class ProductController implements Controller {
 	};
 
 	private fetchProductWishlist = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
@@ -240,7 +245,7 @@ class ProductController implements Controller {
 				limit: Number(req?.query?.limit),
 				page: Number(req?.query?.page),
 			};
-			const user = req.user;
+			const user = req._user || new userModel();
 			const { status, code, message, data } =
 				await this.productService.fetchWishlist(payload, user);
 			return responseObject(res, code, status, message, data);
@@ -250,7 +255,7 @@ class ProductController implements Controller {
 	};
 
 	private writeAReview = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
@@ -260,7 +265,7 @@ class ProductController implements Controller {
 				comment: req?.body?.comment,
 				rating: req?.body?.rating,
 			};
-			const user = req.user;
+			const user = req._user || new userModel();
 			const { status, code, message, data } =
 				await this.productService.writeAReview(payload, user);
 			return responseObject(res, code, status, message, data);

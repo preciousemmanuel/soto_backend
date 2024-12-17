@@ -42,7 +42,7 @@ class AssignmentController implements Controller {
 	}
 
 	// private getOverview = async (
-	// 	req: Request,
+	// 	req: RequestExt,
 	// 	res: Response,
 	// 	next: NextFunction
 	// ): Promise<Response | void> => {
@@ -106,7 +106,7 @@ class AssignmentController implements Controller {
 	// 			page: query?.page ? Number(query?.page) : 1,
 	// 		};
 
-	// 		const user = req.user;
+	// 		const user = req._user;
 	// 		const { status, code, message, data } =
 	// 			await this.adminOverviewService.getOverview(
 	// 				payload,
@@ -119,7 +119,7 @@ class AssignmentController implements Controller {
 	// };
 
 	// private getBestSellingProducts = async (
-	// 	req: Request,
+	// 	req: RequestExt,
 	// 	res: Response,
 	// 	next: NextFunction
 	// ): Promise<Response | void> => {
@@ -153,7 +153,7 @@ class AssignmentController implements Controller {
 	// 			page: query?.page ? Number(query?.page) : 1,
 	// 		};
 
-	// 		const user = req.user;
+	// 		const user = req._user;
 	// 		const { status, code, message, data } =
 	// 			await this.adminOverviewService.getBestSellingProducts(payload);
 	// 		return responseObject(res, code, status, message, data);
@@ -163,7 +163,7 @@ class AssignmentController implements Controller {
 	// };
 
 	// private getLatestOrders = async (
-	// 	req: Request,
+	// 	req: RequestExt,
 	// 	res: Response,
 	// 	next: NextFunction
 	// ): Promise<Response | void> => {
@@ -197,7 +197,7 @@ class AssignmentController implements Controller {
 	// 			page: query?.page ? Number(query?.page) : 1,
 	// 		};
 
-	// 		const user = req.user;
+	// 		const user = req._user;
 	// 		const { status, code, message, data } =
 	// 			await this.adminOverviewService.getLatestOrders(payload);
 	// 		return responseObject(res, code, status, message, data);

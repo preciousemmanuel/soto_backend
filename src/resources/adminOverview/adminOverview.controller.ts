@@ -31,6 +31,7 @@ import userModel from "../user/user.model";
 import envConfig from "@/utils/config/env.config";
 import adminAuthMiddleware from "@/middleware/adminAuth.middleware";
 import { AddProductDto, UpdateProductDto } from "../product/product.dto";
+import { RequestExt } from "@/utils/interfaces/expRequest.interface";
 
 class AdminOverviewController implements Controller {
 	public path = "/admin";
@@ -196,7 +197,7 @@ class AdminOverviewController implements Controller {
 	}
 
 	private getOverview = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
@@ -254,7 +255,7 @@ class AdminOverviewController implements Controller {
 				page: query?.page ? Number(query?.page) : 1,
 			};
 
-			const user = req.user;
+			const user = req._user;
 			const { status, code, message, data } =
 				await this.adminOverviewService.getOverview(
 					payload,
@@ -267,7 +268,7 @@ class AdminOverviewController implements Controller {
 	};
 
 	private getBestSellingProducts = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
@@ -301,7 +302,7 @@ class AdminOverviewController implements Controller {
 				page: query?.page ? Number(query?.page) : 1,
 			};
 
-			const user = req.user;
+			const user = req._user;
 			const { status, code, message, data } =
 				await this.adminOverviewService.getBestSellingProducts(payload);
 			return responseObject(res, code, status, message, data);
@@ -311,7 +312,7 @@ class AdminOverviewController implements Controller {
 	};
 
 	private getLatestOrders = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
@@ -345,7 +346,7 @@ class AdminOverviewController implements Controller {
 				page: query?.page ? Number(query?.page) : 1,
 			};
 
-			const user = req.user;
+			const user = req._user;
 			const { status, code, message, data } =
 				await this.adminOverviewService.getLatestOrders(payload);
 			return responseObject(res, code, status, message, data);
@@ -355,7 +356,7 @@ class AdminOverviewController implements Controller {
 	};
 
 	private getOrders = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
@@ -393,7 +394,7 @@ class AdminOverviewController implements Controller {
 				}),
 			};
 
-			const user = req.user;
+			const user = req._user;
 			const { status, code, message, data } =
 				await this.adminOverviewService.getOrders(payload);
 			return responseObject(res, code, status, message, data);
@@ -403,7 +404,7 @@ class AdminOverviewController implements Controller {
 	};
 
 	private updateCustomOrder = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
@@ -418,7 +419,7 @@ class AdminOverviewController implements Controller {
 					}),
 			};
 
-			const user = req.user;
+			const user = req._user;
 			const { status, code, message, data } =
 				await this.adminOverviewService.updateCustomOrder(payload);
 			return responseObject(res, code, status, message, data);
@@ -428,7 +429,7 @@ class AdminOverviewController implements Controller {
 	};
 
 	private viewAnOrder = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
@@ -442,7 +443,7 @@ class AdminOverviewController implements Controller {
 	};
 
 	private trackOrder = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
@@ -458,7 +459,7 @@ class AdminOverviewController implements Controller {
 	};
 
 	private cancelAnOrder = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
@@ -472,7 +473,7 @@ class AdminOverviewController implements Controller {
 	};
 
 	private getProductsMgt = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
@@ -517,7 +518,7 @@ class AdminOverviewController implements Controller {
 				}),
 			};
 
-			const user = req.user;
+			const user = req._user;
 			const { status, code, message, data } =
 				await this.adminOverviewService.getProductMgts(payload);
 			return responseObject(res, code, status, message, data);
@@ -527,7 +528,7 @@ class AdminOverviewController implements Controller {
 	};
 
 	private createAProduct = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
@@ -547,7 +548,7 @@ class AdminOverviewController implements Controller {
 	};
 
 	private updateAProduct = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
@@ -569,7 +570,7 @@ class AdminOverviewController implements Controller {
 	};
 
 	private viewAProduct = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
@@ -583,18 +584,19 @@ class AdminOverviewController implements Controller {
 	};
 
 	private adminAddShippingAddress = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
 		try {
 			const address: AddShippingAddressDto = req.body;
 			address.is_admin = true;
+			const user = req._user || new userModel();
 			const sotoUser =
 				(await userModel.findOne({
 					Email: envConfig.SOTO_EMAIL,
 				})) || (await userModel.findOne());
-			address.user = sotoUser || req.user;
+			address.user = sotoUser || user;
 			const { status, code, message, data } =
 				await this.adminOverviewService.createShippingAddress(address);
 			return responseObject(res, code, status, message, data);
@@ -604,7 +606,7 @@ class AdminOverviewController implements Controller {
 	};
 
 	private createShipmentForOrder = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
@@ -614,7 +616,7 @@ class AdminOverviewController implements Controller {
 					Email: envConfig.SOTO_EMAIL,
 				})) || (await userModel.findOne());
 			const payload = {
-				soto_user: sotoUser || req.user,
+				soto_user: sotoUser || req._user,
 				order_id: String(req.params.id),
 			};
 			const { status, code, message, data } =
@@ -626,7 +628,7 @@ class AdminOverviewController implements Controller {
 	};
 
 	private trackShipment = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
@@ -640,14 +642,17 @@ class AdminOverviewController implements Controller {
 	};
 
 	private createCoupon = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
 		try {
 			const payload: CreateCouponDto = req.body;
 			const { status, code, message, data } =
-				await this.adminOverviewService.createCoupon(payload, req.user);
+				await this.adminOverviewService.createCoupon(
+					payload,
+					req._user || new userModel()
+				);
 			return responseObject(res, code, status, message, data);
 		} catch (error: any) {
 			next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()));
@@ -655,7 +660,7 @@ class AdminOverviewController implements Controller {
 	};
 
 	private updateCoupon = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
@@ -666,7 +671,7 @@ class AdminOverviewController implements Controller {
 				await this.adminOverviewService.updateCoupon(
 					payload,
 					coupon_id,
-					req.user
+					req._user || new userModel()
 				);
 			return responseObject(res, code, status, message, data);
 		} catch (error: any) {
@@ -675,14 +680,17 @@ class AdminOverviewController implements Controller {
 	};
 
 	private createCouponDiscount = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
 		try {
 			const payload: CreateCouponDiscountDto = req.body;
 			const { status, code, message, data } =
-				await this.adminOverviewService.createCouponDiscount(payload, req.user);
+				await this.adminOverviewService.createCouponDiscount(
+					payload,
+					req._user || new userModel()
+				);
 			return responseObject(res, code, status, message, data);
 		} catch (error: any) {
 			next(new HttpException(HttpCodes.HTTP_BAD_REQUEST, error.toString()));
@@ -690,7 +698,7 @@ class AdminOverviewController implements Controller {
 	};
 
 	private getCoupons = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
@@ -717,7 +725,7 @@ class AdminOverviewController implements Controller {
 	};
 
 	private getCategories = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
@@ -738,7 +746,7 @@ class AdminOverviewController implements Controller {
 	};
 
 	private addCategory = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {

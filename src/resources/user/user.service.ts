@@ -22,6 +22,7 @@ import {
 	OrderStatus,
 	OtpPurposeOptions,
 	ProductMgtOption,
+	SignupChannels,
 	StatusMessages,
 	Timeline,
 	UserTypes,
@@ -40,6 +41,9 @@ import { getPaginatedRecords } from "@/utils/helpers/paginate";
 import otpModel from "./otp.model";
 import { endOfMonth, startOfMonth } from "date-fns";
 import { email } from "envalid";
+import NotificationService from "../notification/notification.service";
+import { GoogleUser } from "@/utils/interfaces/expRequest.interface";
+import { catchBlockResponseFn } from "@/utils/constants/data";
 
 class UserService {
 	private user = UserModel;
@@ -50,6 +54,7 @@ class UserService {
 	private OrderDetail = orderDetailsModel;
 	private Product = productModel;
 	private mailService = new MailService();
+	private notificationService = new NotificationService();
 
 	public async createUser(createUser: CreateUserDto): Promise<ResponseData> {
 		let responseData: ResponseData;
@@ -117,6 +122,68 @@ class UserService {
 				message: error.toString(),
 			};
 			return responseData;
+		}
+	}
+
+	public async googleAuthCallback(gUser: GoogleUser): Promise<ResponseData> {
+		let responseData: ResponseData;
+		try {
+			const userExist = await this.user.findOne({
+				Email: gUser.email.toLowerCase(),
+				UserType: UserTypes.USER,
+			});
+
+			if (userExist) {
+				const token = createToken(userExist);
+				userExist.Token = token;
+				await userExist.save();
+				responseData = {
+					status: StatusMessages.success,
+					code: HttpCodes.HTTP_OK,
+					message: "User Signed In Successfully",
+					data: userExist,
+				};
+			} else {
+				const createdUser: any = await this.user.create({
+					FirstName: gUser.firstName,
+					LastName: gUser.lastName,
+					Email: gUser.email.toLowerCase(),
+					Password: await hashPassword(gUser.email.toLowerCase()),
+					PhoneNumber: gUser.phoneNumber,
+					SignupChannel: SignupChannels.GOOGLE,
+					UserType: UserTypes.USER,
+					ProfileImage: gUser.picture,
+				});
+				const token = createToken(createdUser);
+				const wallet =
+					(await this.wallet.findOne({ user: createdUser._id })) ||
+					(await this.wallet.create({
+						user: createdUser._id,
+					}));
+				const cart =
+					(await this.Cart.findOne({ user: createdUser._id })) ||
+					(await this.Cart.create({
+						user: createdUser._id,
+						grand_total: 0,
+						total_amount: 0,
+					}));
+				createdUser.Token = token;
+				createdUser.wallet = wallet._id;
+				createdUser.cart = cart._id;
+
+				await createdUser.save();
+				responseData = {
+					status: StatusMessages.success,
+					code: HttpCodes.HTTP_CREATED,
+					message: "User Created Successfully",
+					data: createdUser,
+				};
+			}
+
+			return responseData;
+		} catch (error: any) {
+			console.log("🚀 ~ UserService ~ googleAuth ~ error:", error);
+			return catchBlockResponseFn(error);
 		}
 	}
 
@@ -759,11 +826,19 @@ class UserService {
 				user,
 				user?.Email
 			);
-			this.mailService.sendOtpMail({
-				email: user.Email,
-				otp: oneTimePassword.otp,
-				first_name: user.FirstName,
-			});
+			if (changePasswordDto.email_or_phone_number.includes("@")) {
+				this.mailService.sendOtpMail({
+					email: user.Email,
+					otp: oneTimePassword.otp,
+					first_name: user.FirstName,
+				});
+			} else {
+				this.notificationService.sendSMSNotification({
+					from: "soto",
+					to: changePasswordDto.email_or_phone_number,
+					body: `Hi, your OTP is: ${oneTimePassword?.otp}`,
+				});
+			}
 
 			responseData = {
 				status: StatusMessages.success,

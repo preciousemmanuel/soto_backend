@@ -10,6 +10,7 @@ const helmet_1 = __importDefault(require("helmet"));
 const cors_1 = __importDefault(require("cors"));
 const morgan_1 = __importDefault(require("morgan"));
 const error_middleware_1 = __importDefault(require("./middleware/error.middleware"));
+const passport_config_1 = __importDefault(require("./utils/config/passport.config"));
 class App {
     constructor(controllers, port, categoryService, adminConfigService, conjobServices) {
         this.express = (0, express_1.default)();
@@ -27,6 +28,7 @@ class App {
         this.initializeSeeders();
         this.initializeMiddleware;
         this.initializeJobs();
+        this.initializePassport();
     }
     initializeMiddleware() {
         this.express.use((0, helmet_1.default)());
@@ -40,6 +42,9 @@ class App {
         controllers.forEach((controller) => {
             this.express.use("/api", controller.router);
         });
+    }
+    initializePassport() {
+        this.express.use(passport_config_1.default.initialize());
     }
     initializeErrorHandling() {
         this.express.use(error_middleware_1.default);

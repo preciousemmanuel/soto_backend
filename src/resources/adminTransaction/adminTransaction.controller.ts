@@ -17,6 +17,7 @@ import {
 import { RequestData } from "@/utils/enums/base.enum";
 import { backDaterForChart, backTrackToADate } from "@/utils/helpers";
 import { endOfDay, startOfDay } from "date-fns";
+import { RequestExt } from "@/utils/interfaces/expRequest.interface";
 
 class AdminTransactionController implements Controller {
 	public path = "/admin/transactions";
@@ -54,7 +55,7 @@ class AdminTransactionController implements Controller {
 	}
 
 	private getWalletOverview = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
@@ -109,7 +110,7 @@ class AdminTransactionController implements Controller {
 				page: query?.page ? Number(query?.page) : 1,
 			};
 
-			const user = req.user;
+			const user = req._user;
 			const { status, code, message, data } =
 				await this.adminTransactionService.getWalletOverview(
 					payload,
@@ -122,7 +123,7 @@ class AdminTransactionController implements Controller {
 	};
 
 	private getWithdrawalRequests = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
@@ -143,7 +144,7 @@ class AdminTransactionController implements Controller {
 					}),
 			};
 
-			const user = req.user;
+			const user = req._user;
 			const { status, code, message, data } =
 				await this.adminTransactionService.getWithdrawalRequests(payload);
 			return responseObject(res, code, status, message, data);
@@ -153,7 +154,7 @@ class AdminTransactionController implements Controller {
 	};
 
 	private approveOrDeclineWithdrawalRequest = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {
@@ -163,7 +164,7 @@ class AdminTransactionController implements Controller {
 				withdrawal_id: req.params.id,
 				approve_or_decline: String(query?.approve_or_decline),
 			};
-			const user = req.user;
+			const user = req._user;
 			const { status, code, message, data } =
 				await this.adminTransactionService.approveOrDeclineWithdrawalRequest(
 					payload
@@ -175,7 +176,7 @@ class AdminTransactionController implements Controller {
 	};
 
 	private completeWithdrawalApproval = async (
-		req: Request,
+		req: RequestExt,
 		res: Response,
 		next: NextFunction
 	): Promise<Response | void> => {

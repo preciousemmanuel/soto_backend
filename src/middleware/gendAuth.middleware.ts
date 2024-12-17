@@ -6,9 +6,10 @@ import { Request, Response, NextFunction } from "express";
 import jwt, { verify } from "jsonwebtoken";
 import axios from "axios";
 import adminModel from "@/resources/adminConfig/admin.model";
+import { RequestExt } from "@/utils/interfaces/expRequest.interface";
 
 async function genAuthenticatedMiddleware(
-	req: Request,
+	req: RequestExt,
 	res: Response,
 	next: NextFunction
 ): Promise<Response | void> {
@@ -46,7 +47,7 @@ async function genAuthenticatedMiddleware(
 			if (!user && !productPath && !customOrderPath && !admin) {
 				return next(new HttpException(401, "Unauthorized"));
 			} else if (user) {
-				req.user = user;
+				req._user = user;
 				next();
 			} else if (admin) {
 				req.admin = admin;

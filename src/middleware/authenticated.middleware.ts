@@ -5,9 +5,10 @@ import { verifyToken } from "@/utils/helpers/token";
 import { Request, Response, NextFunction } from "express";
 import jwt, { verify } from "jsonwebtoken";
 import axios from "axios";
+import { RequestExt } from "@/utils/interfaces/expRequest.interface";
 
 async function authenticatedMiddleware(
-	req: Request,
+	req: RequestExt,
 	res: Response,
 	next: NextFunction
 ): Promise<Response | void> {
@@ -47,7 +48,7 @@ async function authenticatedMiddleware(
 				return next(new HttpException(401, "Unauthorized"));
 			}
 
-			req.user = user;
+			req._user = user || new userModel();
 			next();
 		}
 	} catch (error) {
