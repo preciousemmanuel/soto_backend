@@ -73,6 +73,124 @@ class AdminPeopleService {
 			console.log("🚀 ~ AdminPeopleService ~ getBuyers ~ payload:", payload);
 			const skip = (page - 1) * limit;
 
+			// const aggregateResult = await this.User.aggregate([
+			// 	{
+			// 		$match: {
+			// 			$or: [
+			// 				{
+			// 					...(search && { Email: { $regex: search, $options: "i" } }),
+			// 					UserType: UserTypes.USER,
+			// 				},
+			// 				{
+			// 					...(search && { FirstName: { $regex: search, $options: "i" } }),
+			// 					UserType: UserTypes.USER,
+			// 				},
+			// 				{
+			// 					...(search && { LastName: { $regex: search, $options: "i" } }),
+			// 					UserType: UserTypes.USER,
+			// 				},
+			// 			],
+			// 		},
+			// 	},
+			// 	{
+			// 		$lookup: {
+			// 			from: "Orders",
+			// 			localField: "_id",
+			// 			foreignField: "user",
+			// 			as: "user_orders",
+			// 		},
+			// 	},
+			// 	{
+			// 		$addFields: {
+			// 			total_spent: { $sum: "$user_orders.grand_total" },
+			// 			total_orders: { $size: "$user_orders" },
+			// 			total_items_ordered: {
+			// 				$sum: {
+			// 					$map: {
+			// 						input: "$user_orders",
+			// 						as: "order",
+			// 						in: {
+			// 							$sum: {
+			// 								$map: {
+			// 									input: "$$order.items",
+			// 									as: "item",
+			// 									in: "$$item.quantity",
+			// 								},
+			// 							},
+			// 						},
+			// 					},
+			// 				},
+			// 			},
+			// 			last_order_price: {
+			// 				$ifNull: [
+			// 					{
+			// 						$let: {
+			// 							vars: { lastOrder: { $arrayElemAt: ["$user_orders", -1] } }, // Get last order (assuming orders are sorted by date)
+			// 							in: "$$lastOrder.grand_total",
+			// 						},
+			// 					},
+			// 					0,
+			// 				],
+			// 			},
+			// 		},
+			// 	},
+			// 	{
+			// 		$project: {
+			// 			_id: 1,
+			// 			FirstName: 1,
+			// 			LastName: 1,
+			// 			Email: 1,
+			// 			ProfileImage: 1,
+			// 			total_spent: 1,
+			// 			last_order_price: 1,
+			// 			total_orders: 1,
+			// 			total_items_ordered: 1,
+			// 			createdAt: 1,
+			// 			Rank: 1,
+			// 		},
+			// 	},
+			// 	{
+			// 		$sort: { createdAt: -1 },
+			// 	},
+			// 	{
+			// 		$skip: skip,
+			// 	},
+			// 	{
+			// 		$limit: limit,
+			// 	},
+			// 	{
+			// 		$group: {
+			// 			_id: null,
+			// 			users: {
+			// 				$push: {
+			// 					_id: "$_id",
+			// 					first_name: "$FirstName",
+			// 					last_name: "$LastName",
+			// 					email: "$Email",
+			// 					is_blocked: "$IsBlocked",
+			// 					is_verified: "$IsVerified",
+			// 					profile_image: { $ifNull: ["$ProfileImage", ""] },
+			// 					createdAt: "$createdAt",
+			// 					rank: "$Rank",
+			// 					total_spent: "$total_spent",
+			// 					last_order_price: "$last_order_price",
+			// 					total_orders: "$total_orders",
+			// 					total_items_ordered: "$total_items_ordered",
+			// 				},
+			// 			},
+			// 			total_count: { $sum: 1 },
+			// 			// total_count: [{ $count: "count" }],
+			// 		},
+			// 	},
+			// 	{
+			// 		$project: {
+			// 			_id: 0,
+			// 			users: 1,
+			// 			total_count: 1,
+			// 			// total_count: { $arrayElemAt: ["$total_count.count", 0] },
+			// 		},
+			// 	},
+			// ]);
 			const aggregateResult = await this.User.aggregate([
 				{
 					$match: {
@@ -125,7 +243,7 @@ class AdminPeopleService {
 							$ifNull: [
 								{
 									$let: {
-										vars: { lastOrder: { $arrayElemAt: ["$user_orders", -1] } }, // Get last order (assuming orders are sorted by date)
+										vars: { lastOrder: { $arrayElemAt: ["$user_orders", -1] } },
 										in: "$$lastOrder.grand_total",
 									},
 								},
@@ -135,60 +253,38 @@ class AdminPeopleService {
 					},
 				},
 				{
-					$project: {
-						_id: 1,
-						FirstName: 1,
-						LastName: 1,
-						Email: 1,
-						ProfileImage: 1,
-						total_spent: 1,
-						last_order_price: 1,
-						total_orders: 1,
-						total_items_ordered: 1,
-						createdAt: 1,
-						Rank: 1,
-					},
-				},
-				{
-					$sort: { total_spent: -1 },
-				},
-				{
-					$skip: skip,
-				},
-				{
-					$limit: limit,
-				},
-				{
-					$group: {
-						_id: null,
-						users: {
-							$push: {
-								_id: "$_id",
-								first_name: "$FirstName",
-								last_name: "$LastName",
-								email: "$Email",
-								is_blocked: "$IsBlocked",
-								is_verified: "$IsVerified",
-								profile_image: { $ifNull: ["$ProfileImage", ""] },
-								createdAt: "$createdAt",
-								rank: "$Rank",
-								total_spent: "$total_spent",
-								last_order_price: "$last_order_price",
-								total_orders: "$total_orders",
-								total_items_ordered: "$total_items_ordered",
+					$facet: {
+						users: [
+							{ $sort: { createdAt: -1 } },
+							{ $skip: skip },
+							{ $limit: limit },
+							{
+								$project: {
+									_id: 1,
+									FirstName: 1,
+									LastName: 1,
+									Email: 1,
+									ProfileImage: 1,
+									total_spent: 1,
+									last_order_price: 1,
+									total_orders: 1,
+									total_items_ordered: 1,
+									createdAt: 1,
+									Rank: 1,
+								},
 							},
-						},
-						total_count: { $sum: 1 },
+						],
+						total_count: [{ $count: "count" }],
 					},
 				},
 				{
 					$project: {
-						_id: 0,
 						users: 1,
-						total_count: 1,
+						total_count: { $arrayElemAt: ["$total_count.count", 0] }, // Extract the total count value
 					},
 				},
 			]);
+
 			const data = aggregateResult.length > 0 ? aggregateResult[0]?.users : [];
 			const totalCount =
 				aggregateResult.length > 0 ? aggregateResult[0]?.total_count : 0;
@@ -533,7 +629,7 @@ class AdminPeopleService {
 				switch (seller_status) {
 					case SellerStatus.PENDING:
 						status_value = {
-							IsVerified: false,
+							// IsVerified: false,
 							vendor_status: SellerStatus.PENDING,
 						};
 						break;
@@ -551,6 +647,12 @@ class AdminPeopleService {
 							vendor_status: SellerStatus.DECLINED,
 						};
 						break;
+					case SellerStatus.BLOCKED:
+						status_value = {
+							vendor_status: SellerStatus.BLOCKED,
+						};
+						break;
+
 					default:
 						break;
 				}
