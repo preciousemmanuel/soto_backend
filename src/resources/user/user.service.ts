@@ -546,8 +546,10 @@ class UserService {
 			const total_sold_aggregate = await this.OrderDetail.aggregate([
 				{
 					$match: {
-						vendor: user._id,
-						status: OrderStatus.DELIVERED,
+						$or: [
+							{ vendor: user._id, status: OrderStatus.DELIVERED },
+							{ vendor: user._id, status: OrderStatus.PICKED_UP },
+						],
 					},
 				},
 				{
