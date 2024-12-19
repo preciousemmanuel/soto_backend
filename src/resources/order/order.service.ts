@@ -57,8 +57,10 @@ import AdminOverviewService from "../adminOverview/adminOverview.service";
 import settingModel from "../adminConfig/setting.model";
 import { catchBlockResponseFn } from "@/utils/constants/data";
 import BusinessService from "../business/business.service";
+import assignmentModel from "../assignment/assignment.model";
 
 class OrderService {
+	private Assignment = assignmentModel;
 	private Order = orderModel;
 	private CustomOrder = customOrderModel;
 	private Cart = cartModel;
@@ -976,7 +978,7 @@ class OrderService {
 		let responseData: ResponseData = {
 			status: StatusMessages.success,
 			code: HttpCodes.HTTP_OK,
-			message: "Order Retrieved Successfully",
+			message: "Vendor Order Retrieved Successfully",
 		};
 		try {
 			const { order_id, user } = payload;
@@ -993,9 +995,66 @@ class OrderService {
 			const details = await this.OrderDetail.find({
 				order: order_id,
 				vendor: user._id,
+			})
+				.populate({
+					path: "buyer",
+					select: "_id FirstName LastName Email ShippingAddress PhoneNumber",
+				})
+				.populate({
+					path: "product_id",
+					select: "_id images product_quantity description",
+				});
+			const detail_ids: any[] = [];
+			for (const detail of details) {
+				detail_ids.push(detail._id);
+			}
+			const assignmets = await this.Assignment.find({
+				order_details: { $in: detail_ids },
+			}).populate("purchaser");
+			const items: any[] = details.map((detail: any) => {
+				return {
+					_id: detail._id,
+					product_id: detail.product_id._id,
+					product_name: detail.product_name,
+					product_code: detail.product_code,
+					description: detail.product_id.description,
+					images: detail.product_id.images,
+					quantity: detail.quantity,
+					raw_price: detail.raw_price,
+					unit_price: detail.unit_price,
+					buyer: detail.buyer,
+				};
 			});
 
-			responseData.data = details;
+			const assignedOrders = items.map((item) => {
+				const assigned = assignmets.find(
+					(assignment) => String(assignment.order_details) === String(item._id)
+				);
+
+				if (assigned) {
+					const purchaser: any = assigned.purchaser;
+					return {
+						...item,
+						assigned_purchaser: {
+							_id: purchaser._id,
+							FirstName: purchaser.FirstName,
+							LastName: purchaser.LastName,
+							Email: purchaser.Email,
+							PhoneNumber: purchaser.PhoneNumber,
+							ProfileImage: purchaser.ProfileImage,
+							createdAt: purchaser.createdAt,
+							updatedAt: purchaser.updatedAt,
+						},
+					};
+				}
+			});
+
+			const full_order = {
+				...order.toObject(),
+				items: assignedOrders,
+			};
+
+			responseData.data = full_order;
 			return responseData;
 		} catch (error: any) {
 			console.log("🚀 ~ OrderService ~ viewAnOrderByVendor ~ error:", error);
