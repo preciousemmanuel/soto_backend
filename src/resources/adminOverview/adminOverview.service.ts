@@ -1486,8 +1486,8 @@ class AdminOverviewService {
 
 			const fullOrderDetails = await this.fullOrderDetails(order._id);
 			const final_details = fullOrderDetails.map((detail) => {
-				const matched = joinedDetails.find((item) =>
-					String(item.product_id === String(detail.product_id))
+				const matched = joinedDetails.find(
+					(item) => String(item.product_id) === String(detail.product_id)
 				);
 				if (matched) {
 					return {
