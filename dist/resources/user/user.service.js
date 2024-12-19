@@ -486,8 +486,10 @@ class UserService {
                     limit,
                     page,
                     data: {
-                        vendor: user._id,
-                        status: base_enum_1.OrderStatus.DELIVERED,
+                        $or: [
+                            { vendor: user._id, status: base_enum_1.OrderStatus.DELIVERED },
+                            { vendor: user._id, status: base_enum_1.OrderStatus.PICKED_UP },
+                        ],
                     },
                     populateObj: {
                         path: "buyer",
@@ -497,8 +499,10 @@ class UserService {
                 const total_sold_aggregate = yield this.OrderDetail.aggregate([
                     {
                         $match: {
-                            vendor: user._id,
-                            status: base_enum_1.OrderStatus.DELIVERED,
+                            $or: [
+                                { vendor: user._id, status: base_enum_1.OrderStatus.DELIVERED },
+                                { vendor: user._id, status: base_enum_1.OrderStatus.PICKED_UP },
+                            ],
                         },
                     },
                     {

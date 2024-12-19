@@ -1486,8 +1486,8 @@ class AdminOverviewService {
 
 			const fullOrderDetails = await this.fullOrderDetails(order._id);
 			const final_details = fullOrderDetails.map((detail) => {
-				const matched = joinedDetails.find((item) =>
-					String(item.product_id === String(detail.product_id))
+				const matched = joinedDetails.find(
+					(item) => String(item.product_id) === String(detail.product_id)
 				);
 				if (matched) {
 					return {
@@ -1661,17 +1661,23 @@ class AdminOverviewService {
 					content: Object.entries(order_itinerary).at(-1)?.[1],
 				});
 			}
+			const order_status =
+				step === 2
+					? OrderStatus.PICKED_UP
+					: step === 4
+						? OrderStatus.DELIVERED
+						: undefined;
 
 			const trackedOrder = await this.Order.findByIdAndUpdate(
 				order_id,
 				{
 					order_itinerary: step,
-					...(step === 4 && { status: OrderStatus.DELIVERED }),
+					...(order_status && { status: order_status }),
 				},
 				{ new: true }
 			);
-			if (step === 4) {
-				this.trackSubOrders(order_id);
+			if (order_status) {
+				this.trackSubOrders(order_id, order_status);
 			}
 			return {
 				status: StatusMessages.success,
@@ -1687,14 +1693,14 @@ class AdminOverviewService {
 		}
 	}
 
-	public async trackSubOrders(order_id: string) {
+	public async trackSubOrders(order_id: string, order_status: string) {
 		try {
 			const updateOrderDetails = await this.OrderDetails.updateMany(
 				{
 					order: order_id,
 				},
 				{
-					status: OrderStatus.DELIVERED,
+					status: order_status,
 				}
 			);
 			console.log(
