@@ -534,8 +534,10 @@ class UserService {
 				limit,
 				page,
 				data: {
-					vendor: user._id,
-					status: OrderStatus.DELIVERED,
+					$or: [
+						{ vendor: user._id, status: OrderStatus.DELIVERED },
+						{ vendor: user._id, status: OrderStatus.PICKED_UP },
+					],
 				},
 				populateObj: {
 					path: "buyer",
