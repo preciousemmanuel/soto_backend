@@ -75,10 +75,6 @@ class AssignmentService {
 				role_id,
 				purchasers
 			);
-			console.log(
-				"🚀 ~ AssignmentService ~ InsertsAssignment:",
-				InsertsAssignment
-			);
 
 			let assignments: any[];
 			await this.Assignment.insertMany(InsertsAssignment.cleanObjects)

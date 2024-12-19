@@ -739,10 +739,6 @@ class OrderService {
 					order_details
 				)) as InstanceType<typeof this.OrderDetail>[];
 			});
-			console.log(
-				"🚀 ~ await this.OrderDetail.insertMany ~ inserted:",
-				inserted
-			);
 
 			const details_ids = [];
 			for (const item of inserted) {
@@ -916,7 +912,6 @@ class OrderService {
 					await this.mailService.sendOrdersToVendor(emailPayload);
 				}
 			}
-			console.log("🚀  ~ smsPayloads: END", smsPayloads);
 			this.notificationService.sendSMsToMany(smsPayloads);
 			return responseData;
 		} catch (error: any) {
