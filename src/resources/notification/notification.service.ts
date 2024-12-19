@@ -422,7 +422,6 @@ class NotificationService {
 	public async sendSMSNotification(
 		payload: SendSmsNotificationDto
 	): Promise<ResponseData> {
-		console.log("🚀 ~ sendSMSNotification ~ payload:", payload);
 		let responseData: ResponseData;
 		try {
 			const sms = await this.Sms.create({
