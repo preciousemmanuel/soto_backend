@@ -58,6 +58,7 @@ import settingModel from "../adminConfig/setting.model";
 import { catchBlockResponseFn } from "@/utils/constants/data";
 import BusinessService from "../business/business.service";
 import assignmentModel from "../assignment/assignment.model";
+import mongoose from "mongoose";
 
 class OrderService {
 	private Assignment = assignmentModel;
@@ -534,6 +535,7 @@ class OrderService {
 		myOrdersDto: FetchMyOrdersDto,
 		user: InstanceType<typeof this.User>
 	): Promise<ResponseData> {
+		console.log("🚀 ~ OrderService ~ user:", user._id);
 		let responseData: ResponseData;
 		try {
 			const search = {
@@ -547,8 +549,10 @@ class OrderService {
 				...(myOrdersDto?.filter?.status && {
 					status: myOrdersDto?.filter?.status,
 				}),
-				vendor: user._id,
+				...(user && { vendor: new mongoose.Types.ObjectId(String(user._id)) }),
 			};
+			console.log("🚀 ~ OrderService ~ search:", search);
+
 			const page = myOrdersDto?.page || 1;
 			const limit = myOrdersDto?.limit || 10;
 			const skip = (page - 1) * limit;
@@ -572,16 +576,17 @@ class OrderService {
 						preserveNullAndEmptyArrays: true,
 					},
 				},
-				{
-					$sort: {
-						"order_info.createdAt": -1,
-					},
-				},
+
 				{
 					$group: {
 						_id: "$order",
 						count: { $sum: 1 },
 						order_info: { $first: "$order_info" },
+					},
+				},
+				{
+					$sort: {
+						"order_info.createdAt": -1,
 					},
 				},
 
@@ -652,6 +657,7 @@ class OrderService {
 				code: HttpCodes.HTTP_OK,
 				message: "success",
 				data: records,
+				// data: orders,
 			};
 			return responseData;
 		} catch (error: any) {
