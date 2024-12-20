@@ -104,6 +104,9 @@ class BusinessService {
 			const user = await this.User.create({
 				FirstName: newBusiness?.business_name,
 				// LastName: newBusiness?.business_name,
+				...(createBusinessDto.phone_number && {
+					PhoneNumber: createBusinessDto.phone_number,
+				}),
 				Email: newBusiness?.email,
 				Password: hashedPassword,
 				UserType: UserTypes.VENDOR,
