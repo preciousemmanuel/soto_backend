@@ -535,7 +535,6 @@ class OrderService {
 		myOrdersDto: FetchMyOrdersDto,
 		user: InstanceType<typeof this.User>
 	): Promise<ResponseData> {
-		console.log("🚀 ~ OrderService ~ user:", user._id);
 		let responseData: ResponseData;
 		try {
 			const search = {
@@ -551,7 +550,6 @@ class OrderService {
 				}),
 				...(user && { vendor: new mongoose.Types.ObjectId(String(user._id)) }),
 			};
-			console.log("🚀 ~ OrderService ~ search:", search);
 
 			const page = myOrdersDto?.page || 1;
 			const limit = myOrdersDto?.limit || 10;
@@ -605,6 +603,7 @@ class OrderService {
 							grand_total: 1,
 							createdAt: 1,
 							updatedAt: 1,
+							tracking_id: 1,
 						},
 					},
 				},
@@ -628,6 +627,7 @@ class OrderService {
 					? orders[0].orders.map((item: any) => {
 							return {
 								_id: item.order_info._id,
+								tracking_id: item.order_info.tracking_id,
 								items: item.order_info.items,
 								user: item.order_info.user,
 								status: item.order_info.status,
