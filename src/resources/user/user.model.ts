@@ -17,7 +17,7 @@ const UserSchema = new Schema(
 		},
 		LastName: {
 			type: String,
-			required: true,
+			// required: true,
 		},
 		Email: {
 			type: String,

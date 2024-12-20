@@ -103,7 +103,7 @@ class BusinessService {
 			const hashedPassword = await hashPassword(createBusinessDto.password);
 			const user = await this.User.create({
 				FirstName: newBusiness?.business_name,
-				LastName: newBusiness?.business_name,
+				// LastName: newBusiness?.business_name,
 				Email: newBusiness?.email,
 				Password: hashedPassword,
 				UserType: UserTypes.VENDOR,
