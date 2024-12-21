@@ -75,6 +75,9 @@ const SettingSchema = new Schema(
 		agility_token: {
 			type: String,
 		},
+		agility_last_login: {
+			type: Date,
+		},
 		remittance_day: {
 			type: Number,
 			default: 7,
