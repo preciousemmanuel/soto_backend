@@ -33,7 +33,7 @@ class PaymentProviderService {
 		try {
 			const call_back_url = payload.base_url
 				? !payload.base_url.includes("postman")
-					? `${payload.base_url}/payment-success`
+					? `${payload.base_url}`
 					: envConfig.PAYSTACK_CALLBACK_URL
 				: undefined;
 			const paystackPayload = {
@@ -86,7 +86,7 @@ class PaymentProviderService {
 
 			const initializeTransaction = await axiosRequestFunction(axiosConfig);
 			if (
-				Number(initializeTransaction?.status) < 400 &&
+				Number(initializeTransaction?.code) < 400 &&
 				initializeTransaction?.data
 			) {
 				responseData = {
@@ -96,10 +96,25 @@ class PaymentProviderService {
 						? initializeTransaction.message
 						: "Link Generated Succcessfully",
 					data: payload.authorization_code
-						? initializeTransaction.data
+						? {
+								status: initializeTransaction.status,
+								code: initializeTransaction.code,
+								message: initializeTransaction.message,
+								data: {
+									...initializeTransaction.data,
+									callback_url: call_back_url,
+								},
+							}
 						: {
-								link: initializeTransaction?.data?.authorization_url,
-								txRef: initializeTransaction?.data?.reference,
+								status: initializeTransaction.status,
+								code: initializeTransaction.code,
+								message: initializeTransaction.message,
+								data: {
+									...initializeTransaction.data,
+									link: initializeTransaction?.data?.authorization_url,
+									txRef: initializeTransaction?.data?.reference,
+									callback_url: call_back_url,
+								},
 							},
 				};
 				return responseData;

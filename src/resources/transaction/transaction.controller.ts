@@ -60,6 +60,13 @@ class TransactionController implements Controller {
 		next: NextFunction
 	): Promise<Response | void> => {
 		try {
+			const path = "/payment-success";
+			const base_url =
+				req.headers.origin ||
+				(req.headers.referer && new URL(req.headers.referer).origin) ||
+				"https://soto-web.vercel.app" ||
+				"http://localhost:5174";
+			const callback_url = base_url + path;
 			const payload: GeneratePaymentLinkDto = {
 				amount: req.body.amount,
 				card_id: req.body?.card_id,
@@ -67,8 +74,7 @@ class TransactionController implements Controller {
 				narration: req.body.narration,
 				save_card: req.body?.save_card === YesOrNo.YES ? true : false,
 				platform: req.body?.platform,
-				...(req?.body?.platform &&
-					req.body?.platform === Platform.WEB && { base_url: req.baseUrl }),
+				base_url: callback_url,
 			};
 
 			const user = req._user || new userModel();
