@@ -138,8 +138,11 @@ export const axiosRequestFunction = async ({
 				console.log("🚀 AXIOS CATCH ERROR", e);
 				responseData = {
 					status: StatusMessages.error,
-					code: HttpCodes.HTTP_BAD_REQUEST,
-					message: e?.response?.data?.message || e.toString(),
+					code: e?.response?.status || HttpCodes.HTTP_BAD_REQUEST,
+					message:
+						e?.response?.data?.message ||
+						e?.response?.statusText ||
+						e.toString(),
 					data: null,
 				};
 			});
@@ -148,7 +151,7 @@ export const axiosRequestFunction = async ({
 		console.log("🚀 ~ error:", error);
 		responseData = {
 			status: StatusMessages.error,
-			code: HttpCodes.HTTP_BAD_REQUEST,
+			code: error?.response?.status || HttpCodes.HTTP_SERVER_ERROR,
 			message: error.toString(),
 			data: null,
 		};

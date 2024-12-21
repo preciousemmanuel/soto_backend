@@ -358,7 +358,7 @@ class DeliveryService {
 			code: HttpCodes.HTTP_OK,
 			message: "Delivery Vendor Selected Successfully",
 		};
-
+		var configModel = await this.Setting.findOne({});
 		try {
 			const agPayload = {
 				username: "testaccount@yahoo.com",
@@ -396,6 +396,7 @@ class DeliveryService {
 				status: StatusMessages.error,
 				code: HttpCodes.HTTP_SERVER_ERROR,
 				message: error.toString(),
+				data: configModel,
 			};
 			return responseData;
 		}
@@ -415,112 +416,125 @@ class DeliveryService {
 		try {
 			// const config = await this.Setting.findOne({});
 			const loginAg = await this.loginAgilityLogistics();
+			console.log("🚀 ~ DeliveryService ~ loginAg:", loginAg);
 			if (loginAg.status === StatusMessages.error) {
-				return loginAg;
-			}
-			const config = loginAg.data.config as InstanceType<typeof this.Setting>;
-
-			const agPayload = {
-				PreShipmentMobileId: 0,
-				SenderName: "TEST ECOMMERCE IT",
-				SenderPhoneNumber: "+2347063965528",
-				SenderStationId: 1,
-				InputtedSenderAddress:
-					"21 Emmanuel Olorunfemi St, Ifako Agege, Lagos, Nigeria",
-				SenderLocality: "Ifako Ijaye",
-				ReceiverStationId: 1,
-				SenderAddress: "21 Emmanuel Olorunfemi St, Ifako Agege, Lagos, Nigeria",
-				ReceiverName: "Ehinomen",
-				ReceiverPhoneNumber: "08039322440",
-				ReceiverAddress:
-					"Dominos Pizza Gbagada,1A Idowu Olaitan St, Gbagada, Lagos, Nigeria",
-				InputtedReceiverAddress:
-					"Dominos Pizza Gbagada,1A Idowu Olaitan St, Gbagada, Lagos, Nigeria",
-				SenderLocation: {
-					Latitude: "6.639438",
-					Longitude: "3.330983",
-					FormattedAddress: "",
-					Name: "",
-					LGA: "",
-				},
-				ReceiverLocation: {
-					Latitude: "6.5483775",
-					Longitude: "3.3883414",
-					FormattedAddress: "",
-					Name: "",
-					LGA: "",
-				},
-				PreShipmentItems: [
-					{
-						PreShipmentItemMobileId: 0,
-						Description: "Sample description",
-						Weight: 1,
-						Weight2: 0,
-						ItemType: "Normal",
-						ShipmentType: 1,
-						ItemName: "Shoe Lace",
-						EstimatedPrice: 0,
-						Value: "1000",
-						ImageUrl: "",
-						Quantity: 1,
-						SerialNumber: 0,
-						IsVolumetric: false,
-						Length: null,
-						Width: null,
-						Height: null,
-						PreShipmentMobileId: 0,
-						CalculatedPrice: null,
-						SpecialPackageId: null,
-						IsCancelled: false,
-						PictureName: "",
-						PictureDate: null,
-						WeightRange: "0",
-					},
-				],
-				VehicleType: "BIKE",
-				IsBatchPickUp: false,
-				WaybillImage: "",
-				WaybillImageFormat: "",
-				DestinationServiceCenterId: 0,
-				DestinationServiceCentreId: 0,
-				IsCashOnDelivery: false,
-				CashOnDeliveryAmount: 0.0,
-			};
-
-			const axiosConfig: requestProp = {
-				url: envConfig.AGILITY_BASE_URL + "/price",
-				method: "POST",
-				body: agPayload,
-				headers: {
-					Authorization: `Bearer ${config?.agility_token}`,
-				},
-			};
-			const agilityLogin = await axiosRequestFunction(axiosConfig);
-			if (Number(agilityLogin?.code) < 400 && agilityLogin?.data) {
-				const shipping_cost = nearest(
-					Number(agilityLogin?.data?.object?.grandTotal),
-					50
-				);
-				const shipping_items =
-					agilityLogin?.data?.object?.preshipmentMobile?.preShipmentItems;
-				responseData = {
+				// return loginAg;
+				return {
 					status: StatusMessages.success,
+					message: "Shipping cost default returned",
 					code: HttpCodes.HTTP_OK,
-					message: agilityLogin.message,
 					data: {
-						shipping_cost,
-						shipping_items,
-						agility_payload: agPayload,
+						shipping_cost: 2400,
+						shipping_items: [],
+						agility_payload: {},
 					},
 				};
-				if (user && order) {
-					order.delivery_amount = shipping_cost;
-					order.agility_price_payload = agPayload;
-					await order.save();
-				}
-				return responseData;
 			} else {
-				return agilityLogin;
+				const config = loginAg.data.config as InstanceType<typeof this.Setting>;
+
+				const agPayload = {
+					PreShipmentMobileId: 0,
+					SenderName: "TEST ECOMMERCE IT",
+					SenderPhoneNumber: "+2347063965528",
+					SenderStationId: 1,
+					InputtedSenderAddress:
+						"21 Emmanuel Olorunfemi St, Ifako Agege, Lagos, Nigeria",
+					SenderLocality: "Ifako Ijaye",
+					ReceiverStationId: 1,
+					SenderAddress:
+						"21 Emmanuel Olorunfemi St, Ifako Agege, Lagos, Nigeria",
+					ReceiverName: "Ehinomen",
+					ReceiverPhoneNumber: "08039322440",
+					ReceiverAddress:
+						"Dominos Pizza Gbagada,1A Idowu Olaitan St, Gbagada, Lagos, Nigeria",
+					InputtedReceiverAddress:
+						"Dominos Pizza Gbagada,1A Idowu Olaitan St, Gbagada, Lagos, Nigeria",
+					SenderLocation: {
+						Latitude: "6.639438",
+						Longitude: "3.330983",
+						FormattedAddress: "",
+						Name: "",
+						LGA: "",
+					},
+					ReceiverLocation: {
+						Latitude: "6.5483775",
+						Longitude: "3.3883414",
+						FormattedAddress: "",
+						Name: "",
+						LGA: "",
+					},
+					PreShipmentItems: [
+						{
+							PreShipmentItemMobileId: 0,
+							Description: "Sample description",
+							Weight: 1,
+							Weight2: 0,
+							ItemType: "Normal",
+							ShipmentType: 1,
+							ItemName: "Shoe Lace",
+							EstimatedPrice: 0,
+							Value: "1000",
+							ImageUrl: "",
+							Quantity: 1,
+							SerialNumber: 0,
+							IsVolumetric: false,
+							Length: null,
+							Width: null,
+							Height: null,
+							PreShipmentMobileId: 0,
+							CalculatedPrice: null,
+							SpecialPackageId: null,
+							IsCancelled: false,
+							PictureName: "",
+							PictureDate: null,
+							WeightRange: "0",
+						},
+					],
+					VehicleType: "BIKE",
+					IsBatchPickUp: false,
+					WaybillImage: "",
+					WaybillImageFormat: "",
+					DestinationServiceCenterId: 0,
+					DestinationServiceCentreId: 0,
+					IsCashOnDelivery: false,
+					CashOnDeliveryAmount: 0.0,
+				};
+
+				const axiosConfig: requestProp = {
+					url: envConfig.AGILITY_BASE_URL + "/price",
+					method: "POST",
+					body: agPayload,
+					headers: {
+						Authorization: `Bearer ${config?.agility_token}`,
+					},
+				};
+				const agilityLogin = await axiosRequestFunction(axiosConfig);
+				if (Number(agilityLogin?.code) < 400 && agilityLogin?.data) {
+					const shipping_cost = nearest(
+						Number(agilityLogin?.data?.object?.grandTotal),
+						50
+					);
+					const shipping_items =
+						agilityLogin?.data?.object?.preshipmentMobile?.preShipmentItems;
+					responseData = {
+						status: StatusMessages.success,
+						code: HttpCodes.HTTP_OK,
+						message: agilityLogin.message,
+						data: {
+							shipping_cost,
+							shipping_items,
+							agility_payload: agPayload,
+						},
+					};
+					if (user && order) {
+						order.delivery_amount = shipping_cost;
+						order.agility_price_payload = agPayload;
+						await order.save();
+					}
+					return responseData;
+				} else {
+					return agilityLogin;
+				}
 			}
 		} catch (error: any) {
 			console.log(
